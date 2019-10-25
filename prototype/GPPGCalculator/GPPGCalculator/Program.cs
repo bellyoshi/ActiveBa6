@@ -10,6 +10,17 @@ namespace GPPGCalculator
     {
         static void Main(string[] args)
         {
+            var parser = new Calculator.CalculatorParser();
+            do
+            {
+                Console.Write(">");
+                var input = Console.ReadLine();
+                if (string.IsNullOrEmpty(input))
+                {
+                    return;
+                }
+                parser.Parse(input);
+            } while (true);
         }
     }
 }
