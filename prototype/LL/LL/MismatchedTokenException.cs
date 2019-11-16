@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace LL
 {
-    public class RecognitionExeption : Exception
+    class MismatchedTokenException : RecognitionExeption
     {
-        public RecognitionExeption(string message) : base(message) { }
+        public MismatchedTokenException(string message) : base(message) { }
     }
-
+    
 }

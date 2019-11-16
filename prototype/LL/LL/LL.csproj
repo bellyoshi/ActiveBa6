@@ -43,6 +43,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MismatchedTokenException.cs" />
+    <Compile Include="NoViableAltException.cs" />
+    <Compile Include="RecognitionExeption.cs" />
     <Compile Include="Lexer.cs" />
     <Compile Include="ListLexer.cs" />
     <Compile Include="ListParser.cs" />

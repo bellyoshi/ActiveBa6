@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LL
 {
-    public class NoViableAltException: Exception
+    public class NoViableAltException: RecognitionExeption
     {
         public NoViableAltException(string message):base(message) { }
     }

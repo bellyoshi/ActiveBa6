@@ -8,21 +8,17 @@ namespace LL
 {
     public class Parser
     {
-        private Lexer _input;
+        Lexer _input;
 
-        public Token[] Lookahead { get; private set; }
-        private int k;
-        private int p = 0;
-       　
-        public Parser(Lexer input, int k)
+        List<Token> Lookahead = new List<Token>();
+        List<int> markers = new List<int>();
+        int p = 0;
+
+        public Parser(Lexer input)
         {
             this._input = input;
-            this.k = k;
-            Lookahead = new Token[k];
-            for(int i = 0; i < k; i++)
-            {
-                Consume();
-            }
+       
+            
         }
         public void Match(int x)
         {
@@ -32,12 +28,31 @@ namespace LL
             }
             else
             {
-                throw new Exception($"expecting {TokenTypes.TokenName(x)}; found {Lookahead}");
+                throw new MismatchedTokenException($"expecting {TokenTypes.TokenName(x)}; found {LT(1)}");
             }
         }
         public Token LT(int i)
         {
-            return Lookahead[(p + i - 1) % k];
+            Sync(i);
+            return Lookahead[(p + i - 1)];
+        }
+
+        void Sync(int i)
+        {
+            if(p + i-1>(Lookahead.Count - 1))
+            {
+                int n = (p + i - 1) - (Lookahead.Count - 1);
+                Fill(n);
+            }
+        }
+
+        void Fill(int n)
+        {
+            
+            for(int i = 0; i < n; i++)
+            {
+                Lookahead.Add(_input.NextToken());
+            }
         }
         public int LA(int i)
         {
@@ -45,8 +60,34 @@ namespace LL
         }
         public void Consume()
         {
-            Lookahead[p] = _input.NextToken();
-            p = (p + 1) % k;
+            p++;
+            if(p==Lookahead.Count && !IsSpeculating())
+            {
+                p = 0;
+                Lookahead.Clear();
+            }
+            Sync(1);
+        }
+
+        public bool IsSpeculating()
+        {
+            return 0 < markers.Count;
+        }
+
+        public int Mark()
+        {
+            markers.Add(p);
+            return p;
+        }
+        public void Release()
+        {
+            int marker = markers.Last();
+            markers.Remove(marker);
+            Seek(marker);
+        }
+        public void Seek(int index)
+        {
+            p = index;
         }
     }
 }

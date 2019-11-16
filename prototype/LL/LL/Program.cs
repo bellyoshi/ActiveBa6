@@ -29,7 +29,7 @@ namespace LL
         {
             var lexer = new ListLexer(src);
             var parser = new ListParser(lexer);
-            parser.List();
+            parser.Stat();
         }
     }
 }

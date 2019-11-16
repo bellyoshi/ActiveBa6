@@ -8,7 +8,7 @@ namespace LL
 {
     public class ListParser:Parser
     {
-        public ListParser(Lexer input) : base(input,5) { }
+        public ListParser(Lexer input) : base(input) { }
 
         public void List()
         {
@@ -16,6 +16,14 @@ namespace LL
             Match(LBRACK);
             Elements();
             Match(RBLACK);
+        }
+
+        public void Assign()
+        {
+            Console.WriteLine("Assign");
+            List();
+            Match(EQUAL);
+            List();
         }
         public void Elements()
         {
@@ -46,7 +54,7 @@ namespace LL
             }
             else
             {
-                throw new Exception($"Expecting name or list; found {Lookahead}");
+                throw new Exception($"Expecting name or list; found {LT(1)}");
             }
         }
 
@@ -100,13 +108,6 @@ namespace LL
 
         }
 
-        void Mark()
-        {
-            //入力の現在位置に目印をつけて、巻き戻せるようにする。
-        }
-        void Release()
-        {
-            //照合前の位置まで巻き戻す。
-        }
+
     }
 }
