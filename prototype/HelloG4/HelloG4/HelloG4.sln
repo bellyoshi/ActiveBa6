@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.902
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloG4", "HelloG4\HelloG4.csproj", "{113CA10E-CF7A-415B-A36B-6A8668BE1516}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graphics2", "Graphics2\Graphics2.csproj", "{74A69AE7-A17B-4753-8903-A44CD7ADF621}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{113CA10E-CF7A-415B-A36B-6A8668BE1516}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{113CA10E-CF7A-415B-A36B-6A8668BE1516}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{113CA10E-CF7A-415B-A36B-6A8668BE1516}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74A69AE7-A17B-4753-8903-A44CD7ADF621}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74A69AE7-A17B-4753-8903-A44CD7ADF621}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74A69AE7-A17B-4753-8903-A44CD7ADF621}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74A69AE7-A17B-4753-8903-A44CD7ADF621}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

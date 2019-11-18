@@ -14,13 +14,13 @@ namespace LL
         List<int> markers = new List<int>();
         int p = 0;
 
-        public Parser(Lexer input)
+        protected Parser(Lexer input)
         {
             this._input = input;
        
             
         }
-        public void Match(int x)
+        protected void Match(int x)
         {
             if (LA(1) == x)
             {
@@ -31,13 +31,13 @@ namespace LL
                 throw new MismatchedTokenException($"expecting {TokenTypes.TokenName(x)}; found {LT(1)}");
             }
         }
-        public Token LT(int i)
+        protected Token LT(int i)
         {
             Sync(i);
             return Lookahead[(p + i - 1)];
         }
 
-        void Sync(int i)
+        private void Sync(int i)
         {
             if(p + i-1>(Lookahead.Count - 1))
             {
@@ -46,7 +46,7 @@ namespace LL
             }
         }
 
-        void Fill(int n)
+        private void Fill(int n)
         {
             
             for(int i = 0; i < n; i++)
@@ -58,7 +58,7 @@ namespace LL
         {
             return LT(i).Type;
         }
-        public void Consume()
+        protected void Consume()
         {
             p++;
             if(p==Lookahead.Count && !IsSpeculating())
@@ -69,17 +69,17 @@ namespace LL
             Sync(1);
         }
 
-        public bool IsSpeculating()
+        protected bool IsSpeculating()
         {
             return 0 < markers.Count;
         }
 
-        public int Mark()
+        protected int Mark()
         {
             markers.Add(p);
             return p;
         }
-        public void Release()
+        protected void Release()
         {
             int marker = markers.Last();
             markers.Remove(marker);
