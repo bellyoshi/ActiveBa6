@@ -11,8 +11,7 @@ namespace HelloG4
     {
         static void Main(string[] args)
         {
-            string parsedString = "hello abc";
-            var inputStream = new AntlrInputStream(parsedString);
+            var inputStream = new AntlrInputStream(Console.In);
             var lexer = new HelloLexer(inputStream);
             var commonTokenStream = new CommonTokenStream(lexer);
             var parser = new HelloParser(commonTokenStream);
