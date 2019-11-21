@@ -22,7 +22,7 @@ namespace ArrayInit
         public override void EnterValue([NotNull] ArrayInitParser.ValueContext context)
         {
             int value = int.Parse(context.INT().GetText());
-            Console.Write(@"\u{0: X4}", value);
+            Console.Write(@"\u{0}", value.ToString("X4"));
             base.EnterValue(context);
         }
     }
