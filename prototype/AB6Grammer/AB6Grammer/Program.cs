@@ -57,6 +57,7 @@ namespace AB6Grammer
             var result = cscp.CompileAssemblyFromSource(param , new string[] { cssrc });
             if (0 < result.Errors.Count)
             {
+                Console.Write(cssrc);
                 Console.Write(result);
             }
         }
