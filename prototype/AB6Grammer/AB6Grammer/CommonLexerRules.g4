@@ -1,6 +1,6 @@
 lexer grammar CommonLexerRules;
 
-
+@lexer::header {#pragma warning disable 3021}
 
 MUL		:	'*';
 DIV		:	'/';
@@ -50,6 +50,16 @@ TYPE	: STRING
 
 PRINT : P R I N T ;
 DIM: D I M;
+LET: L E T;
+IF : I F;
+ELSE : E L S E;
+THEN : T H E N;
+END : E N D;
+WHILE : W H I L E;
+FOR : F O R;
+TO : T O;
+NEXT : N E X T;
+STEP : S T E P;
 
 /*
  * Lexer Rules

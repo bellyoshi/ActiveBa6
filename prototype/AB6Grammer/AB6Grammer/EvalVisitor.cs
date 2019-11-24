@@ -22,6 +22,7 @@ namespace AB6Grammer
 
         }
 
+
         public override string VisitChildren([NotNull] IRuleNode node)
         {
             string s = string.Empty;
@@ -36,10 +37,50 @@ namespace AB6Grammer
             return VisitStat(context.stat());
         }
 
-        public override string VisitAssign([NotNull] AB6Parser.AssignContext context)
+        public override string VisitIfstat([NotNull] AB6Parser.IfstatContext context)
+        {
+            var expr = context.expr().GetText();
+            var stat1 = Visit(context.stat(0));
+            if (null != context.stat(1)){
+                var stat2 = Visit(context.stat(1));
+                return $"if (0 < {expr}){{{stat1}}}else{{{stat2}}}";
+            }
+            else
+            {
+                return $"if (0 < {expr}){{{stat1}}}";
+            }
+        }
+
+        public override string VisitIfstatMulti([NotNull] AB6Parser.IfstatMultiContext context)
+        {
+            var expr = context.expr().GetText();
+            var stat1 = Visit(context.linestat(0));
+            if (null != context.linestat(1))
+            {
+                var stat2 = Visit(context.linestat(1));
+                return $"if (0 < {expr}){{{stat1}}}else{{{stat2}}}";
+            }
+            else
+            {
+                return $"if (0 < {expr}){{{stat1}}}";
+            }
+        }
+
+        public override string VisitForstat([NotNull] AB6Parser.ForstatContext context)
         {
             var id = context.ID().GetText();
-            var exprvalue = VisitExpr(context.expr());
+            var expr = context.INT(0).GetText();
+            var assign = getAssignCS(id, expr);
+            var to = context.INT(1).GetText();
+
+            return $"for({assign}{id}<={to};{id}++)\n" +
+            "{\n" +
+             Visit(context.linestat(0))
+            + "}\n";
+        }
+
+        private string getAssignCS(string id , string exprvalue)
+        {
             if (!memory.Contains(id))
             {
                 memory.Add(id);
@@ -49,6 +90,13 @@ namespace AB6Grammer
             {
                 return $"{id} = {exprvalue};\n";
             }
+        }
+
+        public override string VisitAssign([NotNull] AB6Parser.AssignContext context)
+        {
+            var id = context.ID().GetText();
+            var expr = VisitExpr(context.expr());
+            return getAssignCS(id , expr);
         }
 
         public override string VisitPrint([NotNull] AB6Parser.PrintContext context)
