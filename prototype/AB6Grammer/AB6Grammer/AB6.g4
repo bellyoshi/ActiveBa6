@@ -12,12 +12,20 @@ prog:	linestat+ ;
 
 linestat: INT? stat NEWLINE;
 
+declSub :  SUB ID '(' ')' NEWLINE
+		    linestat+
+		   INT? END SUB 
+		;
+callSub :  'call'? ID'(' ')';
+
 stat:	print
 	|   dimenition
 	|	assign 
 	|	ifstat
 	|	ifstatMulti
 	|	forstat
+	|	declSub
+	|   callSub
 	;
 
 ifstatMulti: IF expr THEN NEWLINE
@@ -38,7 +46,7 @@ assign :	LET? ID '=' expr;
 label :	INT;
 
 expr	:	expr op=(MUL | DIV) expr	#mulDiv
-		|	expr op=(ADD | SUB) expr	#addSub
+		|	expr op=(ADD | MINUS) expr	#addSub
 		|	INT							#int
 		|	ID							#id
 		|	'(' expr ')'				#parens

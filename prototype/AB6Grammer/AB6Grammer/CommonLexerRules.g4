@@ -5,7 +5,7 @@ lexer grammar CommonLexerRules;
 MUL		:	'*';
 DIV		:	'/';
 ADD		:	'+';
-SUB		:	'-';
+MINUS	:	'-';
 
 /*
  * Upper Lower
@@ -60,6 +60,7 @@ FOR : F O R;
 TO : T O;
 NEXT : N E X T;
 STEP : S T E P;
+SUB : S U B;
 
 /*
  * Lexer Rules

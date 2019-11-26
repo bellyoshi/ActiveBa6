@@ -11,15 +11,38 @@ namespace AB6Grammer
     class EvalVisitor : AB6BaseVisitor<string>
     {
         List<String> memory = new List<string>();
+        StringBuilder declMethods = new StringBuilder();
 
         public override string VisitProg([NotNull] AB6Parser.ProgContext context)
         {
             return
                 "public class CSHello {\n" +
+                declMethods
+                +
                     "public static void Main(){ \n"
                + base.VisitProg(context) +
                     "}\n}\n";
 
+        }
+
+        public override string VisitCallSub([NotNull] AB6Parser.CallSubContext context)
+        {
+            var id = context.ID().GetText();
+            return $"{id}();";
+        }
+
+
+        public override string VisitDeclSub([NotNull] AB6Parser.DeclSubContext context)
+        {
+            var id = context.ID().GetText();
+            declMethods.Append($"private static void {id}()\n");
+            declMethods.Append("{");
+            for(int i  = 0; i < context.linestat().Length; i++)
+            {
+                declMethods.Append(VisitLinestat(context.linestat(i)));
+            }
+            declMethods.Append("}");
+            return "";
         }
 
 
