@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExVisitor.cs" />
     <Compile Include="Hello.g4.lexer.cs">
       <DependentUpon>Hello.g4</DependentUpon>
     </Compile>

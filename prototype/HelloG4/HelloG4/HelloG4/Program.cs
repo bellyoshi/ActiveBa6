@@ -11,12 +11,24 @@ namespace HelloG4
     {
         static void Main(string[] args)
         {
-            var inputStream = new AntlrInputStream(Console.In);
-            var lexer = new HelloLexer(inputStream);
-            var commonTokenStream = new CommonTokenStream(lexer);
-            var parser = new HelloParser(commonTokenStream);
-            var graphContext = parser.r();
-            Console.WriteLine(graphContext.ToStringTree());
+            while (true)
+            {
+                var line = Console.ReadLine();
+                var inputStream = new AntlrInputStream(line);
+                var lexer = new HelloLexer(inputStream);
+                var commonTokenStream = new CommonTokenStream(lexer);
+                var parser = new HelloParser(commonTokenStream);
+                var tree = parser.r();
+                var exvisitor = new ExVisitor();
+                var ex = exvisitor.Visit(tree);
+                var e = System.Linq.Expressions.Expression.Lambda<Func<int>>(ex);
+
+                var f = e.Compile();
+
+                Console.WriteLine(tree.ToStringTree());
+                Console.WriteLine(f());
+
+            }
         }
     }
 }
