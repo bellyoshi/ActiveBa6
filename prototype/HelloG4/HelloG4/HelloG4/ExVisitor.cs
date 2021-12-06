@@ -21,6 +21,11 @@ namespace HelloG4
             return base.VisitStat(context);
         }
 
+        public override Expression VisitPrintExpr([NotNull] HelloParser.PrintExprContext context)
+        {
+            return base.VisitPrintExpr(context);
+        }
+
 
         public override Expression VisitInt([NotNull] HelloParser.IntContext context)
         {

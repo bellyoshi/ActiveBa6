@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.902
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloG4", "HelloG4\HelloG4.csproj", "{113CA10E-CF7A-415B-A36B-6A8668BE1516}"
 EndProject
@@ -10,8 +10,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArrayInit", "ArrayInit\ArrayInit.csproj", "{4A30ABC4-B1DB-41EA-B68E-6455CC2EDA2B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expr", "Expr\Expr.csproj", "{B72B7FC9-54AA-4697-9921-9F38FF9B76B2}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Java", "Java\Java.csproj", "{B03F46B2-108B-4939-9731-153D783EB403}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +33,6 @@ Global
 		{B72B7FC9-54AA-4697-9921-9F38FF9B76B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B72B7FC9-54AA-4697-9921-9F38FF9B76B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B72B7FC9-54AA-4697-9921-9F38FF9B76B2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B03F46B2-108B-4939-9731-153D783EB403}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B03F46B2-108B-4939-9731-153D783EB403}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B03F46B2-108B-4939-9731-153D783EB403}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B03F46B2-108B-4939-9731-153D783EB403}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
