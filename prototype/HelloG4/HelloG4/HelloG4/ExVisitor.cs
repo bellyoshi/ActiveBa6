@@ -11,6 +11,15 @@ namespace HelloG4
     internal class ExVisitor : HelloBaseVisitor<System.Linq.Expressions.Expression>
     {
 
+        public override Expression VisitProg([NotNull] HelloParser.ProgContext context)
+        {
+            return base.VisitProg(context);
+        }
+
+        public override Expression VisitStat([NotNull] HelloParser.StatContext context)
+        {
+            return base.VisitStat(context);
+        }
 
 
         public override Expression VisitInt([NotNull] HelloParser.IntContext context)
