@@ -14,9 +14,14 @@ namespace HelloG4
         {
             var right = Expression.Constant(0);
             var left = Expression.Constant(context.NUM(1));
-            return right; 
+            return Expression.Constant(
+                int.Parse(context.NUM(1).GetText())
+                + int.Parse(context.NUM(0).GetText())
+                
+                ); 
         }
         
+       
         
 
     }
