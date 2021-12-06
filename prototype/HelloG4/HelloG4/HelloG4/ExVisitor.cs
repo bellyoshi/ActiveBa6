@@ -12,8 +12,9 @@ namespace HelloG4
     {
         public override Expression VisitR([NotNull] HelloParser.RContext context)
         {
-            var right = context.NUM();
-            return Expression.Constant(0);
+            var right = Expression.Constant(0);
+            var left = Expression.Constant(context.NUM(1));
+            return right; 
         }
         
         
