@@ -4,7 +4,7 @@ grammar Hello;
 
 prog	:	stat+;
 
-stat	:	expr NEWLINE				#printExpr
+stat	:	'PRINT' expr NEWLINE		#printExpr
 		|	ID '=' expr NEWLINE			#assign
 		|	NEWLINE						#blank
 		;

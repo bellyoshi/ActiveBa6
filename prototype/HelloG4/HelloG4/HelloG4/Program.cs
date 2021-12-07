@@ -18,7 +18,7 @@ namespace HelloG4
                 var lexer = new HelloLexer(inputStream);
                 var commonTokenStream = new CommonTokenStream(lexer);
                 var parser = new HelloParser(commonTokenStream);
-                var tree = parser.expr();
+                var tree = parser.prog();
                 var exvisitor = new ExVisitor();
                 var ex = exvisitor.Visit(tree);
                 var e = System.Linq.Expressions.Expression.Lambda<Func<int>>(ex);
@@ -26,7 +26,7 @@ namespace HelloG4
                 var f = e.Compile();
 
                 Console.WriteLine(tree.ToStringTree());
-                Console.WriteLine(f());
+                f();
 
             }
         }

@@ -5,27 +5,59 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace HelloG4
 {
     internal class ExVisitor : HelloBaseVisitor<System.Linq.Expressions.Expression>
     {
-
+        List<ParameterExpression> MemoryList = new List<ParameterExpression>();
         public override Expression VisitProg([NotNull] HelloParser.ProgContext context)
         {
-            return base.VisitProg(context);
-        }
-
-        public override Expression VisitStat([NotNull] HelloParser.StatContext context)
-        {
-            return base.VisitStat(context);
+            var expressions = new List<Expression>();
+            foreach(var s in context.stat())
+            {
+                expressions.Add(Visit(s));
+            }
+            var block = Expression.Block(MemoryList, expressions);
+            return block;
         }
 
         public override Expression VisitPrintExpr([NotNull] HelloParser.PrintExprContext context)
         {
-            return base.VisitPrintExpr(context);
+            var expr =  Visit(context.expr());
+            
+            BlockExpression blockExpr = Expression.Block(
+    Expression.Call(
+        null,
+        typeof(Console).GetMethod("WriteLine", new Type[] { typeof(int) }),
+        expr
+       ),
+    Expression.Constant(0)
+);
+            return blockExpr;
         }
+        public override Expression VisitAssign([NotNull] HelloParser.AssignContext context)
+        {
 
+            var name = context.ID().GetText();
+            var left = MemoryList.Find(m => m.Name == name);
+
+            if (left == null)
+            {
+                left = Expression.Parameter(typeof(int), name);
+                MemoryList.Add(left);
+            }
+            var right = Visit(context.expr());
+
+            return Expression.Assign(left, right);
+        }
+        private static Expression[] CreateParameterExpressions(MethodInfo method, params Expression[] argParam)
+        {
+            return method.GetParameters().Select((param, index) =>
+                Expression.Convert(argParam[index]
+              , param.ParameterType)).ToArray();
+        }
 
         public override Expression VisitInt([NotNull] HelloParser.IntContext context)
         {
@@ -36,8 +68,9 @@ namespace HelloG4
 
         public override Expression VisitId([NotNull] HelloParser.IdContext context)
         {
-            string id = context.ID().GetText();
-            return Expression.Constant(0);//todo:
+            string name = context.ID().GetText();
+            return MemoryList.Find(m => m.Name == name);
+            
         }
 
         public override Expression VisitMulDiv([NotNull] HelloParser.MulDivContext context)
