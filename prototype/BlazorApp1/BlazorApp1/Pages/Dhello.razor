@@ -1,0 +1,23 @@
+﻿@page "/dhello"
+
+<p>@message</p>
+
+ <input type="text" @bind-value="@src" @bind-value:event="oninput" />
+<button class="btn btn-primary" @onclick="@Hello">実行</button>
+@code{
+    string message = "Please Push Hello";
+    string src = "";
+    void Hello()
+    {
+        string value = HelloG4.Class2.Message;
+        try
+        {
+            value = $"{HelloG4.Class1.GetExprVal(src)}";
+        }
+        catch(Exception e)
+        {
+            value = e.Message;
+        }
+        message = value;
+    }
+}

@@ -13,8 +13,8 @@ namespace HelloG4
         {
             while (true)
             {
-                var line = Console.ReadLine();
-                var inputStream = new AntlrInputStream(line);
+                
+                var inputStream = new AntlrInputStream(Console.In);
                 var lexer = new HelloLexer(inputStream);
                 var commonTokenStream = new CommonTokenStream(lexer);
                 var parser = new HelloParser(commonTokenStream);
@@ -22,7 +22,6 @@ namespace HelloG4
                 var exvisitor = new ExVisitor();
                 var ex = exvisitor.Visit(tree);
                 var e = System.Linq.Expressions.Expression.Lambda<Func<int>>(ex);
-
                 var f = e.Compile();
 
                 Console.WriteLine(tree.ToStringTree());

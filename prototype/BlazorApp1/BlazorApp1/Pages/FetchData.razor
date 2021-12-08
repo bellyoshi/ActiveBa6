@@ -36,7 +36,17 @@ else
     </table>
     <p>
         @ClassLibrary1.Class1.Message()
+        @ClassLibrary2.Class1.getMessage()
     </p>
+
+    <h2>@name</h2>
+    <input type="text" @bind-value="name" @bind-value:event="oninput" />
+    <form method="post">
+    <input type="submit" value="Button1" />
+  </form>
+    @code {
+        string name = "";
+    }
 }
 
 @code {

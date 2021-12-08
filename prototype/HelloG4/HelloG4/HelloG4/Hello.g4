@@ -21,9 +21,10 @@ MUL		:	'*';
 DIV		:	'/';
 ADD		:	'+';
 SUB		:	'-';
-NEWLINE	:	';';
+NEWLINE	:	'\n';
+
 
 ID		:	[a-zA-Z][a-zA-Z0-9]* ;
 INT		:	'0'|([1-9][0-9]*) ;
 
-WS	: [ \t\r\n]+ -> skip ;
+WS	: [ \t\r]+ -> skip ;

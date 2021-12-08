@@ -12,7 +12,8 @@ namespace TestProject1
         [Test]
         public void Test1()
         {
-            Assert.Pass();
+            Assert.AreEqual(2, HelloG4.Class1.GetExprVal("1+1"));
+            Assert.AreEqual(14, HelloG4.Class1.GetExprVal("2+4*3"));
         }
     }
 }
