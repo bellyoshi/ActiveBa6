@@ -1,6 +1,6 @@
-grammar Hello;
+grammar ab6hello;
 @parser::header {#pragma warning disable 3021}
-@lexer::jeader {#pragma warning disable 3021}
+@lexer::header {#pragma warning disable 3021}
 
 prog	:	stat+;
 

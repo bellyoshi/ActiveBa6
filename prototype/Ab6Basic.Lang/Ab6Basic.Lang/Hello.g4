@@ -4,9 +4,9 @@ grammar Hello;
 
 prog	:	stat+;
 
-stat	:	'PRINT' expr NEW_LINE		#printExpr
-		|	ID '=' expr NEW_LINE			#assign
-		|	NEW_LINE						#blank
+stat	:	'PRINT' expr NEWLINE		#printExpr
+		|	ID '=' expr NEWLINE			#assign
+		|	NEWLINE						#blank
 		;
 
 
@@ -21,7 +21,7 @@ MUL		:	'*';
 DIV		:	'/';
 ADD		:	'+';
 SUB		:	'-';
-NEW_LINE	:	'\n';
+NEWLINE	:	'\n';
 
 
 ID		:	[a-zA-Z][a-zA-Z0-9]* ;
