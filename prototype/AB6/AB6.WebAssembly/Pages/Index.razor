@@ -5,11 +5,11 @@
  <input type="text" @bind-value="@src" @bind-value:event="oninput" />
 <button class="btn btn-primary" @onclick="@Hello">実行</button>
 @code{
-    string message = "Please Push Hello";
+    string message = "式を入れて実行してください";
     string src = "";
     void Hello()
     {
-        string value = HelloG4.Class2.Message;
+        var value = "";
         try
         {
             value = $"{AB6.Lang.Class1.GetExprVal(src)}";
