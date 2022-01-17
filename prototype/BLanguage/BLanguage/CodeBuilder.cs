@@ -127,14 +127,15 @@ namespace BLanguage
         public string GetEmitLocals(string [] types, params string[] parameters)
         {
             Contract.Requires(types.Length == parameters.Length);
-            string localInit = ".local init ( ";
+            Contract.Requires(types.Any(c => _dataType.ContainsKey(c)));
+            string localInit = ".locals init ( ";
             for(int i = 0; i < parameters.Length; i++)
             {
                 var type = types[i];
                 localInit += $"{type} {parameters[i]}";
                 if (i < parameters.Length - 1)
                 {
-                    localInit += ",";
+                    localInit += ", ";
                 }
             }
             return localInit + ")";
@@ -142,10 +143,8 @@ namespace BLanguage
 
         public string GetEmitLocals(string parameter, string type)
         {
-            type = _dataType[type];
-            var localInit = ".locals init ( ";
-            localInit += type + " " + parameter;
-            return localInit + ")";
+            var datatype = _dataType[type];
+            return GetEmitLocals(new string[] { datatype }, new string[] { parameter });
         }
 
         public void EmitHttpClientStart(string identifier)

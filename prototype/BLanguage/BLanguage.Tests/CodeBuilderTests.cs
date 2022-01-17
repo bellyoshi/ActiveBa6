@@ -12,13 +12,15 @@ namespace BLanguage
             Assert.AreEqual(".locals init ( int32 1)", actual);
         }
 
+        [Test]
         public void GetEmitLocalsTest2()
         {
             var sut = new CodeBuilder();
             var actual = sut.GetEmitLocals(
-                new string[] { "1", "2" }, 
-                new string[] {"double", "float");
-            Assert.AreEqual(".locals init ( int32 12345)", actual);
+                new string[] { "float64", "float32" },
+                new string[] { "1.0", "2.0" }
+                );
+            Assert.AreEqual(".locals init ( float64 1.0, float32 2.0)" ,actual);
         }
     }
 }
