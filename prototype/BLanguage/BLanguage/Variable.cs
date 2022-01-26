@@ -98,6 +98,24 @@ namespace BLanguage
         }
         public int CompareTo(Variable other)
         {
+            if(IsNumber() && other.IsNumber())
+            {
+                if(ToDouble() == other.ToDouble())
+                {
+                    return 0;
+                }
+                else
+                {
+                    return ToDouble().CompareTo(other.ToDouble());
+                }
+            }else if(IsString() && other.IsString())
+            {
+                return ToString().CompareTo(other.ToString());
+            }
+            else
+            {
+                throw new Exception("Illeagal operator");
+            }
 
         }
     }
