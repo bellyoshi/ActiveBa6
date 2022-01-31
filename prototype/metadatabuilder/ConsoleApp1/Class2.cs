@@ -1,22 +1,19 @@
-﻿
-
-using System.Reflection.Metadata.Ecma335;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Reflection.Metadata;
-
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
 
 namespace ConsoleApp1
 {
-    public class Class1
+    internal class Class2
     {
-
-
+        private static readonly Guid s_guid = new Guid("87D4DBE1-1143-4FAD-AAB3-1001F92068E6");
+        private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201);
 
         private static MethodDefinitionHandle EmitHelloWorld(MetadataBuilder metadata, BlobBuilder ilBuilder)
         {
-            var s_guid = PEImageCreator.s_guid;
-        // Create module and assembly for a console application.
-        metadata.AddModule(
+            // Create module and assembly for a console application.
+            metadata.AddModule(
                 0,
                 metadata.GetOrAddString("ConsoleApplication.exe"),
                 metadata.GetOrAddGuid(s_guid),
@@ -89,23 +86,39 @@ namespace ConsoleApp1
 
             var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
 
-            var emit = new EmitHelper(metadata, methodBodyStream);
+            var codeBuilder = new BlobBuilder();
+            InstructionEncoder il;
 
-            var ctorBodyOffset = 
-            emit
-                .ldarg_0
-                .call(objectCtorMemberRef)
-                .ret
-                .AddMethodBody();
-            ;
+            // Emit IL for Program::.ctor
+            il = new InstructionEncoder(codeBuilder);
 
+            // ldarg.0
+            il.LoadArgument(0);
 
-            var mainBodyOffset = emit
-                .ldstr("Hello MSIL")
-                .call(consoleWriteLineMemberRef)
-                .ret
-                .AddMethodBody();
+            // call instance void [mscorlib]System.Object::.ctor()
+            il.Call(objectCtorMemberRef);
 
+            // ret
+            il.OpCode(ILOpCode.Ret);
+
+            int ctorBodyOffset = methodBodyStream.AddMethodBody(il);
+            codeBuilder.Clear();
+
+            // Emit IL for Program::Main
+            var flowBuilder = new ControlFlowBuilder();
+            il = new InstructionEncoder(codeBuilder, flowBuilder);
+
+            // ldstr "hello"
+            il.LoadString(metadata.GetOrAddUserString("Hello, world"));
+
+            // call void [mscorlib]System.Console::WriteLine(string)
+            il.Call(consoleWriteLineMemberRef);
+
+            // ret
+            il.OpCode(ILOpCode.Ret);
+
+            int mainBodyOffset = methodBodyStream.AddMethodBody(il);
+            codeBuilder.Clear();
 
             // Create method definition for Program::Main
             MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
@@ -146,42 +159,43 @@ namespace ConsoleApp1
             return mainMethodDef;
         }
 
-       
-
-        public static void BuildHelloWorldApp(string exename)
+        private static void WritePEImage(
+            Stream peStream,
+            MetadataBuilder metadataBuilder,
+            BlobBuilder ilBuilder,
+            MethodDefinitionHandle entryPointHandle
+            )
         {
-            PEImageCreator pEImageCreator = new PEImageCreator(exename);
+            // Create executable with the managed metadata from the specified MetadataBuilder.
+            var peHeaderBuilder = new PEHeaderBuilder(
+                imageCharacteristics: Characteristics.ExecutableImage
+                );
 
-            var entryPoint = EmitHelloWorld(pEImageCreator.metadataBuilder, pEImageCreator.ilBuilder);
-            pEImageCreator.Create(entryPoint);
-        }
-        public static string RunApp(string exename)
-        {
+            var peBuilder = new ManagedPEBuilder(
+                peHeaderBuilder,
+                new MetadataRootBuilder(metadataBuilder),
+                ilBuilder,
+                entryPoint: entryPointHandle,
+                flags: CorFlags.ILOnly,
+                deterministicIdProvider: content => s_contentId);
 
-            using var process = new System.Diagnostics.Process();
-
-            process.StartInfo.FileName = exename;
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-
-            // Synchronously read the standard output of the spawned process.
-            StreamReader reader = process.StandardOutput;
-            string output = reader.ReadToEnd();
-
-
-            process.WaitForExit();
-
-
-            return output;
-        }
-        public static string BuildAndRun(string exename)
-        {
-            BuildHelloWorldApp(exename);
-            return RunApp(exename);
-            
+            // Write executable into the specified stream.
+            var peBlob = new BlobBuilder();
+            BlobContentId contentId = peBuilder.Serialize(peBlob);
+            peBlob.WriteContentTo(peStream);
         }
 
+        public static void BuildHelloWorldApp()
+        {
+            using var peStream = new FileStream(
+                "ConsoleApplication.exe", FileMode.OpenOrCreate, FileAccess.ReadWrite
+                );
+
+            var ilBuilder = new BlobBuilder();
+            var metadataBuilder = new MetadataBuilder();
+
+            MethodDefinitionHandle entryPoint = EmitHelloWorld(metadataBuilder, ilBuilder);
+            WritePEImage(peStream, metadataBuilder, ilBuilder, entryPoint);
+        }
     }
-
 }
