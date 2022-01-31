@@ -14,35 +14,16 @@ namespace ConsoleApp1
 
         private static MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
-            MetadataBuilder metadata = metadataHelper.metadataBuilder;
+            MetadataBuilder metadata = metadataHelper.metadata;
             BlobBuilder ilBuilder = metadataHelper.ilBuilder;
-            var s_guid = PEImageCreator.s_guid;
+            metadataHelper.s_guid = PEImageCreator.s_guid;
         // Create module and assembly for a console application.
-        metadata.AddModule(
-                0,
-                metadata.GetOrAddString("ConsoleApplication.exe"),
-                metadata.GetOrAddGuid(s_guid),
-                default(GuidHandle),
-                default(GuidHandle));
 
-            metadata.AddAssembly(
-                metadata.GetOrAddString("ConsoleApplication"),
-                version: new Version(1, 0, 0, 0),
-                culture: default(StringHandle),
-                publicKey: default(BlobHandle),
-                flags: 0,
-                hashAlgorithm: AssemblyHashAlgorithm.None);
+            metadataHelper.AddModule("ConsoleApplication.exe")
+                .AddAssembly("ConsoleApplication");
 
-            // Create references to System.Object and System.Console types.
-            AssemblyReferenceHandle mscorlibAssemblyRef = metadata.AddAssemblyReference(
-                name: metadata.GetOrAddString("mscorlib"),
-                version: new Version(4, 0, 0, 0),
-                culture: default(StringHandle),
-                publicKeyOrToken: metadata.GetOrAddBlob(
-                    new byte[] { 0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89 }
-                    ),
-                flags: default(AssemblyFlags),
-                hashValue: default(BlobHandle));
+
+            var mscorlibAssemblyRef = metadataHelper.AddAssemblyReference_mscoreLib();
 
             TypeReferenceHandle systemObjectTypeRef = metadata.AddTypeReference(
                 mscorlibAssemblyRef,

@@ -32,7 +32,7 @@ namespace ConsoleApp1
             MethodDefinitionHandle entryPointHandle
             )
         {
-            MetadataBuilder metadataBuilder = metadataHelper.metadataBuilder;
+            MetadataBuilder metadataBuilder = metadataHelper.metadata;
             BlobBuilder ilBuilder = metadataHelper.ilBuilder;
 
             // Create executable with the managed metadata from the specified MetadataBuilder.
