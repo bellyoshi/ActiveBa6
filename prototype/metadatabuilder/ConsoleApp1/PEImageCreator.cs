@@ -11,8 +11,7 @@ namespace ConsoleApp1
         {
             this.exename = exename;
         }
-        public BlobBuilder ilBuilder { get; } = new BlobBuilder();
-        public MetadataBuilder metadataBuilder { get; } =new MetadataBuilder();
+        public MetadataHelper metadataHelper { get; } =new MetadataHelper();
         public void Create(MethodDefinitionHandle entryPoint)
         {
 
@@ -22,18 +21,20 @@ namespace ConsoleApp1
 
 
 
-            PEImageCreator.WritePEImage(peStream, metadataBuilder, ilBuilder, entryPoint);
+            PEImageCreator.WritePEImage(peStream, metadataHelper, entryPoint);
         }
         public static readonly Guid s_guid = new Guid("87D4DBE1-1143-4FAD-AAB3-1001F92068E6");
         private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201);
 
-        public static void WritePEImage(
-           Stream peStream,
-           MetadataBuilder metadataBuilder,
-           BlobBuilder ilBuilder,
-           MethodDefinitionHandle entryPointHandle
-           )
+        private static void WritePEImage(
+            Stream peStream,
+            MetadataHelper metadataHelper,
+            MethodDefinitionHandle entryPointHandle
+            )
         {
+            MetadataBuilder metadataBuilder = metadataHelper.metadataBuilder;
+            BlobBuilder ilBuilder = metadataHelper.ilBuilder;
+
             // Create executable with the managed metadata from the specified MetadataBuilder.
             var peHeaderBuilder = new PEHeaderBuilder(
                 imageCharacteristics: Characteristics.ExecutableImage

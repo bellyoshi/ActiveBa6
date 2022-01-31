@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleApp1
 {
-    public class MetadataBuilderHelper
+    internal class BlobBuilderHelper
     {
-        public EmitHelper Emitter { get; }
     }
 }

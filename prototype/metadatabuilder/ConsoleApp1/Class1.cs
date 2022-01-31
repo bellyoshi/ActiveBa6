@@ -12,8 +12,10 @@ namespace ConsoleApp1
 
 
 
-        private static MethodDefinitionHandle EmitHelloWorld(MetadataBuilder metadata, BlobBuilder ilBuilder)
+        private static MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
+            MetadataBuilder metadata = metadataHelper.metadataBuilder;
+            BlobBuilder ilBuilder = metadataHelper.ilBuilder;
             var s_guid = PEImageCreator.s_guid;
         // Create module and assembly for a console application.
         metadata.AddModule(
@@ -98,7 +100,14 @@ namespace ConsoleApp1
                 .ret
                 .AddMethodBody();
             ;
-
+            // Create method definition for Program::.ctor
+            MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
+                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
+                MethodImplAttributes.IL,
+                metadata.GetOrAddString(".ctor"),
+                parameterlessCtorBlobIndex,
+                ctorBodyOffset,
+                parameterList: default(ParameterHandle));
 
             var mainBodyOffset = emit
                 .ldstr("Hello MSIL")
@@ -116,14 +125,7 @@ namespace ConsoleApp1
                 mainBodyOffset,
                 parameterList: default(ParameterHandle));
 
-            // Create method definition for Program::.ctor
-            MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
-                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
-                MethodImplAttributes.IL,
-                metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex,
-                ctorBodyOffset,
-                parameterList: default(ParameterHandle));
+
 
             // Create type definition for the special <Module> type that holds global functions
             metadata.AddTypeDefinition(
@@ -152,7 +154,7 @@ namespace ConsoleApp1
         {
             PEImageCreator pEImageCreator = new PEImageCreator(exename);
 
-            var entryPoint = EmitHelloWorld(pEImageCreator.metadataBuilder, pEImageCreator.ilBuilder);
+            var entryPoint = EmitHelloWorld(pEImageCreator.metadataHelper);
             pEImageCreator.Create(entryPoint);
         }
         public static string RunApp(string exename)
