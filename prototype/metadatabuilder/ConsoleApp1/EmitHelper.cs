@@ -42,7 +42,7 @@ namespace ConsoleApp1
             codeBuilder.Clear();return ret;
         }
 
-        public void AddMethodDefinition(BlobHandle parameterlessCtorBlobIndex)
+        public void CtorDefinition(BlobHandle parameterlessCtorBlobIndex)
         {
             var ctorBodyOffset = AddMethodBody();
             MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
@@ -52,6 +52,20 @@ namespace ConsoleApp1
                 parameterlessCtorBlobIndex,
                 ctorBodyOffset,
                 parameterList: default(ParameterHandle));
+        }
+
+        internal MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
+        {
+            var mainBodyOffset = AddMethodBody();
+            // Create method definition for Program::Main
+            MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
+                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
+                MethodImplAttributes.IL,
+                metadata.GetOrAddString("Main"),
+                metadata.GetOrAddBlob(mainSignature),
+                mainBodyOffset,
+                parameterList: default(ParameterHandle));
+           return mainMethodDef;
         }
     }
 }

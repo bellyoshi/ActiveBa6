@@ -36,7 +36,7 @@ namespace ConsoleApp1
         private MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
 
-            Class1.metadata = metadataHelper.metadata;
+            metadata = metadataHelper.metadata;
             BlobBuilder ilBuilder = metadataHelper.ilBuilder;
             metadataHelper.s_guid = PEImageCreator.s_guid;
         // Create module and assembly for a console application.
@@ -68,26 +68,19 @@ namespace ConsoleApp1
                 .ldarg_0
                 .call(objectCtorMemberRef)
                 .ret
-                .AddMethodDefinition(parameterlessCtorBlobIndex);
+                .CtorDefinition(parameterlessCtorBlobIndex);
             ;
             // Create method definition for Program::.ctor
 
-
-            var mainBodyOffset = emit
+           var mainMethodDef =
+            emit
                 .ldstr("Hello MSIL")
                 .call(consoleWriteLineMemberRef)
                 .ret
-                .AddMethodBody();
+                .MethodDefinition("Main",GetMainSignature());
 
 
-            // Create method definition for Program::Main
-            MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
-                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
-                MethodImplAttributes.IL,
-                metadata.GetOrAddString("Main"),
-                metadata.GetOrAddBlob(mainSignature),
-                mainBodyOffset,
-                parameterList: default(ParameterHandle));
+
 
             AddTypeDefinition(mainMethodDef);
 

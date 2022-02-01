@@ -31,7 +31,7 @@ namespace TestProject1
 			//	.ret()
 			//	;
 			//pe.Create(emit.MethodDefinitionHandle);
-			var actual = Class1.BuildAndRun(pe.exename);
+			var actual = Class1.GetInstance().BuildAndRun(pe.exename);
 			Assert.AreEqual("Hello MSIL\r\n", actual);
 		}
 	
