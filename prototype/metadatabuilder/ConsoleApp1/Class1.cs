@@ -7,17 +7,17 @@ namespace ConsoleApp1
 {
     public class Class1
     {
-        static AssemblyReferenceHandle mscorlibAssemblyRef;
-        static TypeReferenceHandle systemObjectTypeRef;
-        static TypeReferenceHandle systemConsoleTypeRefHandle;
-        static TypeReferenceHandle GetTypeRef(AssemblyReferenceHandle assemblyRef,string namespaceStr, string name)
+         AssemblyReferenceHandle mscorlibAssemblyRef;
+         TypeReferenceHandle systemObjectTypeRef;
+         TypeReferenceHandle systemConsoleTypeRefHandle;
+        TypeReferenceHandle GetTypeRef(AssemblyReferenceHandle assemblyRef,string namespaceStr, string name)
         {
             return metadata.AddTypeReference(
                 assemblyRef,
                 metadata.GetOrAddString(namespaceStr),
                 metadata.GetOrAddString(name));
         }
-        private static MemberReferenceHandle getConsoleWriteLineMemberRef()
+        private MemberReferenceHandle getConsoleWriteLineMemberRef()
         {
             // Get reference to Console.WriteLine(string) method.
             var consoleWriteLineSignature = new BlobBuilder();
@@ -33,7 +33,7 @@ namespace ConsoleApp1
                metadata.GetOrAddBlob(consoleWriteLineSignature));
 
         }
-        private static MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
+        private MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
 
             Class1.metadata = metadataHelper.metadata;
@@ -95,7 +95,7 @@ namespace ConsoleApp1
             return mainMethodDef;
         }
 
-        private static BlobBuilder GetMainSignature()
+        private BlobBuilder GetMainSignature()
         {
             var mainSignature =new BlobBuilder();
 
@@ -105,7 +105,7 @@ namespace ConsoleApp1
             return mainSignature;
         }
 
-        private static (MemberReferenceHandle, BlobHandle) getObjectCtorMemberRef()
+        private (MemberReferenceHandle, BlobHandle) getObjectCtorMemberRef()
         {
 
             // Get reference to Object's constructor.
@@ -123,8 +123,8 @@ namespace ConsoleApp1
                 parameterlessCtorBlobIndex), parameterlessCtorBlobIndex);
         }
 
-        static MetadataBuilder metadata;
-        public static void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
+        MetadataBuilder metadata;
+        public void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
         {
 
             // Create type definition for the special <Module> type that holds global functions
@@ -146,16 +146,16 @@ namespace ConsoleApp1
                 methodList: mainMethodDef);
         }
 
-       
+        public static Class1 GetInstance() => new Class1();
 
-        public static void BuildHelloWorldApp(string exename)
+        public void BuildHelloWorldApp(string exename)
         {
             PEImageCreator pEImageCreator = new PEImageCreator(exename);
 
             var entryPoint = EmitHelloWorld(pEImageCreator.metadataHelper);
             pEImageCreator.Create(entryPoint);
         }
-        public static string RunApp(string exename)
+        public string RunApp(string exename)
         {
 
             using var process = new System.Diagnostics.Process();
@@ -175,7 +175,7 @@ namespace ConsoleApp1
 
             return output;
         }
-        public static string BuildAndRun(string exename)
+        public string BuildAndRun(string exename)
         {
             BuildHelloWorldApp(exename);
             return RunApp(exename);
