@@ -9,14 +9,31 @@ namespace ConsoleApp1
 {
     public class Class1
     {
-
+        static AssemblyReferenceHandle mscorlibAssemblyRef;
         static TypeReferenceHandle systemObjectTypeRef;
-        static TypeReferenceHandle GetSystemObjectTypeRef(AssemblyReferenceHandle mscorlibAssemblyRef,string namespaceStr, string name)
+        static TypeReferenceHandle systemConsoleTypeRefHandle;
+        static TypeReferenceHandle GetTypeRef(AssemblyReferenceHandle assemblyRef,string namespaceStr, string name)
         {
             return metadata.AddTypeReference(
-                mscorlibAssemblyRef,
+                assemblyRef,
                 metadata.GetOrAddString(namespaceStr),
                 metadata.GetOrAddString(name));
+        }
+        private static MemberReferenceHandle getConsoleWriteLineMemberRef()
+        {
+            // Get reference to Console.WriteLine(string) method.
+            var consoleWriteLineSignature = new BlobBuilder();
+
+            new BlobEncoder(consoleWriteLineSignature).
+                MethodSignature().
+                Parameters(1,
+                    returnType => returnType.Void(),
+                    parameters => parameters.AddParameter().Type().String());
+            return metadata.AddMemberReference(
+               systemConsoleTypeRefHandle,
+               metadata.GetOrAddString("WriteLine"),
+               metadata.GetOrAddBlob(consoleWriteLineSignature));
+
         }
         private static MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
@@ -30,49 +47,20 @@ namespace ConsoleApp1
                 .AddAssembly("ConsoleApplication");
 
 
-            var mscorlibAssemblyRef = metadataHelper.AddAssemblyReference_mscoreLib();
+            mscorlibAssemblyRef = metadataHelper.AddAssemblyReference_mscoreLib();
 
-            systemObjectTypeRef = GetSystemObjectTypeRef(mscorlibAssemblyRef,"System", "Object");
+            systemObjectTypeRef = GetTypeRef(mscorlibAssemblyRef,"System", "Object");
 
-            TypeReferenceHandle systemConsoleTypeRefHandle = metadata.AddTypeReference(
-                mscorlibAssemblyRef,
-                metadata.GetOrAddString("System"),
-                metadata.GetOrAddString("Console"));
+            systemConsoleTypeRefHandle = GetTypeRef(mscorlibAssemblyRef, "System", "Console");
 
-            // Get reference to Console.WriteLine(string) method.
-            var consoleWriteLineSignature = new BlobBuilder();
 
-            new BlobEncoder(consoleWriteLineSignature).
-                MethodSignature().
-                Parameters(1,
-                    returnType => returnType.Void(),
-                    parameters => parameters.AddParameter().Type().String());
 
-            MemberReferenceHandle consoleWriteLineMemberRef = metadata.AddMemberReference(
-                systemConsoleTypeRefHandle,
-                metadata.GetOrAddString("WriteLine"),
-                metadata.GetOrAddBlob(consoleWriteLineSignature));
 
-            // Get reference to Object's constructor.
-            var parameterlessCtorSignature = new BlobBuilder();
-
-            new BlobEncoder(parameterlessCtorSignature).
-                MethodSignature(isInstanceMethod: true).
-                Parameters(0, returnType => returnType.Void(), parameters => { });
-
-            BlobHandle parameterlessCtorBlobIndex = metadata.GetOrAddBlob(parameterlessCtorSignature);
-
-            MemberReferenceHandle objectCtorMemberRef = metadata.AddMemberReference(
-                systemObjectTypeRef,
-                metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex);
+            MemberReferenceHandle consoleWriteLineMemberRef = getConsoleWriteLineMemberRef();
+            var( objectCtorMemberRef, parameterlessCtorBlobIndex )= getObjectCtorMemberRef();
 
             // Create signature for "void Main()" method.
-            var mainSignature = new BlobBuilder();
-
-            new BlobEncoder(mainSignature).
-                MethodSignature().
-                Parameters(0, returnType => returnType.Void(), parameters => { });
+            var mainSignature = GetMainSignature(); 
 
             var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
 
@@ -115,6 +103,35 @@ namespace ConsoleApp1
 
             return mainMethodDef;
         }
+
+        private static BlobBuilder GetMainSignature()
+        {
+            var mainSignature =new BlobBuilder();
+
+            new BlobEncoder(mainSignature).
+                MethodSignature().
+                Parameters(0, returnType => returnType.Void(), parameters => { });
+            return mainSignature;
+        }
+
+        private static (MemberReferenceHandle, BlobHandle) getObjectCtorMemberRef()
+        {
+
+            // Get reference to Object's constructor.
+            var parameterlessCtorSignature = new BlobBuilder();
+
+            new BlobEncoder(parameterlessCtorSignature).
+                MethodSignature(isInstanceMethod: true).
+                Parameters(0, returnType => returnType.Void(), parameters => { });
+
+            BlobHandle parameterlessCtorBlobIndex = metadata.GetOrAddBlob(parameterlessCtorSignature);
+
+            return  (metadata.AddMemberReference(
+                systemObjectTypeRef,
+                metadata.GetOrAddString(".ctor"),
+                parameterlessCtorBlobIndex), parameterlessCtorBlobIndex);
+        }
+
         static MetadataBuilder metadata;
         public static void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
         {
