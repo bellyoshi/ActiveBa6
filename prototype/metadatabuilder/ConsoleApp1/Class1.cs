@@ -10,11 +10,18 @@ namespace ConsoleApp1
     public class Class1
     {
 
-
-
+        static TypeReferenceHandle systemObjectTypeRef;
+        static TypeReferenceHandle GetSystemObjectTypeRef(AssemblyReferenceHandle mscorlibAssemblyRef,string namespaceStr, string name)
+        {
+            return metadata.AddTypeReference(
+                mscorlibAssemblyRef,
+                metadata.GetOrAddString(namespaceStr),
+                metadata.GetOrAddString(name));
+        }
         private static MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
-            MetadataBuilder metadata = metadataHelper.metadata;
+
+            Class1.metadata = metadataHelper.metadata;
             BlobBuilder ilBuilder = metadataHelper.ilBuilder;
             metadataHelper.s_guid = PEImageCreator.s_guid;
         // Create module and assembly for a console application.
@@ -25,10 +32,7 @@ namespace ConsoleApp1
 
             var mscorlibAssemblyRef = metadataHelper.AddAssemblyReference_mscoreLib();
 
-            TypeReferenceHandle systemObjectTypeRef = metadata.AddTypeReference(
-                mscorlibAssemblyRef,
-                metadata.GetOrAddString("System"),
-                metadata.GetOrAddString("Object"));
+            systemObjectTypeRef = GetSystemObjectTypeRef(mscorlibAssemblyRef,"System", "Object");
 
             TypeReferenceHandle systemConsoleTypeRefHandle = metadata.AddTypeReference(
                 mscorlibAssemblyRef,
@@ -106,7 +110,14 @@ namespace ConsoleApp1
                 mainBodyOffset,
                 parameterList: default(ParameterHandle));
 
+            AddTypeDefinition(mainMethodDef);
 
+
+            return mainMethodDef;
+        }
+        static MetadataBuilder metadata;
+        public static void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
+        {
 
             // Create type definition for the special <Module> type that holds global functions
             metadata.AddTypeDefinition(
@@ -125,8 +136,6 @@ namespace ConsoleApp1
                 baseType: systemObjectTypeRef,
                 fieldList: MetadataTokens.FieldDefinitionHandle(1),
                 methodList: mainMethodDef);
-
-            return mainMethodDef;
         }
 
        
