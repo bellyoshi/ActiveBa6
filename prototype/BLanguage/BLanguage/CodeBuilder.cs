@@ -95,9 +95,9 @@ namespace BLanguage
             AppendCodeLine(space, $"{ value}");
         }
 
-        public void  EmitInBuiltFunctionCall(string type)
+        public void  EmitInBuiltFunctionCall(string funcName,string type)
         {
-            AppendCodeLine(2, $"call void [mscorlib]System.Console::WriteLine({type})");
+            AppendCodeLine(2, $"call void [mscorlib]System.Console::{funcName}({type})");
         }
         public string GetCode()
         {
