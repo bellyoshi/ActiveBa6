@@ -23,8 +23,6 @@ namespace ConsoleApp1
             metadataHelper.AddModule("ConsoleApplication.exe")
                 .AddAssembly("ConsoleApplication");
 
-            var mainSignature = GetMainSignature(); 
-
             var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
 
             var emit = new EmitHelper(metadataHelper.metadata, methodBodyStream);
