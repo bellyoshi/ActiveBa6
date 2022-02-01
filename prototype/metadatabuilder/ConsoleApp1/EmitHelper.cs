@@ -1,12 +1,11 @@
-﻿using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
+﻿
 
 
 namespace ConsoleApp1
 {
     public class EmitHelper
     {
-        private MetadataBuilder metadataBuilder;
+        private MetadataBuilder metadata;
 
         private MethodBodyStreamEncoder methodBodyStream;
         public BlobBuilder codeBuilder { get; } = new BlobBuilder();
@@ -18,7 +17,7 @@ namespace ConsoleApp1
         public EmitHelper(MetadataBuilder metadataBuilder, MethodBodyStreamEncoder methodBodyStream)
     
         {
-            this.metadataBuilder = metadataBuilder;
+            this.metadata = metadataBuilder;
             this.methodBodyStream = methodBodyStream;
             il = new InstructionEncoder(codeBuilder,flowBuilder);
         }
@@ -26,7 +25,7 @@ namespace ConsoleApp1
         
         public EmitHelper ldstr(string str)
         {
-            var usrStrHandle = metadataBuilder.GetOrAddUserString(str);
+            var usrStrHandle = metadata.GetOrAddUserString(str);
             il.LoadString(usrStrHandle);
             return this;
         }
@@ -42,6 +41,17 @@ namespace ConsoleApp1
              methodBodyStream.AddMethodBody(il);
             codeBuilder.Clear();return ret;
         }
-        
+
+        public void AddMethodDefinition(BlobHandle parameterlessCtorBlobIndex)
+        {
+            var ctorBodyOffset = AddMethodBody();
+            MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
+                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
+                MethodImplAttributes.IL,
+                metadata.GetOrAddString(".ctor"),
+                parameterlessCtorBlobIndex,
+                ctorBodyOffset,
+                parameterList: default(ParameterHandle));
+        }
     }
 }

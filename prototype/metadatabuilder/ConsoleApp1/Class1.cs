@@ -1,8 +1,6 @@
-﻿
-
-using System.Reflection.Metadata.Ecma335;
-using System.Reflection;
-using System.Reflection.Metadata;
+﻿global using System.Reflection.Metadata.Ecma335;
+global using System.Reflection;
+global using System.Reflection.Metadata;
 
 
 namespace ConsoleApp1
@@ -66,21 +64,14 @@ namespace ConsoleApp1
 
             var emit = new EmitHelper(metadata, methodBodyStream);
 
-            var ctorBodyOffset = 
             emit
                 .ldarg_0
                 .call(objectCtorMemberRef)
                 .ret
-                .AddMethodBody();
+                .AddMethodDefinition(parameterlessCtorBlobIndex);
             ;
             // Create method definition for Program::.ctor
-            MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
-                MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
-                MethodImplAttributes.IL,
-                metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex,
-                ctorBodyOffset,
-                parameterList: default(ParameterHandle));
+
 
             var mainBodyOffset = emit
                 .ldstr("Hello MSIL")
