@@ -7,6 +7,13 @@ namespace ConsoleApp1
 {
     public class Class1
     {
+        PEImageCreator peImageCreator;
+
+        public Class1(string exename)
+        {
+            peImageCreator = new PEImageCreator(exename);   
+
+        }
          AssemblyReferenceHandle mscorlibAssemblyRef;
          TypeReferenceHandle systemObjectTypeRef;
          TypeReferenceHandle systemConsoleTypeRefHandle;
@@ -139,21 +146,19 @@ namespace ConsoleApp1
                 methodList: mainMethodDef);
         }
 
-        public static Class1 GetInstance() => new Class1();
 
-        public void BuildHelloWorldApp(string exename)
+        public void BuildHelloWorldApp()
         {
-            PEImageCreator pEImageCreator = new PEImageCreator(exename);
 
-            var entryPoint = EmitHelloWorld(pEImageCreator.metadataHelper);
-            pEImageCreator.Create(entryPoint);
+            var entryPoint = EmitHelloWorld(peImageCreator.metadataHelper);
+            peImageCreator.Create(entryPoint);
         }
-        public string RunApp(string exename)
+        public string RunApp()
         {
 
             using var process = new System.Diagnostics.Process();
 
-            process.StartInfo.FileName = exename;
+            process.StartInfo.FileName = peImageCreator.exename;
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.Start();
@@ -168,10 +173,10 @@ namespace ConsoleApp1
 
             return output;
         }
-        public string BuildAndRun(string exename)
+        public string BuildAndRun()
         {
-            BuildHelloWorldApp(exename);
-            return RunApp(exename);
+            BuildHelloWorldApp();
+            return RunApp();
             
         }
 

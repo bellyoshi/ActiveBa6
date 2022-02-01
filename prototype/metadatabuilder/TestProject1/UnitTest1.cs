@@ -12,7 +12,7 @@ namespace TestProject1
         [Test]
         public void Test1()
         {
-            var result = ConsoleApp1.Class1.GetInstance().BuildAndRun("ConsoleApplication.exe");
+            var result = new ConsoleApp1.Class1("ConsoleApplication.exe").BuildAndRun();
             Assert.AreEqual("Hello MSIL\r\n", result);
         }
     }

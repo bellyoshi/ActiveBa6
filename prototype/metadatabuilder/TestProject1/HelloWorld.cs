@@ -15,7 +15,6 @@ namespace TestProject1
 		[Test]
 		public void Test()
 		{
-			var pe = new PEImageCreator("HelloWorld.exe");
 			//var exename = "HelloWorld.exe";
 			//EmitHelper emit = new AssemblyBuilderHelper(exename)
 			//	.DefineType("Hello", typeof(object), typeof(IHello))
@@ -31,7 +30,7 @@ namespace TestProject1
 			//	.ret()
 			//	;
 			//pe.Create(emit.MethodDefinitionHandle);
-			var actual = Class1.GetInstance().BuildAndRun(pe.exename);
+			var actual = new Class1("HelloWorld.exe").BuildAndRun();
 			Assert.AreEqual("Hello MSIL\r\n", actual);
 		}
 	
