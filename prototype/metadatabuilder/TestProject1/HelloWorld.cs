@@ -13,7 +13,7 @@ namespace TestProject1
 		}
 
 		[Test]
-		public void Test()
+		public void DiskOutputTest()
 		{
 			//var exename = "HelloWorld.exe";
 			//EmitHelper emit = new AssemblyBuilderHelper(exename)

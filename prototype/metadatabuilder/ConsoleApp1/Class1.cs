@@ -63,8 +63,15 @@ namespace ConsoleApp1
             return mainSignature;
         }
 
-      
 
+        public Byte[] BuildHelloWorldAppInMemory()
+        {
+            var memory = new MemoryStream();
+            var entryPoint = EmitHelloWorld(peImageCreator.metadataHelper);
+            peImageCreator.stream = memory;
+            peImageCreator.Create(entryPoint);
+            return memory.ToArray();
+        }
 
         public void BuildHelloWorldApp()
         {
