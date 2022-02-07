@@ -1,6 +1,4 @@
-﻿global using System.Reflection.Metadata.Ecma335;
-global using System.Reflection;
-global using System.Reflection.Metadata;
+﻿
 
 
 namespace ConsoleApp1
@@ -17,7 +15,7 @@ namespace ConsoleApp1
         private MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
 
-            metadataHelper.Init();
+
             BlobBuilder ilBuilder = metadataHelper.ilBuilder;
             metadataHelper.s_guid = PEImageCreator.s_guid;
             metadataHelper.AddModule("ConsoleApplication.exe")
@@ -40,6 +38,8 @@ namespace ConsoleApp1
             var mainMethodDef =
              emit
                  .ldstr("Hello MSIL")
+                 .call(metadataHelper.getConsoleWriteLineMemberRef())
+                 .ldstr("PRINT MESSAGE")
                  .call(metadataHelper.getConsoleWriteLineMemberRef())
                 .ret
                 .MethodDefinition("Main",GetMainSignature());

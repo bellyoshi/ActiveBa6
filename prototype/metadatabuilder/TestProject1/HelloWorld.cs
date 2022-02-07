@@ -33,6 +33,8 @@ namespace TestProject1
 			var actual = new Class1("HelloWorld.exe").BuildAndRun();
 			Assert.AreEqual("Hello MSIL\r\n", actual);
 		}
+
+
 	
 	}
 }
