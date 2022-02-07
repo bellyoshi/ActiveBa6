@@ -5,6 +5,7 @@ namespace ConsoleApp1.Helper
     {
         MetadataBuilder metadata;
         AssemblyReferenceHandle mscorlibAssemblyRef;
+        Dictionary<(string,string), TypeReferenceHandle> references = new Dictionary<(string, string), TypeReferenceHandle>();
         public ReferenceResolver(MetadataBuilder metadata)
         {
             this.metadata = metadata;
@@ -18,28 +19,32 @@ namespace ConsoleApp1.Helper
                 flags: default(AssemblyFlags),
                 hashValue: default(BlobHandle));
 
-            systemObjectTypeRef = GetTypeRef("System", "Object");
-
-            systemConsoleTypeRefHandle = GetTypeRef("System", "Console");
         }
         public AssemblyReferenceHandle GetHandle()
         {
             return mscorlibAssemblyRef;
         }
 
-        public TypeReferenceHandle systemObjectTypeRef;
-        public TypeReferenceHandle systemConsoleTypeRefHandle;
-        TypeReferenceHandle GetTypeRef(AssemblyReferenceHandle assemblyRef, string namespaceStr, string name)
+
+
+        private TypeReferenceHandle GetTypeRef(AssemblyReferenceHandle assemblyRef, string namespaceStr, string name)
         {
             return metadata.AddTypeReference(
                 assemblyRef,
                 metadata.GetOrAddString(namespaceStr),
-                metadata.GetOrAddString(name));
+                metadata.GetOrAddString(name))
+            ;
         }
-        TypeReferenceHandle GetTypeRef(string namespacestr, string name)
+        public TypeReferenceHandle GetTypeRef(string namespacestr, string name)
         {
-            var assemblyRef = GetHandle();
-            return GetTypeRef(assemblyRef, namespacestr, name); 
+            var key = (namespacestr, name);
+            if (!references.ContainsKey(key))
+            {
+                var value = GetTypeRef(GetHandle(), namespacestr ,name);
+                references.Add(key, value);
+            }
+            return references[key];
+         
         }
     }
 }

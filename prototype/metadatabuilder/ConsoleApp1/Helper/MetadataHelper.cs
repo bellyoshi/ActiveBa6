@@ -60,7 +60,7 @@ namespace ConsoleApp1
                     returnType => returnType.Void(),
                     parameters => parameters.AddParameter().Type().String());
             return metadata.AddMemberReference(
-              referenceResolver.systemConsoleTypeRefHandle,
+              referenceResolver.GetTypeRef("System","Console"),
                metadata.GetOrAddString("WriteLine"),
                metadata.GetOrAddBlob(consoleWriteLineSignature));
 
@@ -78,7 +78,7 @@ namespace ConsoleApp1
             BlobHandle parameterlessCtorBlobIndex = metadata.GetOrAddBlob(parameterlessCtorSignature);
 
             return (metadata.AddMemberReference(
-                referenceResolver.systemObjectTypeRef,
+                referenceResolver.GetTypeRef("System","Object"),
                 metadata.GetOrAddString(".ctor"),
                 parameterlessCtorBlobIndex), parameterlessCtorBlobIndex);
         }
@@ -100,7 +100,7 @@ namespace ConsoleApp1
                 TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.AutoLayout | TypeAttributes.BeforeFieldInit,
                 metadata.GetOrAddString("ConsoleApplication"),
                 metadata.GetOrAddString("Program"),
-                baseType: referenceResolver.systemObjectTypeRef,
+                baseType: referenceResolver.GetTypeRef("System","Object"),
                 fieldList: MetadataTokens.FieldDefinitionHandle(1),
                 methodList: mainMethodDef);
         }
