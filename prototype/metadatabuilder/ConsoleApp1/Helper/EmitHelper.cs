@@ -40,14 +40,14 @@ namespace ConsoleApp1
             return ret;
         }
 
-        public void CtorDefinition(BlobHandle parameterlessCtorBlobIndex)
+        public void CtorDefinition(BlobBuilder mainSignature)
         {
             var ctorBodyOffset = AddMethodBody();
             MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                 MethodImplAttributes.IL,
                 metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex,
+                metadata.GetOrAddBlob(mainSignature),
                 ctorBodyOffset,
                 parameterList: default(ParameterHandle));
         }
@@ -55,7 +55,6 @@ namespace ConsoleApp1
         internal MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
         {
             var mainBodyOffset = AddMethodBody();
-            // Create method definition for Program::Main
             MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
                 MethodImplAttributes.IL,

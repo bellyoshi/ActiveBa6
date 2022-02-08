@@ -25,7 +25,7 @@ namespace ConsoleApp1
                 .ldarg_0
                 .call(metadataHelper.Constructor())
                 .ret
-                .MethodDefinition(".ctor", GetVoidSignature());
+                .CtorDefinition(GetVoidSignature());
             ;
 
             //Main
@@ -80,7 +80,6 @@ namespace ConsoleApp1
             process.StartInfo.RedirectStandardOutput = true;
             process.Start();
 
-            // Synchronously read the standard output of the spawned process.
             StreamReader reader = process.StandardOutput;
             string output = reader.ReadToEnd();
 

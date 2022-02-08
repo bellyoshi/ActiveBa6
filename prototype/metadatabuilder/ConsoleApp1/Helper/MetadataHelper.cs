@@ -17,21 +17,16 @@ namespace ConsoleApp1
             referenceResolver = new ReferenceResolver(metadata);
         }
 
-        ////public EmitHelper Emitter { get; }
-        //public MetadataHelper AddTypeReference()
-        //{
-        //    return this;
-        //}
         public MetadataHelper AddAssembly(string assemblyName)
         {
             metadata.AddAssembly(
-    metadata.GetOrAddString(assemblyName),
-    version: new Version(1, 0, 0, 0),
-    culture: default(StringHandle),
-    publicKey: default(BlobHandle),
-    flags: 0,
-    hashAlgorithm: AssemblyHashAlgorithm.None)
-           ;return this;
+            metadata.GetOrAddString(assemblyName),
+            version: new Version(1, 0, 0, 0),
+            culture: default(StringHandle),
+            publicKey: default(BlobHandle),
+            flags: 0,
+            hashAlgorithm: AssemblyHashAlgorithm.None);
+            return this;
         }
         ReferenceResolver referenceResolver { get; set; } 
 
@@ -56,7 +51,7 @@ namespace ConsoleApp1
                 MethodSignature().
                 Parameters(parameterCount, returnType, parameters);
             return metadata.AddMemberReference(
-              referenceResolver.GetTypeRef(namespacestr, typenamestr),
+                referenceResolver.GetTypeRef(namespacestr, typenamestr),
                metadata.GetOrAddString(methodnamestr),
                metadata.GetOrAddBlob(signature));
         }
@@ -67,13 +62,11 @@ namespace ConsoleApp1
             return GetMemberRef("System","Console","WriteLine",1, returnType => returnType.Void(),
                     parameters => parameters.AddParameter().Type().String());
                 
-
-
         }
         public MemberReferenceHandle Constructor()
         {
             return GetMemberRef("System", "Object", ".ctor", 0, returnType => returnType.Void(),
-        parameters => { });
+                parameters => { });
         }
 
         public void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
