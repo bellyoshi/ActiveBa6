@@ -13,7 +13,6 @@ namespace ConsoleApp1
         public InstructionEncoder il { get; }
         public EmitHelper ret { get { il.OpCode(ILOpCode.Ret); return this; } }
 
-        MethodDefinitionHandle MethodDefinitionHandle { get; }
         public EmitHelper(MetadataBuilder metadataBuilder, BlobBuilder ilBuilder)
     
         {
@@ -34,13 +33,11 @@ namespace ConsoleApp1
         {
             il.Call(objectCtorMemberRef); return this;
         }
-
-
-        public int AddMethodBody()
+        private int AddMethodBody()
         {
-            var ret = 
-             methodBodyStream.AddMethodBody(il);
-            codeBuilder.Clear();return ret;
+            var ret = methodBodyStream.AddMethodBody(il);
+            codeBuilder.Clear();
+            return ret;
         }
 
         public void CtorDefinition(BlobHandle parameterlessCtorBlobIndex)
@@ -62,7 +59,7 @@ namespace ConsoleApp1
             MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
                 MethodImplAttributes.IL,
-                metadata.GetOrAddString("Main"),
+                metadata.GetOrAddString(MethodName),
                 metadata.GetOrAddBlob(mainSignature),
                 mainBodyOffset,
                 parameterList: default(ParameterHandle));
