@@ -62,7 +62,7 @@ namespace ConsoleApp1
         }
 
 
-        public MemberReferenceHandle getConsoleWriteLineMemberRef()
+        public MemberReferenceHandle ConsoleWriteLine()
         {
             return GetMemberRef("System","Console","WriteLine",1, returnType => returnType.Void(),
                     parameters => parameters.AddParameter().Type().String());
@@ -70,7 +70,7 @@ namespace ConsoleApp1
 
 
         }
-        public MemberReferenceHandle getObjectCtorMemberRef()
+        public MemberReferenceHandle Constructor()
         {
             return GetMemberRef("System", "Object", ".ctor", 0, returnType => returnType.Void(),
         parameters => { });
@@ -96,6 +96,10 @@ namespace ConsoleApp1
                 baseType: referenceResolver.GetTypeRef("System","Object"),
                 fieldList: MetadataTokens.FieldDefinitionHandle(1),
                 methodList: mainMethodDef);
+        }
+        public EmitHelper GetEmit()
+        {
+            return new EmitHelper(metadata, ilBuilder);
         }
     }
 }

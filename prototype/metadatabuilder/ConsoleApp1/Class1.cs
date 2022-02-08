@@ -14,22 +14,16 @@ namespace ConsoleApp1
         }
         private MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
-
-
-            BlobBuilder ilBuilder = metadataHelper.ilBuilder;
             metadataHelper.s_guid = PEImageCreator.s_guid;
             metadataHelper.AddModule("ConsoleApplication.exe")
                 .AddAssembly("ConsoleApplication");
 
-            //var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
-
-            var emit = new EmitHelper(metadataHelper.metadata, ilBuilder);
+            var emit = metadataHelper.GetEmit(); 
 
             //.ctor
-            var objectCtorMemberRef = metadataHelper.getObjectCtorMemberRef();
             emit
                 .ldarg_0
-                .call(objectCtorMemberRef)
+                .call(metadataHelper.Constructor())
                 .ret
                 .MethodDefinition(".ctor", GetVoidSignature());
             ;
@@ -38,29 +32,25 @@ namespace ConsoleApp1
             var mainMethodDef =
              emit
                  .ldstr("Hello MSIL")
-                 .call(metadataHelper.getConsoleWriteLineMemberRef())
+                 .call(metadataHelper.ConsoleWriteLine())
                  .ldstr("PRINT MESSAGE")
-                 .call(metadataHelper.getConsoleWriteLineMemberRef())
+                 .call(metadataHelper.ConsoleWriteLine())
                 .ret
                 .MethodDefinition("Main",GetVoidSignature());
 
-
-
-
             metadataHelper.AddTypeDefinition(mainMethodDef);
-
 
             return mainMethodDef;
         }
 
         private BlobBuilder GetVoidSignature()
         {
-            var mainSignature =new BlobBuilder();
+            var blob =new BlobBuilder();
 
-            new BlobEncoder(mainSignature).
+            new BlobEncoder(blob).
                 MethodSignature().
                 Parameters(0, returnType => returnType.Void(), parameters => { });
-            return mainSignature;
+            return blob;
         }
 
 
