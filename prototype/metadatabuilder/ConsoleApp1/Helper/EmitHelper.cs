@@ -14,9 +14,10 @@ namespace ConsoleApp1
         public EmitHelper ret { get { il.OpCode(ILOpCode.Ret); return this; } }
 
         MethodDefinitionHandle MethodDefinitionHandle { get; }
-        public EmitHelper(MetadataBuilder metadataBuilder, MethodBodyStreamEncoder methodBodyStream)
+        public EmitHelper(MetadataBuilder metadataBuilder, BlobBuilder ilBuilder)
     
         {
+            var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
             this.metadata = metadataBuilder;
             this.methodBodyStream = methodBodyStream;
             il = new InstructionEncoder(codeBuilder,flowBuilder);

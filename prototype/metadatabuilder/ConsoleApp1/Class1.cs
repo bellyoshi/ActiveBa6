@@ -21,9 +21,9 @@ namespace ConsoleApp1
             metadataHelper.AddModule("ConsoleApplication.exe")
                 .AddAssembly("ConsoleApplication");
 
-            var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
+            //var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
 
-            var emit = new EmitHelper(metadataHelper.metadata, methodBodyStream);
+            var emit = new EmitHelper(metadataHelper.metadata, ilBuilder);
 
             //.ctor
             var objectCtorMemberRef = metadataHelper.getObjectCtorMemberRef();
