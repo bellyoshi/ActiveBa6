@@ -26,12 +26,12 @@ namespace ConsoleApp1
             var emit = new EmitHelper(metadataHelper.metadata, methodBodyStream);
 
             //.ctor
-            var (objectCtorMemberRef, parameterlessCtorBlobIndex) = metadataHelper.getObjectCtorMemberRef();
+            var objectCtorMemberRef = metadataHelper.getObjectCtorMemberRef();
             emit
                 .ldarg_0
                 .call(objectCtorMemberRef)
                 .ret
-                .CtorDefinition(parameterlessCtorBlobIndex);
+                .MethodDefinition(".ctor", GetVoidSignature());
             ;
 
             //Main
@@ -42,7 +42,7 @@ namespace ConsoleApp1
                  .ldstr("PRINT MESSAGE")
                  .call(metadataHelper.getConsoleWriteLineMemberRef())
                 .ret
-                .MethodDefinition("Main",GetMainSignature());
+                .MethodDefinition("Main",GetVoidSignature());
 
 
 
@@ -53,7 +53,7 @@ namespace ConsoleApp1
             return mainMethodDef;
         }
 
-        private BlobBuilder GetMainSignature()
+        private BlobBuilder GetVoidSignature()
         {
             var mainSignature =new BlobBuilder();
 
@@ -62,6 +62,7 @@ namespace ConsoleApp1
                 Parameters(0, returnType => returnType.Void(), parameters => { });
             return mainSignature;
         }
+
 
 
         public Byte[] BuildHelloWorldAppInMemory()

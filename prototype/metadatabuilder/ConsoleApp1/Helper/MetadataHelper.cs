@@ -46,41 +46,34 @@ namespace ConsoleApp1
             return this;
         }
 
+        private MemberReferenceHandle GetMemberRef(string namespacestr, string typenamestr, string methodnamestr,int parameterCount,
+            Action<ReturnTypeEncoder> returnType, Action<ParametersEncoder> parameters)
+        {
+            
+            var signature = new BlobBuilder();
 
+            new BlobEncoder(signature).
+                MethodSignature().
+                Parameters(parameterCount, returnType, parameters);
+            return metadata.AddMemberReference(
+              referenceResolver.GetTypeRef(namespacestr, typenamestr),
+               metadata.GetOrAddString(methodnamestr),
+               metadata.GetOrAddBlob(signature));
+        }
 
 
         public MemberReferenceHandle getConsoleWriteLineMemberRef()
         {
-            // Get reference to Console.WriteLine(string) method.
-            var consoleWriteLineSignature = new BlobBuilder();
-
-            new BlobEncoder(consoleWriteLineSignature).
-                MethodSignature().
-                Parameters(1,
-                    returnType => returnType.Void(),
+            return GetMemberRef("System","Console","WriteLine",1, returnType => returnType.Void(),
                     parameters => parameters.AddParameter().Type().String());
-            return metadata.AddMemberReference(
-              referenceResolver.GetTypeRef("System","Console"),
-               metadata.GetOrAddString("WriteLine"),
-               metadata.GetOrAddBlob(consoleWriteLineSignature));
+                
+
 
         }
-        public (MemberReferenceHandle, BlobHandle) getObjectCtorMemberRef()
+        public MemberReferenceHandle getObjectCtorMemberRef()
         {
-
-            // Get reference to Object's constructor.
-            var parameterlessCtorSignature = new BlobBuilder();
-
-            new BlobEncoder(parameterlessCtorSignature).
-                MethodSignature(isInstanceMethod: true).
-                Parameters(0, returnType => returnType.Void(), parameters => { });
-
-            BlobHandle parameterlessCtorBlobIndex = metadata.GetOrAddBlob(parameterlessCtorSignature);
-
-            return (metadata.AddMemberReference(
-                referenceResolver.GetTypeRef("System","Object"),
-                metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex), parameterlessCtorBlobIndex);
+            return GetMemberRef("System", "Object", ".ctor", 0, returnType => returnType.Void(),
+        parameters => { });
         }
 
         public void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
