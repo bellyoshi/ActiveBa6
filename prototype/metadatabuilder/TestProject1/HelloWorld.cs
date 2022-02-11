@@ -13,7 +13,7 @@ namespace TestProject1
 		}
 
 		[Test]
-		public void Test()
+		public void DiskOutputTest()
 		{
 			//var exename = "HelloWorld.exe";
 			//EmitHelper emit = new AssemblyBuilderHelper(exename)
@@ -33,6 +33,8 @@ namespace TestProject1
 			var actual = new Class1("HelloWorld.exe").BuildAndRun();
 			Assert.AreEqual("Hello MSIL\r\n", actual);
 		}
+
+
 	
 	}
 }

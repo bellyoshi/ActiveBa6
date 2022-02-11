@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using System.Reflection.PortableExecutable;
 
 namespace ConsoleApp1
 {
-    internal class Class3
+    public class Class3
     {
         private static readonly Guid s_guid = new Guid("87D4DBE1-1143-4FAD-AAB3-1001F92068E6");
         private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201);
 
-        public static MethodDefinitionHandle EmitHelloWorld(MetadataBuilder metadata, BlobBuilder ilBuilder)
+        private static MethodDefinitionHandle EmitHelloWorld(MetadataBuilder metadata, BlobBuilder ilBuilder)
         {
             // Create module and assembly for a console application.
             metadata.AddModule(
@@ -30,16 +27,6 @@ namespace ConsoleApp1
                 hashAlgorithm: AssemblyHashAlgorithm.None);
 
             // Create references to System.Object and System.Console types.
-            AssemblyReferenceHandle consoleAssemblyRef = metadata.AddAssemblyReference(
-                name: metadata.GetOrAddString("System.Console"),
-                version: new Version(4, 0, 0, 0),
-                culture: default(StringHandle),
-                publicKeyOrToken: metadata.GetOrAddBlob(
-                    new byte[] { 0xB0,0x3F,0x5F,0x7F,0x11,0xD5,0x0A,0x3A }
-                    ),
-                flags: default(AssemblyFlags),
-                hashValue: default(BlobHandle));
-            // Create references to System.Object and System.Console types.
             //AssemblyReferenceHandle mscorlibAssemblyRef = metadata.AddAssemblyReference(
             //    name: metadata.GetOrAddString("mscorlib"),
             //    version: new Version(4, 0, 0, 0),
@@ -49,24 +36,23 @@ namespace ConsoleApp1
             //        ),
             //    flags: default(AssemblyFlags),
             //    hashValue: default(BlobHandle));
-            //AssemblyReferenceHandle runtimeAssemblyRef = mscorlibAssemblyRef;
-            AssemblyReferenceHandle runtimeAssemblyRef = metadata.AddAssemblyReference(
-                name: metadata.GetOrAddString("System.Runtime"),
-                version: new Version(4, 0, 0, 0),
-                culture: default(StringHandle),
-                publicKeyOrToken: metadata.GetOrAddBlob(
-                    new byte[] { 0xB0, 0x3F, 0x5F, 0x7F, 0x11, 0xD5, 0x0A, 0x3A }
-                    ),
-                flags: default(AssemblyFlags),
-                hashValue: default(BlobHandle));
+
+            AssemblyReferenceHandle mscorlibAssemblyRef = metadata.AddAssemblyReference(
+                metadata.GetOrAddString("System.Private.CoreLib"), 
+                new Version(6, 0, 0, 0), default,
+                metadata.GetOrAddBlob(
+                    new byte[] { 0x7C, 0xEC, 0x85, 0xD7, 0xBE, 0xA7, 0x79, 0x8E }), 
+                default,
+                default);
+
 
             TypeReferenceHandle systemObjectTypeRef = metadata.AddTypeReference(
-                runtimeAssemblyRef,
+                mscorlibAssemblyRef,
                 metadata.GetOrAddString("System"),
                 metadata.GetOrAddString("Object"));
 
             TypeReferenceHandle systemConsoleTypeRefHandle = metadata.AddTypeReference(
-                consoleAssemblyRef,
+                mscorlibAssemblyRef,
                 metadata.GetOrAddString("System"),
                 metadata.GetOrAddString("Console"));
 
@@ -130,7 +116,7 @@ namespace ConsoleApp1
             il = new InstructionEncoder(codeBuilder, flowBuilder);
 
             // ldstr "hello"
-            il.LoadString(metadata.GetOrAddUserString("Hello, world"));
+            il.LoadString(metadata.GetOrAddUserString("Hello MSIL"));
 
             // call void [mscorlib]System.Console::WriteLine(string)
             il.Call(consoleWriteLineMemberRef);
@@ -206,17 +192,44 @@ namespace ConsoleApp1
             peBlob.WriteContentTo(peStream);
         }
 
-        public static void BuildHelloWorldApp()
+        public static void BuildHelloWorldApp(string exename)
         {
             using var peStream = new FileStream(
-                "ConsoleApplication.exe", FileMode.OpenOrCreate, FileAccess.ReadWrite
+                exename, FileMode.OpenOrCreate, FileAccess.ReadWrite
                 );
-
             var ilBuilder = new BlobBuilder();
             var metadataBuilder = new MetadataBuilder();
 
             MethodDefinitionHandle entryPoint = EmitHelloWorld(metadataBuilder, ilBuilder);
             WritePEImage(peStream, metadataBuilder, ilBuilder, entryPoint);
+        }
+
+        public static string RunApp(string exename)
+        {
+
+            using var process = new System.Diagnostics.Process();
+
+            process.StartInfo.FileName = exename;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.Start();
+
+            // Synchronously read the standard output of the spawned process.
+            StreamReader reader = process.StandardOutput;
+            string output = reader.ReadToEnd();
+
+
+            process.WaitForExit();
+
+
+            return output;
+        }
+        public static void BuildAndRun()
+        {
+            string exename = "class3.exe";
+            BuildHelloWorldApp(exename);
+            Console.WriteLine(RunApp(exename));
+
         }
     }
 }

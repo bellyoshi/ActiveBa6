@@ -3,7 +3,7 @@ using System.Reflection.PortableExecutable;
 
 namespace ConsoleApp1
 {
-    internal class Class2
+    public class Class2
     {
         private static readonly Guid s_guid = new Guid("87D4DBE1-1143-4FAD-AAB3-1001F92068E6");
         private static readonly BlobContentId s_contentId = new BlobContentId(s_guid, 0x04030201);
@@ -107,7 +107,7 @@ namespace ConsoleApp1
             il = new InstructionEncoder(codeBuilder, flowBuilder);
 
             // ldstr "hello"
-            il.LoadString(metadata.GetOrAddUserString("Hello, world"));
+            il.LoadString(metadata.GetOrAddUserString("Hello MSIL"));
 
             // call void [mscorlib]System.Console::WriteLine(string)
             il.Call(consoleWriteLineMemberRef);
@@ -183,17 +183,17 @@ namespace ConsoleApp1
             peBlob.WriteContentTo(peStream);
         }
 
-        public static void BuildHelloWorldApp()
+        public static Byte[] BuildHelloWorldApp()
         {
-            using var peStream = new FileStream(
-                "ConsoleApplication.exe", FileMode.OpenOrCreate, FileAccess.ReadWrite
-                );
+            using var peStream = new MemoryStream();
 
             var ilBuilder = new BlobBuilder();
             var metadataBuilder = new MetadataBuilder();
 
             MethodDefinitionHandle entryPoint = EmitHelloWorld(metadataBuilder, ilBuilder);
             WritePEImage(peStream, metadataBuilder, ilBuilder, entryPoint);
+
+            return peStream.ToArray();
         }
     }
 }

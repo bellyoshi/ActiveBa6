@@ -13,10 +13,10 @@ namespace ConsoleApp1
         public InstructionEncoder il { get; }
         public EmitHelper ret { get { il.OpCode(ILOpCode.Ret); return this; } }
 
-        MethodDefinitionHandle MethodDefinitionHandle { get; }
-        public EmitHelper(MetadataBuilder metadataBuilder, MethodBodyStreamEncoder methodBodyStream)
+        public EmitHelper(MetadataBuilder metadataBuilder, BlobBuilder ilBuilder)
     
         {
+            var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
             this.metadata = metadataBuilder;
             this.methodBodyStream = methodBodyStream;
             il = new InstructionEncoder(codeBuilder,flowBuilder);
@@ -33,23 +33,21 @@ namespace ConsoleApp1
         {
             il.Call(objectCtorMemberRef); return this;
         }
-
-
-        public int AddMethodBody()
+        private int AddMethodBody()
         {
-            var ret = 
-             methodBodyStream.AddMethodBody(il);
-            codeBuilder.Clear();return ret;
+            var ret = methodBodyStream.AddMethodBody(il);
+            codeBuilder.Clear();
+            return ret;
         }
 
-        public void CtorDefinition(BlobHandle parameterlessCtorBlobIndex)
+        public void CtorDefinition(BlobBuilder mainSignature)
         {
             var ctorBodyOffset = AddMethodBody();
             MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                 MethodImplAttributes.IL,
                 metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex,
+                metadata.GetOrAddBlob(mainSignature),
                 ctorBodyOffset,
                 parameterList: default(ParameterHandle));
         }
@@ -57,11 +55,10 @@ namespace ConsoleApp1
         internal MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
         {
             var mainBodyOffset = AddMethodBody();
-            // Create method definition for Program::Main
             MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
                 MethodImplAttributes.IL,
-                metadata.GetOrAddString("Main"),
+                metadata.GetOrAddString(MethodName),
                 metadata.GetOrAddBlob(mainSignature),
                 mainBodyOffset,
                 parameterList: default(ParameterHandle));

@@ -1,6 +1,4 @@
-﻿global using System.Reflection.Metadata.Ecma335;
-global using System.Reflection;
-global using System.Reflection.Metadata;
+﻿
 
 
 namespace ConsoleApp1
@@ -14,138 +12,57 @@ namespace ConsoleApp1
             peImageCreator = new PEImageCreator(exename);   
 
         }
-         AssemblyReferenceHandle mscorlibAssemblyRef;
-         TypeReferenceHandle systemObjectTypeRef;
-         TypeReferenceHandle systemConsoleTypeRefHandle;
-        TypeReferenceHandle GetTypeRef(AssemblyReferenceHandle assemblyRef,string namespaceStr, string name)
-        {
-            return metadata.AddTypeReference(
-                assemblyRef,
-                metadata.GetOrAddString(namespaceStr),
-                metadata.GetOrAddString(name));
-        }
-        private MemberReferenceHandle getConsoleWriteLineMemberRef()
-        {
-            // Get reference to Console.WriteLine(string) method.
-            var consoleWriteLineSignature = new BlobBuilder();
-
-            new BlobEncoder(consoleWriteLineSignature).
-                MethodSignature().
-                Parameters(1,
-                    returnType => returnType.Void(),
-                    parameters => parameters.AddParameter().Type().String());
-            return metadata.AddMemberReference(
-               systemConsoleTypeRefHandle,
-               metadata.GetOrAddString("WriteLine"),
-               metadata.GetOrAddBlob(consoleWriteLineSignature));
-
-        }
         private MethodDefinitionHandle EmitHelloWorld(MetadataHelper metadataHelper)
         {
-
-            metadata = metadataHelper.metadata;
-            BlobBuilder ilBuilder = metadataHelper.ilBuilder;
             metadataHelper.s_guid = PEImageCreator.s_guid;
-        // Create module and assembly for a console application.
-
             metadataHelper.AddModule("ConsoleApplication.exe")
                 .AddAssembly("ConsoleApplication");
 
+            var emit = metadataHelper.GetEmit(); 
 
-            mscorlibAssemblyRef = metadataHelper.AddAssemblyReference_mscoreLib();
-
-            systemObjectTypeRef = GetTypeRef(mscorlibAssemblyRef,"System", "Object");
-
-            systemConsoleTypeRefHandle = GetTypeRef(mscorlibAssemblyRef, "System", "Console");
-
-
-
-
-            MemberReferenceHandle consoleWriteLineMemberRef = getConsoleWriteLineMemberRef();
-            var( objectCtorMemberRef, parameterlessCtorBlobIndex )= getObjectCtorMemberRef();
-
-            // Create signature for "void Main()" method.
-            var mainSignature = GetMainSignature(); 
-
-            var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
-
-            var emit = new EmitHelper(metadata, methodBodyStream);
-
+            //.ctor
             emit
                 .ldarg_0
-                .call(objectCtorMemberRef)
+                .call(metadataHelper.Constructor())
                 .ret
-                .CtorDefinition(parameterlessCtorBlobIndex);
+                .CtorDefinition(GetVoidSignature());
             ;
-            // Create method definition for Program::.ctor
 
-           var mainMethodDef =
-            emit
-                .ldstr("Hello MSIL")
-                .call(consoleWriteLineMemberRef)
+            //Main
+            var mainMethodDef =
+             emit
+                 .ldstr("Hello MSIL")
+                 .call(metadataHelper.ConsoleWriteLine())
+                 .ldstr("PRINT MESSAGE")
+                 .call(metadataHelper.ConsoleWriteLine())
                 .ret
-                .MethodDefinition("Main",GetMainSignature());
+                .MethodDefinition("Main",GetVoidSignature());
 
-
-
-
-            AddTypeDefinition(mainMethodDef);
-
+            metadataHelper.AddTypeDefinition(mainMethodDef);
 
             return mainMethodDef;
         }
 
-        private BlobBuilder GetMainSignature()
+        private BlobBuilder GetVoidSignature()
         {
-            var mainSignature =new BlobBuilder();
+            var blob =new BlobBuilder();
 
-            new BlobEncoder(mainSignature).
+            new BlobEncoder(blob).
                 MethodSignature().
                 Parameters(0, returnType => returnType.Void(), parameters => { });
-            return mainSignature;
+            return blob;
         }
 
-        private (MemberReferenceHandle, BlobHandle) getObjectCtorMemberRef()
+
+
+        public Byte[] BuildHelloWorldAppInMemory()
         {
-
-            // Get reference to Object's constructor.
-            var parameterlessCtorSignature = new BlobBuilder();
-
-            new BlobEncoder(parameterlessCtorSignature).
-                MethodSignature(isInstanceMethod: true).
-                Parameters(0, returnType => returnType.Void(), parameters => { });
-
-            BlobHandle parameterlessCtorBlobIndex = metadata.GetOrAddBlob(parameterlessCtorSignature);
-
-            return  (metadata.AddMemberReference(
-                systemObjectTypeRef,
-                metadata.GetOrAddString(".ctor"),
-                parameterlessCtorBlobIndex), parameterlessCtorBlobIndex);
+            var memory = new MemoryStream();
+            var entryPoint = EmitHelloWorld(peImageCreator.metadataHelper);
+            peImageCreator.stream = memory;
+            peImageCreator.Create(entryPoint);
+            return memory.ToArray();
         }
-
-        MetadataBuilder metadata;
-        public void AddTypeDefinition(MethodDefinitionHandle mainMethodDef)
-        {
-
-            // Create type definition for the special <Module> type that holds global functions
-            metadata.AddTypeDefinition(
-                default(TypeAttributes),
-                default(StringHandle),
-                metadata.GetOrAddString("<Module>"),
-                baseType: default(EntityHandle),
-                fieldList: MetadataTokens.FieldDefinitionHandle(1),
-                methodList: mainMethodDef);
-
-            // Create type definition for ConsoleApplication.Program
-            metadata.AddTypeDefinition(
-                TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.AutoLayout | TypeAttributes.BeforeFieldInit,
-                metadata.GetOrAddString("ConsoleApplication"),
-                metadata.GetOrAddString("Program"),
-                baseType: systemObjectTypeRef,
-                fieldList: MetadataTokens.FieldDefinitionHandle(1),
-                methodList: mainMethodDef);
-        }
-
 
         public void BuildHelloWorldApp()
         {
@@ -163,7 +80,6 @@ namespace ConsoleApp1
             process.StartInfo.RedirectStandardOutput = true;
             process.Start();
 
-            // Synchronously read the standard output of the spawned process.
             StreamReader reader = process.StandardOutput;
             string output = reader.ReadToEnd();
 

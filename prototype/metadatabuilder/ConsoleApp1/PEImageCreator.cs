@@ -10,15 +10,17 @@ namespace ConsoleApp1
             this.exename = exename;
         }
         public MetadataHelper metadataHelper { get; } =new MetadataHelper();
+
+        public Stream? stream { get; set; } = null;
         public void Create(MethodDefinitionHandle entryPoint)
         {
-
-            using var peStream = new FileStream(
+            if (stream == null)
+            {
+                stream = new FileStream(
                 exename, FileMode.OpenOrCreate, FileAccess.ReadWrite
                 );
-
-
-
+            }
+            using Stream peStream = stream;
             PEImageCreator.WritePEImage(peStream, metadataHelper, entryPoint);
         }
         public static readonly Guid s_guid = new Guid("87D4DBE1-1143-4FAD-AAB3-1001F92068E6");

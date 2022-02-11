@@ -35,7 +35,7 @@ namespace BLanguage
             if(Variables.TryGetValue(var, out Variable? v))
             {
                 var oldValue = Variables[var];
-                Variables[var].Value = value;
+                Variables[var] = value;
             }
             else
             {
