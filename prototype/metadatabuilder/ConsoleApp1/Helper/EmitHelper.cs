@@ -8,10 +8,9 @@ namespace ConsoleApp1
         private MetadataBuilder metadata;
 
         private MethodBodyStreamEncoder methodBodyStream;
-        public BlobBuilder codeBuilder { get; } = new BlobBuilder();
-        public ControlFlowBuilder flowBuilder{get;} = new ControlFlowBuilder();
-        public InstructionEncoder il { get; }
-        public EmitHelper ret { get { il.OpCode(ILOpCode.Ret); return this; } }
+        private BlobBuilder codeBuilder;
+        private ControlFlowBuilder flowBuilder;
+        private InstructionEncoder il;
 
         public EmitHelper(MetadataBuilder metadataBuilder, BlobBuilder ilBuilder)
     
@@ -19,9 +18,17 @@ namespace ConsoleApp1
             var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
             this.metadata = metadataBuilder;
             this.methodBodyStream = methodBodyStream;
+            codeBuilder = new BlobBuilder();
+            flowBuilder = new ControlFlowBuilder();
             il = new InstructionEncoder(codeBuilder,flowBuilder);
+
         }
-        public EmitHelper ldarg_0 { get { il.LoadArgument(0); return this; } }
+        public EmitHelper ldarg_0 { 
+            get {
+                il.LoadArgument(0);
+                return this;
+            }
+        }
         
         public EmitHelper ldstr(string str)
         {
@@ -29,10 +36,23 @@ namespace ConsoleApp1
             il.LoadString(usrStrHandle);
             return this;
         }
-        public EmitHelper call(MemberReferenceHandle objectCtorMemberRef) 
+        public EmitHelper call(MemberReferenceHandle memberRef) 
         {
-            il.Call(objectCtorMemberRef); return this;
+            il.Call(memberRef); 
+            return this;
         }
+        public EmitHelper call(string method, string parameter, string ret)
+        {
+            throw new NotImplementedException();
+            return this;
+        }
+        public EmitHelper ret {
+            get {
+                il.OpCode(ILOpCode.Ret);
+                return this;
+            }
+        }
+
         private int AddMethodBody()
         {
             var ret = methodBodyStream.AddMethodBody(il);

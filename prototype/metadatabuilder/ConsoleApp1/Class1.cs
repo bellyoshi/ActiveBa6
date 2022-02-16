@@ -33,8 +33,6 @@ namespace ConsoleApp1
              emit
                  .ldstr("Hello MSIL")
                  .call(metadataHelper.ConsoleWriteLine())
-                 .ldstr("PRINT MESSAGE")
-                 .call(metadataHelper.ConsoleWriteLine())
                 .ret
                 .MethodDefinition("Main",GetVoidSignature());
 
