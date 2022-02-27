@@ -18,7 +18,7 @@ namespace Language
         public override string VisitPrintlnFunctionCall([NotNull] BLanguageParser.PrintlnFunctionCallContext context)
         {
             Visit(context.expression());
-            emit.call("System.Console.WriteLine", "String","void");
+            emit.call("void", "System.Console.WriteLine", "String");
             return String.Empty;
         }
     }
