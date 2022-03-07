@@ -60,19 +60,38 @@ namespace ConsoleApp1
             return ret;
         }
 
-        public void CtorDefinition(BlobBuilder mainSignature)
+        private BlobBuilder GetVoidSignature()
+        {
+            var blob = new BlobBuilder();
+
+            new BlobEncoder(blob).
+                MethodSignature().
+                Parameters(0, returnType => returnType.Void(), parameters => { });
+            return blob;
+        }
+
+        public void CtorDefinition()
+        {
+            CtorDefinition(GetVoidSignature());
+        }
+        public void CtorDefinition(BlobBuilder signature)
         {
             var ctorBodyOffset = AddMethodBody();
             MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                 MethodImplAttributes.IL,
                 metadata.GetOrAddString(".ctor"),
-                metadata.GetOrAddBlob(mainSignature),
+                metadata.GetOrAddBlob(signature),
                 ctorBodyOffset,
                 parameterList: default(ParameterHandle));
         }
 
-        internal MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
+        public MethodDefinitionHandle MethodDefinition(string returnType, string name)
+        {
+            return MethodDefinition(name, GetVoidSignature());
+        }
+
+        public MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
         {
             var mainBodyOffset = AddMethodBody();
             MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(

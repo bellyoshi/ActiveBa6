@@ -10,7 +10,9 @@ namespace Language
         {
             try
             {
-                var text = File.ReadAllText(@"input.b");
+                //var text = File.ReadAllText(@"input.b");
+                var text = "println \"Hello\"\n" +
+                            "println \"Hello Hello\"";
                 var input = new AntlrInputStream(text);
                 Lexer lexer = new BLanguageLexer(input);
                 lexer.RemoveErrorListeners();
@@ -21,6 +23,7 @@ namespace Language
                 var tree = parser.parse();
                 var codegen = new CodeGeneratorVisitor();
                 var result = codegen.Visit(tree);
+                System.Diagnostics.Process.Start("HelloWrold.exe");
             }catch(ParseCanceledException e)
             {
                 System.Console.WriteLine(e.Message);

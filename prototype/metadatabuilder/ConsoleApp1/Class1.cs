@@ -25,7 +25,7 @@ namespace ConsoleApp1
                 .ldarg_0
                 .call(metadataHelper.Constructor())
                 .ret
-                .CtorDefinition(GetVoidSignature());
+                .CtorDefinition();
             ;
 
             //Main
@@ -34,22 +34,14 @@ namespace ConsoleApp1
                  .ldstr("Hello MSIL")
                  .call(metadataHelper.ConsoleWriteLine())
                 .ret
-                .MethodDefinition("Main",GetVoidSignature());
+                .MethodDefinition("void","Main");
 
             metadataHelper.AddTypeDefinition(mainMethodDef);
 
             return mainMethodDef;
         }
 
-        private BlobBuilder GetVoidSignature()
-        {
-            var blob =new BlobBuilder();
 
-            new BlobEncoder(blob).
-                MethodSignature().
-                Parameters(0, returnType => returnType.Void(), parameters => { });
-            return blob;
-        }
 
 
 

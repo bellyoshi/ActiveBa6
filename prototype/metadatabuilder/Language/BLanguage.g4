@@ -19,7 +19,7 @@ assignment: Identifiler '=' expression;
 
 functionCall:
 	Identifier '(' exprList? ')' #identifierFunctionCall
-	| Println '(' dataType ',' expression? ')' #printlnFunctionCall
+	| Println expression? #printlnFunctionCall
 	| Print '(' dataType ',' expression? ')' #printFunctionCall
 	;
 
