@@ -41,7 +41,7 @@ namespace ConsoleApp1
             il.Call(memberRef); 
             return this;
         }
-        public EmitHelper call(string method, string parameter, string ret)
+        public EmitHelper Call(string ret, string method, string parameter)
         {
             throw new NotImplementedException();
             return this;
