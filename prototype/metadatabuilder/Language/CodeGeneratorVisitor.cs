@@ -47,10 +47,16 @@ namespace Language
         public override string VisitPrintlnFunctionCall([NotNull] BLanguageParser.PrintlnFunctionCallContext context)
         {
             Visit(context.expression());
-            emit.ldstr("Hello AAA")
-            .call(metadataHelper.ConsoleWriteLine());
+       
+            emit.call(metadataHelper.ConsoleWriteLine());
 
             //emit.call("System.Console.WriteLine", "String","void");
+            return String.Empty;
+        }
+        public override string VisitStringExpression([NotNull] BLanguageParser.StringExpressionContext context)
+        {
+            var str = context.String().GetText();
+            emit.ldstr(str);
             return String.Empty;
         }
     }
