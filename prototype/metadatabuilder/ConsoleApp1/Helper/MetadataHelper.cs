@@ -41,7 +41,7 @@ namespace ConsoleApp1
             return this;
         }
 
-        private MemberReferenceHandle GetMemberRef(string namespacestr, string typenamestr, string methodnamestr,int parameterCount,
+        public MemberReferenceHandle GetMemberRef(string namespacestr, string typenamestr, string methodnamestr,int parameterCount,
             Action<ReturnTypeEncoder> returnType, Action<ParametersEncoder> parameters)
         {
             
@@ -92,7 +92,7 @@ namespace ConsoleApp1
         }
         public EmitHelper GetEmit()
         {
-            return new EmitHelper(metadata, ilBuilder);
+            return new EmitHelper(this, ilBuilder);
         }
     }
 }

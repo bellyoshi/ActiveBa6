@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace Language
 {
-    public class CodeGeneratorVisitor:BLanguageBaseVisitor<string>
+    public class CodeGeneratorVisitor:BLanguageBaseVisitor<Expression>
     {
         ConsoleApp1.EmitHelper emit;
         ConsoleApp1.PEImageCreator PEImageCreator = new ConsoleApp1.PEImageCreator("HelloWrold.exe");
         ConsoleApp1.MetadataHelper metadataHelper;
-        public override string VisitParse([NotNull] BLanguageParser.ParseContext context)
+        public override Expression VisitParse([NotNull] BLanguageParser.ParseContext context)
         {
             metadataHelper = PEImageCreator.metadataHelper;
             metadataHelper.s_guid = ConsoleApp1.PEImageCreator.s_guid;
@@ -44,20 +44,20 @@ namespace Language
             return ret;
 
         }
-        public override string VisitPrintlnFunctionCall([NotNull] BLanguageParser.PrintlnFunctionCallContext context)
+        public override Expression VisitPrintlnFunctionCall([NotNull] BLanguageParser.PrintlnFunctionCallContext context)
         {
-            Visit(context.expression());
+            var expression = Visit(context.expression());
        
-            emit.call(metadataHelper.ConsoleWriteLine());
+   
 
-            //emit.call("System.Console.WriteLine", "String","void");
-            return String.Empty;
+            emit.call("void", "System.Console.WriteLine", expression.typeName);
+            return null;
         }
-        public override string VisitStringExpression([NotNull] BLanguageParser.StringExpressionContext context)
+        public override Expression VisitStringExpression([NotNull] BLanguageParser.StringExpressionContext context)
         {
             var str = context.String().GetText();
             emit.ldstr(str);
-            return String.Empty;
+            return new Expression() { typeName = "string"};
         }
     }
 }

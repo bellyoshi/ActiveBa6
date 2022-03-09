@@ -5,18 +5,18 @@ namespace ConsoleApp1
 {
     public class EmitHelper
     {
-        private MetadataBuilder metadata;
-
+        private MetadataBuilder _metadata => _metadataHelper.metadata;
+        private MetadataHelper _metadataHelper;
         private MethodBodyStreamEncoder methodBodyStream;
         private BlobBuilder codeBuilder;
         private ControlFlowBuilder flowBuilder;
         private InstructionEncoder il;
 
-        public EmitHelper(MetadataBuilder metadataBuilder, BlobBuilder ilBuilder)
+        public EmitHelper(MetadataHelper metadataHelper, BlobBuilder ilBuilder)
     
         {
             var methodBodyStream = new MethodBodyStreamEncoder(ilBuilder);
-            this.metadata = metadataBuilder;
+            this._metadataHelper = metadataHelper;
             this.methodBodyStream = methodBodyStream;
             codeBuilder = new BlobBuilder();
             flowBuilder = new ControlFlowBuilder();
@@ -32,7 +32,7 @@ namespace ConsoleApp1
         
         public EmitHelper ldstr(string str)
         {
-            var usrStrHandle = metadata.GetOrAddUserString(str);
+            var usrStrHandle = _metadata.GetOrAddUserString(str);
             il.LoadString(usrStrHandle);
             return this;
         }
@@ -41,10 +41,20 @@ namespace ConsoleApp1
             il.Call(memberRef); 
             return this;
         }
-        public EmitHelper Call(string ret, string method, string parameter)
+        public EmitHelper call(string ret, string fullMethodName, params string[] parameters)
         {
-            throw new NotImplementedException();
-            return this;
+            var names = fullMethodName.Split('.');
+            var nameSpaceName = names[0];
+            var typeName = names[1];
+            var methodName = names[2];
+
+           var memberref =  _metadataHelper.GetMemberRef(nameSpaceName, typeName, methodName, 1, returnType => returnType.Void(),
+         parameters => parameters.AddParameter().Type().String());
+
+            //todo:: return , parameter
+            return call(memberref);
+
+
         }
         public EmitHelper ret {
             get {
@@ -77,11 +87,11 @@ namespace ConsoleApp1
         public void CtorDefinition(BlobBuilder signature)
         {
             var ctorBodyOffset = AddMethodBody();
-            MethodDefinitionHandle ctorDef = metadata.AddMethodDefinition(
+            MethodDefinitionHandle ctorDef = _metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                 MethodImplAttributes.IL,
-                metadata.GetOrAddString(".ctor"),
-                metadata.GetOrAddBlob(signature),
+                _metadata.GetOrAddString(".ctor"),
+                _metadata.GetOrAddBlob(signature),
                 ctorBodyOffset,
                 parameterList: default(ParameterHandle));
         }
@@ -94,11 +104,11 @@ namespace ConsoleApp1
         public MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
         {
             var mainBodyOffset = AddMethodBody();
-            MethodDefinitionHandle mainMethodDef = metadata.AddMethodDefinition(
+            MethodDefinitionHandle mainMethodDef = _metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
                 MethodImplAttributes.IL,
-                metadata.GetOrAddString(MethodName),
-                metadata.GetOrAddBlob(mainSignature),
+                _metadata.GetOrAddString(MethodName),
+                _metadata.GetOrAddBlob(mainSignature),
                 mainBodyOffset,
                 parameterList: default(ParameterHandle));
            return mainMethodDef;
