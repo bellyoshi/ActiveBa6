@@ -1,7 +1,7 @@
 ﻿
 
 
-namespace ConsoleApp1
+namespace ConsoleApp1.Helper
 {
     public class EmitHelper
     {
@@ -48,8 +48,10 @@ namespace ConsoleApp1
             var typeName = names[1];
             var methodName = names[2];
 
-           var memberref =  _metadataHelper.GetMemberRef(nameSpaceName, typeName, methodName, 1, returnType => returnType.Void(),
-         parameters => parameters.AddParameter().Type().String());
+            var paramHelper = new ParametersEncorderHelper() { parameterList = parameters};
+           var memberref =  _metadataHelper.GetMemberRef(nameSpaceName, typeName, methodName,
+               parameters.Count(), returnType => returnType.Void(),
+         paramHelper.ParameterAction );
 
             //todo:: return , parameter
             return call(memberref);
@@ -68,6 +70,12 @@ namespace ConsoleApp1
             var ret = methodBodyStream.AddMethodBody(il);
             codeBuilder.Clear();
             return ret;
+        }
+
+        public EmitHelper ldc(int num)
+        {
+            il.LoadConstantI4(num);
+            return this;
         }
 
         private BlobBuilder GetVoidSignature()

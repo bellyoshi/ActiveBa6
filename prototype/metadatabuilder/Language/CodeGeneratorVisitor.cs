@@ -9,7 +9,7 @@ namespace Language
 {
     public class CodeGeneratorVisitor:BLanguageBaseVisitor<Expression>
     {
-        ConsoleApp1.EmitHelper emit;
+        ConsoleApp1.Helper.EmitHelper emit;
         ConsoleApp1.PEImageCreator PEImageCreator = new ConsoleApp1.PEImageCreator("HelloWrold.exe");
         ConsoleApp1.MetadataHelper metadataHelper;
         public override Expression VisitParse([NotNull] BLanguageParser.ParseContext context)
@@ -58,6 +58,12 @@ namespace Language
             var str = context.String().GetText();
             emit.ldstr(str);
             return new Expression() { typeName = "string"};
+        }
+        public override Expression VisitNumberExpression([NotNull] BLanguageParser.NumberExpressionContext context)
+        {
+            int num = int.Parse(context.Number().GetText());
+            emit.ldc(num);
+            return new Expression() { typeName = "int" };
         }
     }
 }
