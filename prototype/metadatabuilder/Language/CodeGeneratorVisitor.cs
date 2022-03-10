@@ -80,5 +80,20 @@ namespace Language
           
             return exp;
         }
+        public override Expression VisitMultExpression([NotNull] BLanguageParser.MultExpressionContext context)
+        {
+            Visit(context.expression(0));
+            var exp = Visit(context.expression(1));
+            if (context.op.Text == "*")
+            {
+                emit.mul();
+            }
+            else if (context.op.Text == "/")
+            {
+                emit.div();
+            }
+
+            return exp;
+        }
     }
 }

@@ -104,6 +104,19 @@ namespace ConsoleApp1.Helper
         {
             CtorDefinition(GetVoidSignature());
         }
+
+        public EmitHelper mul()
+        {
+            il.OpCode(ILOpCode.Mul);
+            return this;
+        }
+
+        public EmitHelper div()
+        {
+            il.OpCode(ILOpCode.Div);
+            return this;
+        }
+
         public void CtorDefinition(BlobBuilder signature)
         {
             var ctorBodyOffset = AddMethodBody();
