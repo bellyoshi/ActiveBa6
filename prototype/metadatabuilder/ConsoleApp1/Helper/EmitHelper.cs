@@ -131,20 +131,25 @@ namespace ConsoleApp1.Helper
 
         public MethodDefinitionHandle MethodDefinition(string returnType, string name)
         {
-            return MethodDefinition(name, GetVoidSignature());
+
+            if(returnType == "void")
+            {
+                return MethodDefinition(name, GetVoidSignature());
+            }
+            throw new NotImplementedException();//todo:
         }
 
-        public MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder mainSignature)
+        public MethodDefinitionHandle MethodDefinition(string MethodName, BlobBuilder MethodSignature)
         {
-            var mainBodyOffset = AddMethodBody();
-            MethodDefinitionHandle mainMethodDef = _metadata.AddMethodDefinition(
+            var bodyOffset = AddMethodBody();
+            MethodDefinitionHandle methodDef = _metadata.AddMethodDefinition(
                 MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
                 MethodImplAttributes.IL,
                 _metadata.GetOrAddString(MethodName),
-                _metadata.GetOrAddBlob(mainSignature),
-                mainBodyOffset,
+                _metadata.GetOrAddBlob(MethodSignature),
+                bodyOffset,
                 parameterList: default(ParameterHandle));
-           return mainMethodDef;
+           return methodDef;
         }
     }
 }
