@@ -88,6 +88,12 @@ namespace ConsoleApp1.Helper
             return blob;
         }
 
+        public EmitHelper sub()
+        {
+            il.OpCode(ILOpCode.Sub);
+            return this;
+        }
+
         public EmitHelper add()
         {
             il.OpCode(ILOpCode.Add);

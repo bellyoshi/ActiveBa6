@@ -70,7 +70,14 @@ namespace Language
         {
             Visit(context.expression(0));
             var exp = Visit(context.expression(1));
-            emit.add();
+            if(context.op.Text == "+")
+            {
+                emit.add();
+            }else if(context.op.Text == "-")
+            {
+                emit.sub();
+            }
+          
             return exp;
         }
     }
