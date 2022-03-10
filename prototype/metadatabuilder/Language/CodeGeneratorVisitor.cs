@@ -65,5 +65,13 @@ namespace Language
             emit.ldc(num);
             return new Expression() { typeName = "int" };
         }
+
+        public override Expression VisitAddExpression([NotNull] BLanguageParser.AddExpressionContext context)
+        {
+            Visit(context.expression(0));
+            var exp = Visit(context.expression(1));
+            emit.add();
+            return exp;
+        }
     }
 }

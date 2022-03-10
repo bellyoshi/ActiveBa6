@@ -13,7 +13,7 @@ namespace Language
                 //var text = File.ReadAllText(@"input.b");
                 var text = "println \"This is Sample\"\n" +
                             "println 200\n" +
-                            "println \"Hello ANTLR4\"\n";
+                            "println 1+2+3+4+5+6+7+8+9+10\n";
                 var input = new AntlrInputStream(text);
                 Lexer lexer = new BLanguageLexer(input);
                 lexer.RemoveErrorListeners();

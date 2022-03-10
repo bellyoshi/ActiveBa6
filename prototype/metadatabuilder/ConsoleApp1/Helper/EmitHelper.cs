@@ -88,6 +88,12 @@ namespace ConsoleApp1.Helper
             return blob;
         }
 
+        public EmitHelper add()
+        {
+            il.OpCode(ILOpCode.Add);
+            return this;
+        }
+
         public void CtorDefinition()
         {
             CtorDefinition(GetVoidSignature());
