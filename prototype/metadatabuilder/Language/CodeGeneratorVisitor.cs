@@ -12,6 +12,8 @@ namespace Language
         ConsoleApp1.Helper.EmitHelper emit;
         ConsoleApp1.PEImageCreator PEImageCreator = new ConsoleApp1.PEImageCreator("HelloWrold.exe");
         ConsoleApp1.MetadataHelper metadataHelper;
+        List<string> localValiableSlots = new List<string>();
+
         public override Expression VisitParse([NotNull] BLanguageParser.ParseContext context)
         {
             metadataHelper = PEImageCreator.metadataHelper;
@@ -28,12 +30,12 @@ namespace Language
                 .CtorDefinition();
             ;
 
-            emit
-                .ldc(777)
-                .StoreLocal(0)
-                .LoadLocal(0)
-                .call("void", "System.Console.WriteLine", "int");
-            base.VisitParse(context);
+            //emit
+            //    .ldc(777)
+            //    .StoreLocal(0)
+            //    .LoadLocal(0)
+            //    .call("void", "System.Console.WriteLine", "int");
+            var ret = base.VisitParse(context);
             //Main
             var mainMethodDef =
              emit
@@ -43,11 +45,36 @@ namespace Language
 
             metadataHelper.AddTypeDefinition(mainMethodDef);
 
-            var ret =  base.VisitParse(context);
             var entryPoint = mainMethodDef;
             PEImageCreator.Create(entryPoint);
             return ret;
 
+        }
+        public override Expression VisitIdentierExpression([NotNull] BLanguageParser.IdentierExpressionContext context)
+        {
+            var name = context.GetText().ToString();
+            var idx = getSlot(name);
+            emit.LoadLocal(idx);
+            return new Expression() { typeName = "int" };
+        }
+        public override Expression VisitAssignment([NotNull] BLanguageParser.AssignmentContext context)
+        {
+            var expression = Visit(context.expression());
+            var name = context.Identifier().GetText().ToString();
+            var idx = getSlot(name);
+            emit.StoreLocal(idx);
+            return expression;
+        }
+
+        private int getSlot(string name)
+        {
+            var idx = (localValiableSlots.FindIndex(s => s == name));
+            if (idx == -1)
+            {
+                localValiableSlots.Add(name);
+                idx = localValiableSlots.Count - 1;
+            }
+            return idx;
         }
         public override Expression VisitPrintlnFunctionCall([NotNull] BLanguageParser.PrintlnFunctionCallContext context)
         {

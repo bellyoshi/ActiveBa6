@@ -87,11 +87,16 @@ namespace ConsoleApp1.Helper
 
 
 
-        private int AddMethodBody()
+
+        private int AddMethodBody(int slotCount = 8)
         {
             int maxStack = 8;
-            sig = blobEncoder.LocalVariableSignature(1);
-            sig.AddVariable().Type(false,true).Int32();
+            sig = blobEncoder.LocalVariableSignature(slotCount);
+            for(int i = 0; i < slotCount; i++)
+            {
+                sig.AddVariable().Type(false, true).Int32();
+            }
+
             var value = blobEncoder.Builder;
             StandaloneSignatureHandle localVariablesSignature = _metadata.AddStandaloneSignature(
                 _metadata.GetOrAddBlob(value)

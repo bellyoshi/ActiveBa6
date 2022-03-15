@@ -11,10 +11,15 @@ namespace Language
             try
             {
                 //var text = File.ReadAllText(@"input.b");
-                var text = "println \"This is Sample\"\n" +
-                            "println 200-50-50\n" +
-                            "println 1+2+3+4+5+6+7+8+9+10\n" +
-                            "println 8+3*4\n";
+                var text = "println \"This is Sample\";\n" +
+                            "println 200-50-50;\n" +
+                            "println 1+2+3+4+5+6+7+8+9+10;\n" +
+                            "println 8+3*4;\n" +
+                            "abc = 10;\n" +
+                            "bbb = 20;\n" +
+                            "println abc + bbb;\n" +
+                            "";
+
                 var input = new AntlrInputStream(text);
                 Lexer lexer = new BLanguageLexer(input);
                 lexer.RemoveErrorListeners();

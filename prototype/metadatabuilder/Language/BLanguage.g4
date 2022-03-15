@@ -15,11 +15,11 @@ statement:
 	;
 readFile : 'readFile' Identifier #ReadFileCall;
 varDeclaration: type Identifier;
-assignment: Identifiler '=' expression;
+assignment: Identifier '=' expression;
 
 functionCall:
 	Identifier '(' exprList? ')' #identifierFunctionCall
-	| Println expression? #printlnFunctionCall
+	| Println '('expression? ')' #printlnFunctionCall
 	| Print '(' dataType ',' expression? ')' #printFunctionCall
 	;
 
