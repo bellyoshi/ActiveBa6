@@ -28,11 +28,16 @@ namespace Language
                 .CtorDefinition();
             ;
 
+            emit
+                .ldc(777)
+                .StoreLocal(0)
+                .LoadLocal(0)
+                .call("void", "System.Console.WriteLine", "int");
             base.VisitParse(context);
             //Main
             var mainMethodDef =
              emit
-
+                
                 .ret
                 .MethodDefinition("void", "Main");
 

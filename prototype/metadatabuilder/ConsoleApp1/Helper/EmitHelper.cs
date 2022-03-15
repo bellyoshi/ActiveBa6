@@ -11,7 +11,8 @@ namespace ConsoleApp1.Helper
         private BlobBuilder codeBuilder;
         private ControlFlowBuilder flowBuilder;
         private InstructionEncoder il;
-
+        private BlobEncoder blobEncoder;
+        private LocalVariablesEncoder sig;
         public EmitHelper(MetadataHelper metadataHelper, BlobBuilder ilBuilder)
     
         {
@@ -21,8 +22,26 @@ namespace ConsoleApp1.Helper
             codeBuilder = new BlobBuilder();
             flowBuilder = new ControlFlowBuilder();
             il = new InstructionEncoder(codeBuilder,flowBuilder);
-
+            blobEncoder = new BlobEncoder(new BlobBuilder());
         }
+        //public EmitHelper Local(int num)
+        //{
+
+        //    return this;
+        //}
+
+        public EmitHelper StoreLocal(int v)
+        {
+            il.StoreLocal(v);
+            return this;
+        }
+
+        public EmitHelper LoadLocal(int v)
+        {
+            il.LoadLocal(v);
+            return this;
+        }
+
         public EmitHelper ldarg_0 { 
             get {
                 il.LoadArgument(0);
@@ -65,9 +84,19 @@ namespace ConsoleApp1.Helper
             }
         }
 
+
+
+
         private int AddMethodBody()
         {
-            var ret = methodBodyStream.AddMethodBody(il);
+            int maxStack = 8;
+            sig = blobEncoder.LocalVariableSignature(1);
+            sig.AddVariable().Type(false,true).Int32();
+            var value = blobEncoder.Builder;
+            StandaloneSignatureHandle localVariablesSignature = _metadata.AddStandaloneSignature(
+                _metadata.GetOrAddBlob(value)
+                );
+            var ret = methodBodyStream.AddMethodBody(il, maxStack, localVariablesSignature);
             codeBuilder.Clear();
             return ret;
         }
