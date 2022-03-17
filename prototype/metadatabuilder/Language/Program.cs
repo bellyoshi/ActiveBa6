@@ -6,19 +6,12 @@ namespace Language
 {
     public static class Program
     {
-        private static void Parse()
+        private static void Parse(string text)
         {
             try
             {
                 //var text = File.ReadAllText(@"input.b");
-                var text = "println \"This is Sample\";\n" +
-                            "println 200-50-50;\n" +
-                            "println 1+2+3+4+5+6+7+8+9+10;\n" +
-                            "println 8+3*4;\n" +
-                            "abc = 10;\n" +
-                            "bbb = 20;\n" +
-                            "println abc + bbb;\n" +
-                            "";
+
 
                 var input = new AntlrInputStream(text);
                 Lexer lexer = new BLanguageLexer(input);
@@ -30,15 +23,31 @@ namespace Language
                 var tree = parser.parse();
                 var codegen = new CodeGeneratorVisitor();
                 var result = codegen.Visit(tree);
-                System.Diagnostics.Process.Start("HelloWrold.exe");
+
             }catch(ParseCanceledException e)
             {
                 System.Console.WriteLine(e.Message);
             }
         }
+        public static void Run()
+        {
+            System.Diagnostics.Process.Start("HelloWrold.exe");
+        }
+
+        public static void BuildAndRun(string text)
+        {
+            Parse(text);
+            Run();
+        }
         private static void Main(string[] args)
         {
-            Parse();
+            var text = @$"
+                A = 7 + 7 * 10 + 700;
+                println {'"'}sample is 7 7 7{'"'};
+                println A;
+                ";
+            BuildAndRun(text);
+
         }
     }
 }
