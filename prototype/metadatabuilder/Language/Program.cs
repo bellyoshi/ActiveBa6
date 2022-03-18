@@ -43,7 +43,7 @@ namespace Language
         {
             var text = @$"
                 A = 7 + 7 * 10 + 700;
-                println {'"'}sample is 7 7 7{'"'};
+                println ""sample is 7 7 7"";
                 println A;
                 ";
             BuildAndRun(text);
