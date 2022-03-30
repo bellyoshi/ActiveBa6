@@ -29,6 +29,31 @@ namespace Language
                 System.Console.WriteLine(e.Message);
             }
         }
+        public static string ParseAndRun(string text)
+        {
+            Parse(text);
+            return RunApp("HelloWrold.exe");
+        }
+        public static string RunApp(string exename)
+        {
+
+            using var process = new System.Diagnostics.Process();
+
+            process.StartInfo.FileName = exename;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.Start();
+
+            StreamReader reader = process.StandardOutput;
+            string output = reader.ReadToEnd();
+
+
+            process.WaitForExit();
+
+
+            return output;
+        }
+
         public static void Run()
         {
             System.Diagnostics.Process.Start("HelloWrold.exe");
