@@ -1,0 +1,10 @@
+'NameSpace Drawing
+Function GetBitmapImageFromhDC(Image As *BitmapImage) 
+End Function
+
+Class BitmapImage
+Public
+    Sub Save(FileName As String)
+
+	End Sub
+End	Class

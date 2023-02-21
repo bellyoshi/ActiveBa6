@@ -1,0 +1,26 @@
+' ActiveBasic Project file.
+
+#VERSION=10
+
+#MODULETYPE=0
+
+#NAME=Line
+
+#PLATFORM=32
+
+#USEWINDOW=0
+
+#OPTION=&H00020000
+
+#OUTPUT_RELEASE=.\Line.exe
+
+#OUTPUT_DEBUG=.\Line_debug.exe
+
+#MANIFEST=Line.manifest.xml
+
+#DEBUG_CMD_LINE=
+
+#DEBUG_EXE_PATH=
+
+#SOURCE
+Line.ab
