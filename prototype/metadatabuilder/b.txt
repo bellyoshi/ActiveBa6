@@ -1,0 +1,38 @@
+﻿compile(func(x1,x2...xn)) :
+	for i = 1,...n:
+		compile(xi)
+	typ := symbolTable(func)
+	emit(call instance int32 Program::func(type))
+
+
+CodeGenetaror(if e1 = e2 then e3 else e4)  =
+	CodeGenerator(e1)
+	CodeGenerator(e2)
+	ceq true_branch
+	brfalse.s:false_brance
+	false_branch:
+		CodeGenerator(e4)
+	b end_if
+	true_brance:
+		CodeGeneraotr(3)
+end_if:
+
+CodeGenerator(for(expr) stmt) = 
+{
+	let Lb be a new label.
+	let La be a new label.
+	Emit( Lb:)
+	Let t = CodeGenerator(expr)
+	Emit( IfZ t Goto La)
+	CodeGenerator(stmt)
+	Emit (GotoLb)
+	Emit(La:)
+}
+
+compile( R Func(args)) :
+	emit(.method private R hidebysig instance Func(args))
+	emit(.limit locals locals(f))
+	emit(.limit stack stack(f)
+	for(i = 1,...n)
+		compile(args[i])
+	emit(end)
