@@ -1,0 +1,6 @@
+#prompt
+Print "A"
+Print "B"
+Dim i As Integer
+For i = 0 to 1000000000
+NEXT
