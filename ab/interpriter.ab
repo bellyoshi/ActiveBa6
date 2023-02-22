@@ -1,0 +1,20 @@
+#include "interpriter.idx"
+
+#console
+
+' « ‚±‚±‚©‚çƒvƒƒOƒ‰ƒ€‚ªŽÀs‚³‚ê‚Ü‚·
+Main()
+
+Function Main() As Integer
+    Dim s As String
+    While True
+    	
+        Print "->"
+        Input s
+        If compIgnCase(s, "quit") Then
+            Exit While
+        End If
+        Print s
+    Wend
+	Main = 0:return
+End Function

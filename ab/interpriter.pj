@@ -1,0 +1,27 @@
+' ActiveBasic Project file.
+
+#VERSION=10
+
+#MODULETYPE=0
+
+#NAME=interpriter
+
+#PLATFORM=32
+
+#USEWINDOW=0
+
+#OPTION=&H00020000
+
+#OUTPUT_RELEASE=.\interpriter.exe
+
+#OUTPUT_DEBUG=.\interpriter_debug.exe
+
+#MANIFEST=interpriter.manifest.xml
+
+#DEBUG_CMD_LINE=
+
+#DEBUG_EXE_PATH=
+
+#SOURCE
+interpriter.ab
+.\Util.ab
