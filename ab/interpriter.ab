@@ -1,4 +1,4 @@
-#include "interpriter.idx"
+#include "interpriter.idx"	
 
 #console
 
@@ -6,6 +6,7 @@
 Main()
 
 Function Main() As Integer
+	Dim stack As Stack
     Dim s As String
     While True
     	
@@ -14,7 +15,114 @@ Function Main() As Integer
         If compIgnCase(s, "quit") Then
             Exit While
         End If
+		if compIgnCase(s, "printstack") Then
+            stack.PrintStack()
+            continue
+        End If
+        Dim c = s[0] As Char
+		Dim value As Double
+		Dim a As Double
+		Dim b As Double
+		Select Case c
+			Case Asc("+")
+				a = stack.Pop()
+				b = stack.Pop()
+				value = a + b
+				Print value
+				stack.Push(value)
+			Case Asc("-")
+				a = stack.Pop()
+				b = stack.Pop()
+				value = a - b
+				Print value
+				stack.Push(value)
+			Case Asc("/")
+				a = stack.Pop()
+				b = stack.Pop()
+				value = a / b
+				Print value
+				stack.Push(value)
+			Case Asc("*")
+				a = stack.Pop()
+				b = stack.Pop()
+				value = a * b
+				Print value
+				stack.Push(value)
+			Case Else
+				value = Val(s)
+				stack.Push(value)
+		End Select
+        
+		/*
+            case '+':{
+                double a,b;
+                if(getTop2Elm(machine_stack, &a, &b))
+                    break;
+                cout << a + b << endl;
+                machine_stack.push(a + b);
+                break;
+            }
+            case '-':{
+                double a,b;
+                if(getTop2Elm(machine_stack, &a, &b))
+                    break;
+                cout << a - b << endl;
+                machine_stack.push(a - b);
+                break;
+            }
+            case '*':{
+                double a,b;
+                if(getTop2Elm(machine_stack, &a, &b))
+                    break;
+                cout << a * b << endl;
+                machine_stack.push(a * b);
+                break;
+            }
+
+            case '/': {
+                double a,b;
+                if(getTop2Elm(machine_stack, &a, &b))
+                    break;
+                cout << a + b << endl;
+                machine_stack.push(a / b);
+            }          
+                break;
+            default:{
+                machine_stack.push(atof(s.c_str()));
+                break;
+            }*/
         Print s
     Wend
 	Main = 0:return
 End Function
+
+class Stack
+private
+	mem[1024] As Double
+	pointer As Integer
+public
+	Function Pop() As Double
+		pointer--
+		if pointer < 0 Then
+			pointer = 0
+		end if
+		Pop = mem[pointer]
+		return
+	End Function
+	Sub Push(value As Double)
+		mem[pointer] = value
+		pointer++
+	End sub
+	Sub PrintStack()
+		Dim i As Integer
+		Print "--- Stack top ---"
+		For i = 0 To pointer - 1
+			Print mem[i]
+		Next
+		Print "--- Stack buttom ---"
+	End Sub
+
+'	Function Top()
+'		Top = mem[pointer]
+'	End Function
+End class
