@@ -4,7 +4,7 @@
 
 #MODULETYPE=0
 
-#NAME=interpriter
+#NAME=InterPriter
 
 #PLATFORM=32
 
@@ -12,16 +12,15 @@
 
 #OPTION=&H00020000
 
-#OUTPUT_RELEASE=.\interpriter.exe
+#OUTPUT_RELEASE=.\InterPriter.exe
 
-#OUTPUT_DEBUG=.\interpriter_debug.exe
+#OUTPUT_DEBUG=.\InterPriter_debug.exe
 
-#MANIFEST=interpriter.manifest.xml
+#MANIFEST=InterPriter.manifest.xml
 
 #DEBUG_CMD_LINE=
 
 #DEBUG_EXE_PATH=
 
 #SOURCE
-interpriter.ab
-.\Util.ab
+InterPriter.ab
