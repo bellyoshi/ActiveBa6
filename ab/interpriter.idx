@@ -3,9 +3,7 @@
 'Win32APIの定義ファイル
 
 'プロジェクト内のプログラム ファイル
-#include ".\Util.ab"
-_ClearNamespaceImported
 
 'リソースファイル
 #include "resource.ab"
-#resource "interpriter.rc"
+#resource "Interpriter.rc"
