@@ -1,0 +1,34 @@
+Enum TokenKind
+	Plus
+	Mult
+	Minus
+	Div
+'	Equal
+	PrintId
+	Num
+	EOF
+End Enum
+
+Type Token
+	kind As TokenKind
+	text As String
+End Type
+
+Dim LexerBuffer As String
+Dim pos As Integer
+Sub SetBuffer(buffer As String)
+	pos = 0
+	LexerBuffer = buffer
+End Sub
+Function GetNextCh() As Char
+	pos++
+	dim sp As *Char
+	sp = StrPtr(LexerBuffer)
+	GetNextCh = sp[pos]
+	return
+End Function
+Function IsEof() As Boolean
+	return pos = Len(LexerBuffer)
+End Function
+Function GetNextToken() As Token
+End Function

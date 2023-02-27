@@ -19,6 +19,11 @@ Function Main() As Integer
             stack.PrintStack()
             continue
         End If
+		SetBuffer(s)
+		While Not IsEof()
+			Print GetNextCh()
+		Wend
+/*		
         Dim c = s[0] As Char
 		Dim value As Double
 		Dim a As Double
@@ -52,77 +57,11 @@ Function Main() As Integer
 				value = Val(s)
 				stack.Push(value)
 		End Select
-        
-		/*
-            case '+':{
-                double a,b;
-                if(getTop2Elm(machine_stack, &a, &b))
-                    break;
-                cout << a + b << endl;
-                machine_stack.push(a + b);
-                break;
-            }
-            case '-':{
-                double a,b;
-                if(getTop2Elm(machine_stack, &a, &b))
-                    break;
-                cout << a - b << endl;
-                machine_stack.push(a - b);
-                break;
-            }
-            case '*':{
-                double a,b;
-                if(getTop2Elm(machine_stack, &a, &b))
-                    break;
-                cout << a * b << endl;
-                machine_stack.push(a * b);
-                break;
-            }
 
-            case '/': {
-                double a,b;
-                if(getTop2Elm(machine_stack, &a, &b))
-                    break;
-                cout << a + b << endl;
-                machine_stack.push(a / b);
-            }          
-                break;
-            default:{
-                machine_stack.push(atof(s.c_str()));
-                break;
-            }*/
-        Print s
+    
+        Print s*/
     Wend
 	Main = 0:return
 End Function
 
-class Stack
-private
-	mem[1024] As Double
-	pointer As Integer
-public
-	Function Pop() As Double
-		pointer--
-		if pointer < 0 Then
-			pointer = 0
-		end if
-		Pop = mem[pointer]
-		return
-	End Function
-	Sub Push(value As Double)
-		mem[pointer] = value
-		pointer++
-	End sub
-	Sub PrintStack()
-		Dim i As Integer
-		Print "--- Stack top ---"
-		For i = 0 To pointer - 1
-			Print mem[i]
-		Next
-		Print "--- Stack buttom ---"
-	End Sub
 
-'	Function Top()
-'		Top = mem[pointer]
-'	End Function
-End class

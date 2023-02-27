@@ -5,6 +5,10 @@
 'プロジェクト内のプログラム ファイル
 #include ".\Util.ab"
 _ClearNamespaceImported
+#include ".\lexer.ab"
+_ClearNamespaceImported
+#include ".\Stack.ab"
+_ClearNamespaceImported
 
 'リソースファイル
 #include "resource.ab"

@@ -18,10 +18,22 @@ Function compCharIgnCase(c1 as Char ,c2 as Char) As Boolean
 	Return ToUpper(c1) = ToUpper(c2)
 End Function
 Function ToUpper(c as Char) As Char
-	If Asc("a") <= c And c <= Asc("z") Then
+	If IsLower(c) Then
 		ToUpper = c - Asc("a") + Asc("A")
 		return 
 	End If
 	ToUpper = c
 	return
+End Function
+Function IsUpper(c As Char) As Boolean
+	return Asc("A") <= c And c <= Asc("Z")
+End Function
+Function IsLower(c As Char) As Boolean
+	return Asc("a") <= c And c <= Asc("z")
+End Function
+Function IsAlpha(c As Char) As Boolean
+	Return IsLower(c) Or IsUpper(c)
+End Function
+Function IsDigit(c As Char) As Boolean
+	return Asc("0") <= c And c <= Asc("9")
 End Function
