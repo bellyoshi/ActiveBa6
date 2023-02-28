@@ -20,10 +20,13 @@ Function Main() As Integer
             continue
         End If
 		SetBuffer(s)
-		While Not IsEof()
-			Print GetNextCh()
+		Dim t As Token
+		t = GetNextToken()
+		While Not t.Kind = TokenKind.EOF
+			Print "Åu" & t.Text & "Åv"
+			t = GetNextToken()
 		Wend
-/*		
+/*
         Dim c = s[0] As Char
 		Dim value As Double
 		Dim a As Double

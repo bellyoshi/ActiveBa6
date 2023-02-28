@@ -1,0 +1,18 @@
+#console
+Enum TokenKind
+	Plus
+	Mult
+	Minus
+	Div
+'	Equal
+	Id
+	PrintId
+	Num
+	EOF
+End Enum
+
+Dim a As Integer
+If TokenKind.Plus = TokenKind.Plus Then
+	Print "Plus"
+End If
+Input a

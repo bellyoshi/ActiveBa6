@@ -27,3 +27,4 @@ interpriter.ab
 .\Util.ab
 .\lexer.ab
 .\Stack.ab
+.\Parser.ab

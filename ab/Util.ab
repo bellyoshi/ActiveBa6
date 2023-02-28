@@ -37,3 +37,6 @@ End Function
 Function IsDigit(c As Char) As Boolean
 	return Asc("0") <= c And c <= Asc("9")
 End Function
+Function IsSpaceOrTab(c As Char) As Boolean
+	return c = Asc(" ") Or c = Asc("	")
+End Function

@@ -9,6 +9,8 @@ _ClearNamespaceImported
 _ClearNamespaceImported
 #include ".\Stack.ab"
 _ClearNamespaceImported
+#include ".\Parser.ab"
+_ClearNamespaceImported
 
 'リソースファイル
 #include "resource.ab"

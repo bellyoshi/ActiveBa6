@@ -1,9 +1,10 @@
 case4
 
-text,".\Stack.ab",0,0,447,447
-text,"interpriter.ab",0,7,466,466
-text,".\Util.ab",0,25,926,926
-text,".\lexer.ab",0,11,440,440
+text,".\Util.ab",0,0,9,20
+text,".\Stack.ab",0,0,73,98
+text,"interpriter.ab",0,10,564,564
+text,".\Parser.ab",0,0,0,0
+text,".\lexer.ab",0,75,1618,1618
 
 0
 1
