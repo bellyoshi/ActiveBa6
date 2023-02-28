@@ -1,0 +1,42 @@
+Function compIgnCase(s1 as String , s2 as String) As Boolean
+	If Len(s1) <> Len(s2) Then
+		Return False
+	End If
+	Dim ptr1 As *Char
+	Dim ptr2 As *Char
+	ptr1 = StrPtr(s1)
+	ptr2 = StrPtr(s2)
+	Dim i As Integer
+	For i = 0 To Len(s1)
+		If Not compCharIgnCase(ptr1[i],ptr2[i]) Then
+			Return False
+		End If
+	Next
+	Return True
+End Function
+Function compCharIgnCase(c1 as Char ,c2 as Char) As Boolean
+	Return ToUpper(c1) = ToUpper(c2)
+End Function
+Function ToUpper(c as Char) As Char
+	If IsLower(c) Then
+		ToUpper = c - Asc("a") + Asc("A")
+		return 
+	End If
+	ToUpper = c
+	return
+End Function
+Function IsUpper(c As Char) As Boolean
+	return Asc("A") <= c And c <= Asc("Z")
+End Function
+Function IsLower(c As Char) As Boolean
+	return Asc("a") <= c And c <= Asc("z")
+End Function
+Function IsAlpha(c As Char) As Boolean
+	Return IsLower(c) Or IsUpper(c)
+End Function
+Function IsDigit(c As Char) As Boolean
+	return Asc("0") <= c And c <= Asc("9")
+End Function
+Function IsSpaceOrTab(c As Char) As Boolean
+	return c = Asc(" ") Or c = Asc("	")
+End Function

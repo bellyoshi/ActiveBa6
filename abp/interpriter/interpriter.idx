@@ -1,0 +1,12 @@
+' インデックス プログラム
+
+#strict
+
+'Win32APIの定義ファイル
+
+'プロジェクト内のプログラム ファイル
+#include "lexer.abp"
+#include "MemoryTable.abp"
+#include "Parser.abp"
+#include "Stack.abp"
+#include "Util.abp"

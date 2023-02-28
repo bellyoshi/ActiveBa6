@@ -1,0 +1,27 @@
+class Stack
+private
+	mem[1024] As Double
+	pointer As Integer
+public
+	Function Pop() As Double
+		pointer--
+		if pointer < 0 Then
+			pointer = 0
+		end if
+		Pop = mem[pointer]
+		return
+	End Function
+	Sub Push(value As Double)
+		mem[pointer] = value
+		pointer++
+	End sub
+	Sub PrintStack()
+		Dim i As Integer
+		Print "--- Stack top ---"
+		For i = 0 To pointer - 1
+			Print mem[i]
+		Next
+		Print "--- Stack buttom ---"
+	End Sub
+
+End class

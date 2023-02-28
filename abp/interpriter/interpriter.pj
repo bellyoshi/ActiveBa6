@@ -1,0 +1,27 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=interpriter
+
+#PLATFORM=32
+
+#USEWINDOW=0
+
+#OPTION=&H00010000
+
+#OUTPUT_RELEASE=.\interpriter.exe
+
+#OUTPUT_DEBUG=.\interpriter_debug.exe
+
+#RESOURCE=0
+
+#SOURCE
+interpriter.abp
+lexer.abp
+MemoryTable.abp
+Parser.abp
+Stack.abp
+Util.abp

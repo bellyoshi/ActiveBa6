@@ -1,0 +1,115 @@
+Enum TokenKind
+	Plus
+	Mult
+	Minus
+	Div
+	Assign
+	Id
+	PrintId
+	Num
+	EOF
+End Enum
+
+Type Token
+	Kind As TokenKind
+	Text As String
+End Type
+
+Dim LexerBuffer As String
+Dim pos As Integer
+Sub SetBuffer(buffer As String)
+	pos = 0
+	LexerBuffer = buffer
+	c = GetNextCh()
+End Sub
+Function GetNextCh() As Char
+	If IsEof Then
+		return 0
+	End If
+	dim sp As *Char
+	sp = StrPtr(LexerBuffer)
+	GetNextCh = sp[pos]
+	pos++
+	return
+End Function
+Dim c As Char
+Function IsEof() As Boolean
+	return pos > Len(LexerBuffer)
+End Function
+
+Function GetNextToken() As Token
+	GetNextToken.Kind = TokenKind.EOF	
+	If IsEof Then
+		Return
+	End If
+*state0
+	If IsAlpha(c) Then
+		goto *state1
+	End if
+	If IsDigit(c) Then
+		goto *state2
+	End If
+	If IsSpaceOrTab(c) Then
+		c = GetNextCh()
+		goto *state0
+	End If
+	If c = Asc("+") Then
+		c = GetNextCh()
+		GetNextToken.Kind = TokenKind.Plus
+		GetNextToken.Text = "Å{"
+		Return
+	End If
+	If c = Asc("-") Then
+		c = GetNextCh()
+		GetNextToken.Kind = TokenKind.Minus
+		GetNextToken.Text = "Å["
+	End If
+	If c = Asc("/") Then
+		c = GetNextCh()
+		GetNextToken.Kind = TokenKind.Div
+		GetNextToken.Text = "ÅÄ"
+	End If
+	If c = Asc("*") Then
+		c = GetNextCh()
+		GetNextToken.Kind = TokenKind.Mult
+		GetNextToken.Text = "Å~"
+	End If
+	If c = Asc("=") Then
+		c = GetNextCh()
+		GetNextToken.Kind = TokenKind.Assign
+		GetNextToken.Text = "="
+	End If
+	Return
+	
+*state1
+
+	GetNextToken.Text = Chr$(c)
+	GetNextToken.Kind = TokenKind.Id
+	c = GetNextCh()
+	While Not IsEof()
+		If Not (IsAlpha(c) Or IsDigit(c)) Then
+			Exit While
+		End If
+		GetNextToken.Text = GetNextToken.Text & Chr$(c)
+		c = GetNextCh()
+	Wend
+	GetNextToken.Kind = TokenKind.Id
+	If compIgnCase(GetNextToken.Text, "Print") Then
+		GetNextToken.Text = "ÇµÇ„Ç¬ÇËÇÂÇ≠Ç∑ÇÈÇÊ"
+		GetNextToken.Kind = TokenKind.PrintId
+	End If
+	Return 
+*state2
+	GetNextToken.Text = Chr$(c)
+	GetNextToken.Kind = TokenKind.Num
+	c = GetNextCh()
+	While Not IsEof()
+		If Not IsDigit(c) Then
+			Exit While	
+		End If
+		GetNextToken.Text = GetNextToken.Text & Chr$(c)
+		c = GetNextCh()
+	Wend
+
+	Return	
+End Function
