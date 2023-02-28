@@ -28,3 +28,4 @@ interpriter.ab
 .\lexer.ab
 .\Stack.ab
 .\Parser.ab
+.\MemoryTable.ab

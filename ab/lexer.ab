@@ -3,7 +3,7 @@ Enum TokenKind
 	Mult
 	Minus
 	Div
-'	Equal
+	Assign
 	Id
 	PrintId
 	Num
@@ -73,6 +73,11 @@ Function GetNextToken() As Token
 		c = GetNextCh()
 		GetNextToken.Kind = TokenKind.Mult
 		GetNextToken.Text = "Å~"
+	End If
+	If c = Asc("=") Then
+		c = GetNextCh()
+		GetNextToken.Kind = TokenKind.Assign
+		GetNextToken.Text = "="
 	End If
 	Return
 	

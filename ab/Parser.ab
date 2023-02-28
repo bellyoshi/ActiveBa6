@@ -1,4 +1,29 @@
 Dim parserToken As Token
+Sub Statement()
+	If parserToken.Kind = TokenKind.PrintId Then
+		PrintStatement()
+	End If
+	If parserToken.Kind = TokenKind.Id Then
+		AssignStatement()
+	End If
+End Sub
+Sub AssignStatement()
+	Dim name As String
+	name = parserToken.Text
+	parserToken = GetNextToken()
+	If Not (parserToken.Kind = TokenKind.Assign) Then
+		Print "Error"
+	End If
+	Dim value As Double 
+	value = Expr()
+	Assign(name, value)
+End Sub
+Sub PrintStatement()
+	parserToken = GetNextToken()
+	Dim value As Double
+	value = Expr()
+	Print value
+End Sub
 Function Expr() As Double
 	Expr = Term()
 	While(parserToken.Kind = TokenKind.Plus Or _

@@ -1,0 +1,33 @@
+Dim names_table[1024] As Char
+Dim mems_table[1024] As Double
+
+Dim size As Integer
+Sub RegistName(name As String)
+	Dim i As Integer
+	Dim c As Char
+	c = name[0]
+	For i = 0 To size - 1
+		If names_table[i] = c Then
+			return
+		End if
+	Next
+	names_table[i] = c
+	size++
+End Sub
+Function GetNameIdx(name As String) As Integer
+	Dim c As Char
+	c = name[0]
+	Dim i As Integer
+	For i = 0 To size - 1
+		If names_table[i] = c Then
+			GetNameIdx = i
+			return
+		End If
+	Next
+End Function
+Sub Assign(name As String, value As Double)
+	RegistName(name)
+	Dim idx As Integer
+	idx = GetNameIdx(name)
+	mems_table[idx] = value
+End Sub

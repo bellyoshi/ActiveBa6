@@ -11,6 +11,8 @@ _ClearNamespaceImported
 _ClearNamespaceImported
 #include ".\Parser.ab"
 _ClearNamespaceImported
+#include ".\MemoryTable.ab"
+_ClearNamespaceImported
 
 'リソースファイル
 #include "resource.ab"

@@ -1,0 +1,10 @@
+#console
+Dim a[10] As Integer
+a[1] = 123
+Print a[1]
+
+Dim b[10] As String
+b[0] = "Hello"
+Print b[0]
+
+Input a[1]

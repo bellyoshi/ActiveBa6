@@ -21,48 +21,7 @@ Function Main() As Integer
         End If
 		SetBuffer(s)
 		parserToken = GetNextToken()
-		Print Expr()
-/*		While Not t.Kind = TokenKind.EOF
-			Print "Åu" & t.Text & "Åv"
-			t = GetNextToken()
-		Wend
-
-        Dim c = s[0] As Char
-		Dim value As Double
-		Dim a As Double
-		Dim b As Double
-		Select Case c
-			Case Asc("+")
-				a = stack.Pop()
-				b = stack.Pop()
-				value = a + b
-				Print value
-				stack.Push(value)
-			Case Asc("-")
-				a = stack.Pop()
-				b = stack.Pop()
-				value = a - b
-				Print value
-				stack.Push(value)
-			Case Asc("/")
-				a = stack.Pop()
-				b = stack.Pop()
-				value = a / b
-				Print value
-				stack.Push(value)
-			Case Asc("*")
-				a = stack.Pop()
-				b = stack.Pop()
-				value = a * b
-				Print value
-				stack.Push(value)
-			Case Else
-				value = Val(s)
-				stack.Push(value)
-		End Select
-
-    
-        Print s*/
+		Statement()
     Wend
 	Main = 0:return
 End Function

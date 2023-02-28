@@ -1,10 +1,11 @@
 case4
 
 text,".\Util.ab",0,0,9,20
-text,".\Stack.ab",0,0,73,98
-text,".\lexer.ab",0,75,1618,1618
-text,"interpriter.ab",0,17,576,576
-text,".\Parser.ab",0,27,882,882
+text,"interpriter.ab",0,14,458,458
+text,".\Parser.ab",0,8,351,351
+text,".\lexer.ab",0,72,1421,1421
+text,".\Stack.ab",0,0,13,20
+text,".\MemoryTable.ab",0,18,432,432
 
 0
 1
