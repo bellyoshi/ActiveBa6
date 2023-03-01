@@ -1,17 +1,17 @@
 Dim parserToken As Token
 Sub Statement()
-	If parserToken.Kind = TokenKind.PrintId Then
+	If parserToken.Kind = PrintId Then
 		PrintStatement()
 	End If
-	If parserToken.Kind = TokenKind.Id Then
+	If parserToken.Kind = Id Then
 		AssignStatement()
 	End If
 End Sub
 Sub AssignStatement()
 	Dim name As String
 	name = parserToken.Text
-	parserToken = GetNextToken()
-	If Not (parserToken.Kind = TokenKind.Assign) Then
+	GetNextToken_sub(parserToken)
+	If Not (parserToken.Kind = Assign) Then
 		Print "Error"
 	End If
 	Dim value As Double 
@@ -19,21 +19,21 @@ Sub AssignStatement()
 	Assign(name, value)
 End Sub
 Sub PrintStatement()
-	parserToken = GetNextToken()
+	GetNextToken_sub(parserToken)
 	Dim value As Double
 	value = Expr()
 	Print value
 End Sub
 Function Expr() As Double
 	Expr = Term()
-	While(parserToken.Kind = TokenKind.Plus Or _
-		  parserToken.Kind = TokenKind.Minus)
+	While(parserToken.Kind = Plus Or _
+		  parserToken.Kind = Minus)
 		Dim op As TokenKind
 		op = parserToken.Kind
-		parserToken = GetNextToken()
+	    GetNextToken_sub(parserToken)
 		dim val2 As Double
 		val2 = Term()
-		if op = TokenKind.Plus Then
+		if op = Plus Then
 			Expr = Expr + val2
 		Else
 			Expr = Expr - val2	
@@ -42,14 +42,14 @@ Function Expr() As Double
 End Function
 Function Term() As Double
 	Term = Factor()
-	While(parserToken.Kind = TokenKind.Mult Or _
-		  parserToken.Kind = TokenKind.Div)
+	While(parserToken.Kind = Mult Or _
+		  parserToken.Kind = Div)
 		Dim op As TokenKind
 		op = parserToken.Kind
-		parserToken = GetNextToken()
+		GetNextToken_sub(parserToken)
 		dim val2 As Double
 		val2 = Term()
-		if op = TokenKind.Mult Then
+		If op = Mult Then
 			Term = Term * val2
 		Else
 			Term = Term / val2	
@@ -57,10 +57,10 @@ Function Term() As Double
 	Wend
 End Function
 Function Factor() As Double
-	If parserToken.Kind = TokenKind.Num Then
+	If parserToken.Kind = Num Then
 		Factor = Val(parserToken.Text)
-		parserToken = GetNextToken()
-		Return 
+		GetNextToken_sub(parserToken)
+		Exit Function 
 	End If
-	Return 99999
+	Factor = 99999
 End Function

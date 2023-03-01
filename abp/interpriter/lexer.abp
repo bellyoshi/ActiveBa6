@@ -23,24 +23,28 @@ Sub SetBuffer(buffer As String)
 	c = GetNextCh()
 End Sub
 Function GetNextCh() As Char
-	If IsEof Then
-		return 0
+	If IsEof() Then
+		GetNextCh =0
+		Exit Function
 	End If
 	dim sp As *Char
 	sp = StrPtr(LexerBuffer)
 	GetNextCh = sp[pos]
 	pos++
-	return
 End Function
 Dim c As Char
-Function IsEof() As Boolean
-	return pos > Len(LexerBuffer)
+Function IsEof() As Long
+	If pos > Len(LexerBuffer) Then
+		IsEof =1
+	Else
+		IsEof = 0
+	End If
 End Function
 
-Function GetNextToken() As Token
-	GetNextToken.Kind = TokenKind.EOF	
-	If IsEof Then
-		Return
+Sub GetNextToken_sub(ByRef GetNextToken As Token)
+	GetNextToken.Kind = EOF	
+	If IsEof() Then
+		Exit Sub
 	End If
 *state0
 	If IsAlpha(c) Then
@@ -55,28 +59,28 @@ Function GetNextToken() As Token
 	End If
 	If c = Asc("+") Then
 		c = GetNextCh()
-		GetNextToken.Kind = TokenKind.Plus
+		GetNextToken.Kind = Plus
 		GetNextToken.Text = "Å{"
 		Return
 	End If
 	If c = Asc("-") Then
 		c = GetNextCh()
-		GetNextToken.Kind = TokenKind.Minus
+		GetNextToken.Kind = Minus
 		GetNextToken.Text = "Å["
 	End If
 	If c = Asc("/") Then
 		c = GetNextCh()
-		GetNextToken.Kind = TokenKind.Div
+		GetNextToken.Kind = Div
 		GetNextToken.Text = "ÅÄ"
 	End If
 	If c = Asc("*") Then
 		c = GetNextCh()
-		GetNextToken.Kind = TokenKind.Mult
+		GetNextToken.Kind = Mult
 		GetNextToken.Text = "Å~"
 	End If
 	If c = Asc("=") Then
 		c = GetNextCh()
-		GetNextToken.Kind = TokenKind.Assign
+		GetNextToken.Kind = Assign
 		GetNextToken.Text = "="
 	End If
 	Return
@@ -84,7 +88,7 @@ Function GetNextToken() As Token
 *state1
 
 	GetNextToken.Text = Chr$(c)
-	GetNextToken.Kind = TokenKind.Id
+	GetNextToken.Kind = Id
 	c = GetNextCh()
 	While Not IsEof()
 		If Not (IsAlpha(c) Or IsDigit(c)) Then
@@ -93,15 +97,15 @@ Function GetNextToken() As Token
 		GetNextToken.Text = GetNextToken.Text & Chr$(c)
 		c = GetNextCh()
 	Wend
-	GetNextToken.Kind = TokenKind.Id
+	GetNextToken.Kind = Id
 	If compIgnCase(GetNextToken.Text, "Print") Then
 		GetNextToken.Text = "ÇµÇ„Ç¬ÇËÇÂÇ≠Ç∑ÇÈÇÊ"
-		GetNextToken.Kind = TokenKind.PrintId
+		GetNextToken.Kind = PrintId
 	End If
 	Return 
 *state2
 	GetNextToken.Text = Chr$(c)
-	GetNextToken.Kind = TokenKind.Num
+	GetNextToken.Kind = Num
 	c = GetNextCh()
 	While Not IsEof()
 		If Not IsDigit(c) Then
@@ -112,4 +116,4 @@ Function GetNextToken() As Token
 	Wend
 
 	Return	
-End Function
+End Sub

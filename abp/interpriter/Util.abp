@@ -1,42 +1,72 @@
-Function compIgnCase(s1 as String , s2 as String) As Boolean
+Function compIgnCase(ByVal s1 as String ,ByVal s2 as String) As Long
+	compIgnCase = 1
 	If Len(s1) <> Len(s2) Then
-		Return False
+		compIgnCase = 0
+		Exit Function
 	End If
-	Dim ptr1 As *Char
-	Dim ptr2 As *Char
+	Print s1
+	Print s2
+	
+	Dim ptr1 As *Byte
+	Dim ptr2 As *Byte
 	ptr1 = StrPtr(s1)
 	ptr2 = StrPtr(s2)
 	Dim i As Integer
 	For i = 0 To Len(s1)
 		If Not compCharIgnCase(ptr1[i],ptr2[i]) Then
-			Return False
+			compIgnCase = 0
+			Exit Function
 		End If
 	Next
-	Return True
+
 End Function
-Function compCharIgnCase(c1 as Char ,c2 as Char) As Boolean
-	Return ToUpper(c1) = ToUpper(c2)
+Function compCharIgnCase(c1 as Char ,c2 as Char) As Long
+	If ToUpper(c1) = ToUpper(c2) Then
+		compCharIgnCase = 1
+	Else
+		compCharIgnCase = 0
+	End If
 End Function
 Function ToUpper(c as Char) As Char
 	If IsLower(c) Then
 		ToUpper = c - Asc("a") + Asc("A")
-		return 
+		Exit Function 
 	End If
 	ToUpper = c
-	return
+	
 End Function
-Function IsUpper(c As Char) As Boolean
-	return Asc("A") <= c And c <= Asc("Z")
+Function IsUpper(c As Char) As Long
+	If Asc("A") <= c And c <= Asc("Z") Then
+		IsUpper = 1
+	Else
+		IsUpper = 0
+	End If
 End Function
-Function IsLower(c As Char) As Boolean
-	return Asc("a") <= c And c <= Asc("z")
+Function IsLower(c As Char) As Long
+	If Asc("a") <= c And c <= Asc("z") Then
+		IsLower = 1
+	Else
+		IsLower = 0
+	End If
 End Function
-Function IsAlpha(c As Char) As Boolean
-	Return IsLower(c) Or IsUpper(c)
+Function IsAlpha(c As Char) As Long
+	If IsLower(c) Or IsUpper(c) Then
+		IsAlpha = 1
+	Else
+		IsAlpha = 0
+	End If
 End Function
-Function IsDigit(c As Char) As Boolean
-	return Asc("0") <= c And c <= Asc("9")
+Function IsDigit(c As Char) As Long
+	If Asc("0") <= c And c <= Asc("9") Then
+		IsDigit = 1
+	Else
+		IsDigit = 0
+	End If
 End Function
-Function IsSpaceOrTab(c As Char) As Boolean
-	return c = Asc(" ") Or c = Asc("	")
+Function IsSpaceOrTab(c As Char) As Long
+	If c = Asc(" ") Or c = Asc("	") Then
+		IsSpaceOrTab = 1
+	Else
+		IsSpaceOrTab = 0
+	End If
 End Function

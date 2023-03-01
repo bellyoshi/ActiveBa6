@@ -8,22 +8,18 @@ Main()
 Function Main() As Integer
 	Dim stack As Stack
     Dim s As String
-    While True
-    	
-        Print "->"
+    While 1
         Input s
-        If compIgnCase(s, "quit") Then
+        If compIgnCase(s, "quit") = 1 Then
             Exit While
         End If
-		if compIgnCase(s, "printstack") Then
-            stack.PrintStack()
-            continue
-        End If
+
 		SetBuffer(s)
-		parserToken = GetNextToken()
+	    GetNextToken_sub(parserToken)
 		Statement()
+
     Wend
-	Main = 0:return
+	Main = 0
 End Function
 
 
