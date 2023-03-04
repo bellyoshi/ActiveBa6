@@ -14,6 +14,7 @@ Sub AssignStatement()
 	If Not (parserToken.Kind = TokenKind.Assign) Then
 		Print "Error"
 	End If
+	parserToken = GetNextToken()
 	Dim value As Double 
 	value = Expr()
 	Assign(name, value)
@@ -61,6 +62,11 @@ Function Factor() As Double
 		Factor = Val(parserToken.Text)
 		parserToken = GetNextToken()
 		Return 
+	End If
+	If parserToken.Kind = TokenKind.Id Then
+		Factor = GetMemoryValue(parserToken.Text)
+		parserToken = GetNextToken()
+		Return
 	End If
 	Return 99999
 End Function

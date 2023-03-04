@@ -1,0 +1,9 @@
+#console
+
+Dim a[1024] As *SByte
+Dim i As Integer
+For i = 0 To 1024
+	a[i] = StrPtr(Str$(i))
+Next
+Print MakeStr(a[10])
+

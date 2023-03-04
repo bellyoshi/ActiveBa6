@@ -8,7 +8,7 @@ Sub RegistName(name As String)
 	c = name[0]
 	For i = 0 To size - 1
 		If names_table[i] = c Then
-			return
+			Exit Sub
 		End if
 	Next
 	names_table[i] = c
@@ -21,7 +21,7 @@ Function GetNameIdx(name As String) As Integer
 	For i = 0 To size - 1
 		If names_table[i] = c Then
 			GetNameIdx = i
-			return
+			Exit Function
 		End If
 	Next
 End Function

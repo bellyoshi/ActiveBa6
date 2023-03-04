@@ -9,7 +9,6 @@ public
 			pointer = 0
 		end if
 		Pop = mem[pointer]
-		return
 	End Function
 	Sub Push(value As Double)
 		mem[pointer] = value

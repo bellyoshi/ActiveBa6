@@ -10,7 +10,6 @@ Function Main() As Integer
     Dim s As String
     While True
     	
-        Print "->"
         Input s
         If compIgnCase(s, "quit") Then
             Exit While

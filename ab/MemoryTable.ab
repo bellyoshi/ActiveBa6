@@ -1,13 +1,13 @@
-Dim names_table[1024] As Char
+Dim names_table[1024] As *SByte
 Dim mems_table[1024] As Double
 
 Dim size As Integer
 Sub RegistName(name As String)
 	Dim i As Integer
-	Dim c As Char
-	c = name[0]
+	Dim c As *SByte
+	c = StrPtr(name)
 	For i = 0 To size - 1
-		If names_table[i] = c Then
+		If MakeStr(names_table[i]) = MakeStr(c) Then
 			return
 		End if
 	Next
@@ -15,15 +15,16 @@ Sub RegistName(name As String)
 	size++
 End Sub
 Function GetNameIdx(name As String) As Integer
-	Dim c As Char
-	c = name[0]
+	Dim c As *SByte
+	c = StrPtr(name)
 	Dim i As Integer
 	For i = 0 To size - 1
-		If names_table[i] = c Then
+		If MakeStr(names_table[i]) = MakeStr(c) Then
 			GetNameIdx = i
 			return
 		End If
 	Next
+	GetNameIdx = i
 End Function
 Sub Assign(name As String, value As Double)
 	RegistName(name)
@@ -31,3 +32,8 @@ Sub Assign(name As String, value As Double)
 	idx = GetNameIdx(name)
 	mems_table[idx] = value
 End Sub
+Function GetMemoryValue(name As String) As Double
+	Dim idx As Integer
+	idx = GetNameIdx(name)
+	return mems_table[idx] 
+End Function

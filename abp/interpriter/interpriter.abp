@@ -11,6 +11,7 @@ Function Main() As Integer
     While 1
         Input s
         If compIgnCase(s, "quit") = 1 Then
+			print "quit"
             Exit While
         End If
 

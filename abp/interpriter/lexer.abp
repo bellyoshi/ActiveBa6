@@ -35,7 +35,7 @@ End Function
 Dim c As Char
 Function IsEof() As Long
 	If pos > Len(LexerBuffer) Then
-		IsEof =1
+		IsEof = 1
 	Else
 		IsEof = 0
 	End If
@@ -61,7 +61,7 @@ Sub GetNextToken_sub(ByRef GetNextToken As Token)
 		c = GetNextCh()
 		GetNextToken.Kind = Plus
 		GetNextToken.Text = "Å{"
-		Return
+		Exit Sub
 	End If
 	If c = Asc("-") Then
 		c = GetNextCh()
@@ -83,7 +83,7 @@ Sub GetNextToken_sub(ByRef GetNextToken As Token)
 		GetNextToken.Kind = Assign
 		GetNextToken.Text = "="
 	End If
-	Return
+	Exit Sub
 	
 *state1
 
@@ -102,7 +102,7 @@ Sub GetNextToken_sub(ByRef GetNextToken As Token)
 		GetNextToken.Text = "ÇµÇ„Ç¬ÇËÇÂÇ≠Ç∑ÇÈÇÊ"
 		GetNextToken.Kind = PrintId
 	End If
-	Return 
+	Exit Sub 
 *state2
 	GetNextToken.Text = Chr$(c)
 	GetNextToken.Kind = Num
@@ -115,5 +115,5 @@ Sub GetNextToken_sub(ByRef GetNextToken As Token)
 		c = GetNextCh()
 	Wend
 
-	Return	
+		
 End Sub
