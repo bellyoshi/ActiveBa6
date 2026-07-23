@@ -1,10 +1,10 @@
-#include "ablinker.idx"
+#include "ab6linker.idx"
 
 #console
 
-' ablinker - 完成版リンカー
-'  PEヘッダー自前ビルド + REL32/DIR32 + IAT(.idata)自動生成
-' 使い方: ablinker <input.obj> [output.exe]
+' ablinker - ??????????J?[
+'  PE?w?b?_?[???O?r???h + REL32/DIR32 + IAT(.idata)????????
+' ?g????: ablinker <input.obj> [output.exe]
 
 Const IMAGE_BASE = &H00400000
 Const TEXT_RVA = &H00001000
@@ -17,8 +17,8 @@ Const MAX_IMPORTS = 32
 Const MAX_DLLS = 8
 
 Sub USAGE()
-    Print "ablinker - COFF to PE linker (auto IAT)"
-    Print "usage: ablinker <input.obj> [output.exe]"
+    Print "ab6linker - COFF to PE linker (auto IAT)"
+    Print "usage: ab6linker <input.obj> [output.exe]"
     End
 End Sub
 
@@ -174,7 +174,7 @@ Function Undecorate$(sym As String) As String
     s = sym
     If Len(s) > 0 Then
         If Asc(Left$(s, 1)) = Asc("_") Then
-            s = Mid$(s, 2, Len(s) - 1)
+            s = Right$(s, Len(s) - 1)
         End If
     End If
     i = InStr(1, s, "@")
@@ -215,7 +215,7 @@ Function GetCoffSymName$(objBuf As *Byte, hdr As *COFF_HEADER, symIndex As DWord
     End If
 End Function
 
-' --- インポート表 (モジュール変数) ---
+' --- ?C???|?[?g?\ (???W???[?????) ---
 Dim gImpFunc(31) As String
 Dim gImpDll(31) As String
 Dim gImpIatRva(31) As DWord
@@ -275,7 +275,7 @@ Sub AddImport(funcName As String)
     gNImports = gNImports + 1
 End Sub
 
-' .idata レイアウト計算とバイナリ生成
+' .idata ???C?A?E?g?v?Z??o?C?i??????
 Sub RebuildDllGroups()
     Dim newFunc(31) As String
     Dim newDll(31) As String
@@ -284,7 +284,7 @@ Sub RebuildDllGroups()
     Dim d As Long
     Dim dll As String
 
-    ' DLL一覧を作り直す
+    ' DLL?????????
     gNDlls = 0
     If gNImports > 0 Then
         For i = 0 To gNImports - 1
@@ -296,7 +296,7 @@ Sub RebuildDllGroups()
         Next
     End If
 
-    ' DLL順に関数を並べ替え
+    ' DLL?????????????
     n = 0
     If gNDlls > 0 Then
         For d = 0 To gNDlls - 1
@@ -320,7 +320,7 @@ Sub RebuildDllGroups()
         Next
     End If
 End Sub
-Function BuildAutoIdata(ByRef outBuf As *Byte) As Long
+Function BuildAutoIdata() As *Byte
     Dim pos As DWord
     Dim i As Long
     Dim d As Long
@@ -329,10 +329,9 @@ Function BuildAutoIdata(ByRef outBuf As *Byte) As Long
     Dim p As *Byte
     Dim iatAbs As DWord
 
-    BuildAutoIdata = 0
-    outBuf = NULL
+    BuildAutoIdata = NULL
     If gNImports <= 0 Then
-        ' インポート無しでも空の終端IDTだけ置く
+        ' ?C???|?[?g??????????I?[IDT?????u??
         gNDlls = 0
     End If
 
@@ -389,7 +388,6 @@ Function BuildAutoIdata(ByRef outBuf As *Byte) As Long
     End If
 
     p = calloc(gIdataRaw)
-    outBuf = p
 
     ' IDT
     If gNDlls > 0 Then
@@ -430,7 +428,7 @@ Function BuildAutoIdata(ByRef outBuf As *Byte) As Long
         Next
     End If
 
-    BuildAutoIdata = 1
+    BuildAutoIdata = p
 End Function
 
 Sub BuildPeHeaders(buf As *Byte, textVirtSize As DWord, textRawSize As DWord, idataVirt As DWord, idataRaw As DWord)
@@ -519,7 +517,7 @@ Sub BuildPeHeaders(buf As *Byte, textVirtSize As DWord, textRawSize As DWord, id
     PutDword(buf, sectOff + 36, sectChars)
 End Sub
 
-' --- メイン ---
+' --- ???C?? ---
 Dim inPath[MAX_PATH] As Byte
 Dim outPath[MAX_PATH] As Byte
 Dim objBuf As *Byte
@@ -626,7 +624,7 @@ If textVirtSize < &H10 Then
     textVirtSize = &H10
 End If
 
-' リロケーションから未定義EXTERNALを収集 -> インポート名簿
+' ?????P?[?V??????????`EXTERNAL?????W -> ?C???|?[?g????
 nRel = textRelCount
 If nRel > 0 Then
     For j = 0 To nRel - 1
@@ -656,14 +654,15 @@ If gNImports > 0 Then
     Next
 End If
 
-If BuildAutoIdata(idataBuf) = 0 Then
+idataBuf = BuildAutoIdata()
+If idataBuf = NULL Then
     Print "idata build failed"
     free(codeBuf)
     free(objBuf)
     End
 End If
 
-' リロケーション適用
+' ?????P?[?V?????K?p
 If nRel > 0 Then
     For j = 0 To nRel - 1
         off = textRelPtr + j * SIZEOF_COFF_RELOCATION

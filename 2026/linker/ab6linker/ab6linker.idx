@@ -6,4 +6,4 @@
 
 'プロジェクト内のプログラム ファイル
 #include "coff.abp"
-#include "ApplyRelocation.abp"
+#include "pe.abp"

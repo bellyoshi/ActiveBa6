@@ -19,6 +19,6 @@
 #RESOURCE=0
 
 #SOURCE
-ab6linker.abp
+ablinker.abp
 coff.abp
-ApplyRelocation.abp
+pe.abp
