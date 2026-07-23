@@ -387,3 +387,404 @@ Sub OutputEXE(objMachineCode() As Byte, codeSize As Long)
 End Sub
 💡 ワンポイントアドバイス
 テンプレートの .text セクションのアドレス設定（RVA 0x1000 や VirtualSize など）と、自作コードの読み込みアドレスが一致していれば、これで生成した output.exe がそのまま Windows 上で起動します！
+
+3. PEヘッダーの自前ビルドとリロケーションについて詳しく
+
+テンプレート方式で「バイナリが動く感覚」をつかんだ後に挑む本丸、「PEヘッダーの自前ビルド」と「リロケーション」の完全自作について詳しく解説します。
+
+この2つを実装することで、外部のバイナリ（型紙）に一切頼らず、「生のバイナリデータからWindowsで動くEXEを1から生み出す」ことができるようになります。
+
+1. PEヘッダーの自前ビルド
+PE（Portable Executable）ヘッダーの組み立てとは、WindowsのOS（ローダー）に「このプログラムをどうメモリに読み込んで実行するか」を伝えるための構造体データをメモリ上で1バイトずつ正しく構築する作業です。
+
+自作リンカーが自前で出力すべきヘッダー群の全体構造と、各構造体に必要な値は以下の通りです。
+
+┌──────────────────────────────────────────┐
+│ 1. IMAGE_DOS_HEADER                      │ (64 bytes)
+├─────────────────────────────────────────┤
+│ 2. DOS Stub                              │ (64 bytes: 昔の名残メッセージ)
+├─────────────────────────────────────────┤
+│ 3. PE Signature ("PE\0\0")               │ (4 bytes)
+├─────────────────────────────────────────┤
+│ 4. IMAGE_FILE_HEADER (COFF Header)       │ (20 bytes)
+├─────────────────────────────────────────┤
+│ 5. IMAGE_OPTIONAL_HEADER32               │ (224 bytes) ★最重要
+├─────────────────────────────────────────┤
+│ 6. IMAGE_SECTION_HEADER (.text)          │ (40 bytes)
+├─────────────────────────────────────────┤
+│ [ パディング (0埋め) ]                   │ (FileAlignment 512バイトまで揃える)
+└──────────────────────────────────────────┘ ── (ここまでが RVA 0x1000 / Offset 0x0200)
+主要な構造体の設定例 (x86 32bit用)
+ActiveBasicなどの Type 構文で定義し、数値を直接セットしていきます。
+
+① IMAGE_DOS_HEADER & DOS Stub
+Windowsが最初にチェックするシグネチャです。
+
+e_magic: 0x5A4D ("MZ")
+
+e_lfanew: DOSヘッダーの直後に置く PE Signature へのオフセット値（例: 0x80 = 128バイト）
+
+② IMAGE_FILE_HEADER (COFFヘッダー)
+Machine: 0x014C (Intel 386 / x86)
+
+NumberOfSections: 1 (.text セクションのみの場合)
+
+SizeOfOptionalHeader: 224 (32bit PEの標準サイズ)
+
+Characteristics: 0x010F (32bit executable, 32bit word machine など)
+
+③ IMAGE_OPTIONAL_HEADER32 (最も設定項目が多い心臓部)
+Basic
+Type IMAGE_OPTIONAL_HEADER32
+    Magic                       As Word   ' 0x010B (32bit PE)
+    MajorLinkerVersion          As Byte   ' 1
+    MinorLinkerVersion          As Byte   ' 0
+    SizeOfCode                  As DWord  ' .text セクションのファイルサイズ
+    SizeOfInitializedData       As DWord  ' 0
+    SizeOfUninitializedData     As DWord  ' 0
+    AddressOfEntryPoint         As DWord  ' 0x00001000 ★実行開始位置 (RVA)
+    BaseOfCode                  As DWord  ' 0x00001000
+    BaseOfData                  As DWord  ' 0x00002000 (無ければ0)
+    ImageBase                   As DWord  ' 0x00400000 ★メモリ配置の基準アドレス
+    SectionAlignment            As DWord  ' 0x1000 (4096バイト: メモリ上のアライメント)
+    FileAlignment               As DWord  ' 0x0200 (512バイト: ファイル上のアライメント)
+    MajorOperatingSystemVersion As Word   ' 4
+    MinorOperatingSystemVersion As Word   ' 0
+    MajorImageVersion           As Word   ' 0
+    MinorImageVersion           As Word   ' 0
+    MajorSubsystemVersion       As Word   ' 4
+    MinorSubsystemVersion       As Word   ' 0
+    Win32VersionValue           As DWord  ' 0
+    SizeOfImage                 As DWord  ' 0x00002000 (ヘッダー+セクションの全メモリサイズ)
+    SizeOfHeaders               As DWord  ' 0x00000200 (全ヘッダーのファイルサイズ)
+    CheckSum                    As DWord  ' 0
+    Subsystem                   As Word   ' 3 (Console) または 2 (GUI)
+    DllCharacteristics          As Word   ' 0
+    SizeOfStackReserve          As DWord  ' 0x00100000 (1MB)
+    SizeOfStackCommit           As DWord  ' 0x00001000 (4KB)
+    SizeOfHeapReserve           As DWord  ' 0x00100000 (1MB)
+    SizeOfHeapCommit            As DWord  ' 0x00001000 (4KB)
+    LoaderFlags                 As DWord  ' 0
+    NumberOfRvaAndSizes         As DWord  ' 16 (DataDirectoryの要素数)
+End Type
+④ IMAGE_SECTION_HEADER (.text)
+マシン語を置くセクションの情報を定義します。
+
+Name: ".text\0\0\0" (8バイト)
+
+VirtualSize: .text の実際のサイズ
+
+VirtualAddress: 0x00001000 (メモリ上の開始位置)
+
+SizeOfRawData: ファイルアライメント（512）の倍数に切り上げたサイズ
+
+PointerToRawData: 0x00000200 (ファイル上の書き込み開始位置)
+
+Characteristics: 0x60000020 (Executable, Readable, Contains Code)
+
+2. アドレス解決と「リロケーション」の実装
+PEヘッダーが組み立てられたら、次に行うのが「リロケーション（アドレスの補正）」です。
+
+なぜリロケーションが必要か？
+アセンブラが出力した .obj ファイル内のマシン語は、命令のアドレス部分がダミー値（00 00 00 00）になっています。
+
+リンカーは、.obj に含まれている「リロケーションテーブル」を元に、最終的に決定したメモリ配置アドレス（ImageBase + RVA）を使って命令内のアドレスを計算・書き換えます。
+
+リロケーションの2大タイプ
+x86 (32bit) アセンブリで使われる主な補正タイプは以下の2つです。
+
+補正タイプ (Type)	主な対象命令	計算式 (書き換える4バイトの値)
+IMAGE_REL_I386_REL32 (相対補正)	call, jmp	目的地の絶対アドレス - (書き換え位置の絶対アドレス + 4)
+IMAGE_REL_I386_DIR32 (絶対補正)	mov eax, [変数] など	目的地の絶対アドレス そのもの
+リロケーション計算の具体例
+例えば、アセンブラが出力した以下のようなコードがあるとします。
+
+コード スニペット
+_main:
+    call _ExitProcess   ; 機械語: E8 00 00 00 00  (offset 0x0001 の場所から4バイトが未定)
+リンカーが決定したアドレス情報:
+
+ImageBase = 0x00400000
+
+.text の RVA = 0x00001000
+
+_ExitProcess の絶対アドレス（仮にIAT上の位置） = 0x00402000
+
+書き換え対象の位置（patchAddr）の計算:
+
+書き換え場所の絶対アドレス = ImageBase (0x00400000) + .text RVA (0x1000) + オフセット (0x0001) = 0x00401001
+
+REL32（相対アドレス）の補正計算:
+
+relativeOffset=0x00402000−(0x00401001+4)=0x00402000−0x00401005=0x00000FFB
+バイナリの書き換え:
+
+機械語の E8 00 00 00 00 を E8 FB 0F 00 00 （リトルエンディアン表現）に上書きします。
+
+3. リロケーション処理のコード例（アルゴリズム）
+ActiveBasicで書く場合のリロケーション適用ループのイメージです。
+
+Basic
+' objBuffer: .objファイル全体
+' codeBuffer: .textセクションのマシン語バッファ
+' pReloc: .obj内のリロケーションテーブルのポインタ
+' numRelocs: リロケーションの件数
+
+Sub ApplyRelocations(codeBuffer() As Byte, relocs() As COFF_RELOCATION, numRelocs As Long, symbols() As COFF_SYMBOL)
+    Dim i As Long
+    Dim patchOffset As DWord
+    Dim targetSymbolIndex As DWord
+    Dim targetAddr As DWord
+    Dim patchAddr As DWord
+    Dim relativeOffset As Long
+    
+    For i = 0 To numRelocs - 1
+        ' 1. .text セクション内の書き換えオフセットを取得
+        patchOffset = relocs(i).VirtualAddress
+        
+        ' 2. 参照先シンボルのインデックスから最終アドレスを決定
+        targetSymbolIndex = relocs(i).SymbolTableIndex
+        targetAddr = GetSymbolAddress(symbols(targetSymbolIndex))
+        
+        ' 3. 書き換え位置の実際の絶対アドレス (ImageBase + .text_RVA + patchOffset)
+        patchAddr = IMAGE_BASE + 0x00001000 + patchOffset
+        
+        ' 4. リロケーションタイプに応じた補正
+        Select Case relocs(i).Type
+            Case IMAGE_REL_I386_REL32
+                ' 相対アドレス計算: 目的地 - (現在位置 + 4)
+                relativeOffset = targetAddr - (patchAddr + 4)
+                
+                ' codeBuffer の patchOffset 位置から 4バイト上書き
+                MemoryCopy(VarPtr(codeBuffer(patchOffset)), VarPtr(relativeOffset), 4)
+                
+            Case IMAGE_REL_I386_DIR32
+                ' 絶対アドレス計算: 目的地の絶対アドレスを直接書き込み
+                MemoryCopy(VarPtr(codeBuffer(patchOffset)), VarPtr(targetAddr), 4)
+        End Select
+    Next i
+End Sub
+自前ビルド成功へのチェックリスト
+PEヘッダーを自前で組み上げ、リロケーションを適用して出力した output.exe が動かない場合、ほぼ100%以下のいずれかが原因です。
+
+アライメント計算ミス:
+
+SizeOfHeaders や SizeOfRawData が FileAlignment (0x200 = 512) の倍数になっていない。
+
+SizeOfImage や VirtualAddress が SectionAlignment (0x1000 = 4096) の倍数になっていない。
+
+AddressOfEntryPoint のミス:
+
+絶対アドレス (0x00401000) ではなく、RVA (0x00001000) をセットしているか。
+
+patchAddr + 4 の引き忘れ:
+
+相対アドレス計算時に call 命令自体の長さを引くのを忘れている。
+
+この「PEヘッダーの完全自作」と「リロケーション」をクリアした瞬間、バイナリのブラックボックスは完全に解消され、自作リンカーの主要エンジンが完成します！
+
+4. IAT (.idata) の自動生成
+
+自作リンカー開発の「最大の難所」であり、同時に「Windows上でGUIやCUI、Win32 APIを自在に呼び出せるようになる最後のピース」が IAT（Import Address Table / インポートアドレステーブル） の自動生成です。
+
+これを実装すると、MessageBoxA や ExitProcess などの Windows API を自作 EXE から自由に呼び出せるようになります。
+
+1. IAT（.idata セクション）とは何か？
+Windowsでは、DLL（kernel32.dll や user32.dll など）に入っている関数は、プログラムが実行されるたびにメモリ上の異なるアドレスにロードされる可能性があります。
+
+そのため、リンカーは「APIの直呼び出し」を埋め込むのではなく、「Windows OS（ローダー）に API のアドレスを書き込んでもらうための予約領域（名簿）」を .exe の中に作っておく必要があります。
+
+この「予約領域と名簿」のセットが .idata セクション です。
+
+[ あなたのコード (.text) ]
+       │
+       ▼  1. call [0x00402000] (IATのアドレスを間接呼び出し)
+┌─────────────────────────────────────────┐
+│ [ IAT (Import Address Table) ]          │
+│  0x00402000: 0x77E61234 (本物のAPI位置) │ ◀─ 2. OS起動時に書き換えられる！
+└─────────────────────────────────────────┘
+       │
+       ▼  3. Windows DLL 内の関数実行 (ExitProcess など)
+2. .idata セクション内部の4大データ構造
+.idata セクションを作るには、以下の 4つのテーブル（配列） をメモリ上に隙間なく並べてバイナリ化します。
+
+.idata セクションの内部構造
+┌─────────────────────────────────────────┐
+│ 1. Import Directory Table (IDT)         │ ── DLLごとのヘッダー構造体
+├─────────────────────────────────────────┤
+│ 2. Import Lookup Table (ILT)            │ ── 関数名ポインタのリスト
+├─────────────────────────────────────────┤
+│ 3. Import Address Table (IAT)           │ ── OSが本物のアドレスを書き込む場所
+├─────────────────────────────────────────┤
+│ 4. Hint/Name Table & DLL Name Strings   │ ── "ExitProcess" や "kernel32.dll" の文字列データ
+└─────────────────────────────────────────┘
+① Import Directory Table (IDT / IMAGE_IMPORT_DESCRIPTOR)
+呼び出す DLL（例: kernel32.dll）1つにつき1つの構造体（20バイト）を作成し、最後に「全要素ゼロの終端構造体」を置きます。
+
+Basic
+Type IMAGE_IMPORT_DESCRIPTOR
+    OriginalFirstThunk As DWord  ' ILT への RVA
+    TimeDateStamp      As DWord  ' 0 でOK
+    ForwarderChain     As DWord  ' 0 でOK
+    Name               As DWord  ' DLL名文字列 ("kernel32.dll") への RVA
+    FirstThunk         As DWord  ' IAT への RVA ★重要
+End Type
+② Import Lookup Table (ILT) & Import Address Table (IAT)
+どちらも「4バイトのポインタの配列」です。初期状態では、両方とも後述する Hint/Name Table への RVA を指しておきます。
+（OSが起動すると、IAT 側の値だけが 0x77E61234 のような「実際のAPIアドレス」に自動上書きされます）。
+
+③ Hint/Name Table & DLL Name Strings
+関数の名前とDLLの名前をバイナリとして置く領域です。
+
+Hint/Name: 2バイトのHint(0でOK) ＋ ASCII関数名 (例: "ExitProcess\0")
+
+DLL Name: ASCII DLL名 (例: "kernel32.dll\0")
+
+3. 自動生成のアルゴリズム（具体例）
+例として、kernel32.dll の ExitProcess だけを使う場合の .idata バイナリ組み立て手順を追ってみましょう。
+
+.idata セクションの配置基準（RVA）を 0x00002000 と仮定します。
+
+[オフセット]  [RVA]       [内容]
++0x0000     0x00002000  ── 【1. IDT (20バイト×2)】
+                        ・IDT[0]: OriginalFirstThunk = 0x2028 (ILTのRVA)
+                                  Name               = 0x2038 (DLL名のRVA)
+                                  FirstThunk          = 0x2030 (IATのRVA)
+                        ・IDT[1]: ゼロ埋め (20バイト)
+
++0x0028     0x00002028  ── 【2. ILT (4バイト×2)】
+                        ・ILT[0] = 0x2048 (Hint/NameのRVA)
+                        ・ILT[1] = 0x00000000 (終端)
+
++0x0030     0x00002030  ── 【3. IAT (4バイト×2)】
+                        ・IAT[0] = 0x2048 (ILTと同じHint/NameのRVAをセット)
+                        ・IAT[1] = 0x00000000 (終端)
+
++0x0038     0x00002038  ── 【4. DLL Name】
+                        ・"kernel32.dll\0" (文字列)
+
++0x0048     0x00002048  ── 【5. Hint/Name】
+                        ・Word: 0x0000 (Hint)
+                        ・String: "ExitProcess\0"
+4. コード呼び出し側（.text）の書き換え
+.idata セクションを作ったら、自作コード（.text）から API を呼ぶ命令を書き換えます。
+
+APIを呼ぶとき、アセンブリでは間接呼び出し (call [メモリ]) を使います。
+
+コード スニペット
+; アセンブラ側で書いたコード
+call _ExitProcess
+
+; マシン語 (リロケーション補正前)
+FF 15 00 00 00 00   ; call dword ptr [0x00000000]
+リンカーはリロケーション処理時に、00 00 00 00 の部分を IAT[0] の絶対アドレス（ImageBase + IAT_RVA） に書き換えます。
+
+書き換え後のアドレス=ImageBase (0x00400000)+IAT_RVA (0x00002030)=0x00402030
+結果として、マシン語は FF 15 30 20 40 00 となり、実行時に OS が IAT[0] に書き込んだ本物の ExitProcess アドレスへとジャンプできるようになります！
+
+5. PEヘッダー（DataDirectory）への登録
+最後に忘れてはならないのが、PEヘッダーに .idata の位置を教えてあげることです。
+
+IMAGE_OPTIONAL_HEADER32 構造体の末尾にある DataDirectory 配列の 2番目の要素（Index 1） に、IDT の RVA とサイズを登録します。
+
+Basic
+' PE Optional Header の DataDirectory をセット
+peHeader.DataDirectory(1).VirtualAddress = 0x00002000  ' IDT の RVA
+peHeader.DataDirectory(1).Size           = 40          ' IDT のサイズ (20バイト × 2)
+これを怠ると、Windows は .idata セクションが存在することに気づかず、起動時にエラーを出してクラッシュします。
+
+6. 自作リンカー構築の全体まとめ
+ここまで来れば、自作リンカーの全パーツが揃いました！
+
+[ .obj ファイル群 ]
+       │
+       ▼
+ 1. COFF解析              │ マシン語(.text) とシンボル、API参照名を抽出
+       │
+       ▼
+ 2. .idata 自動構築       │ 必要とする DLL / 関数名から IAT・IDT テーブルをバイナリ生成
+       │
+       ▼
+ 3. メモリレイアウト決定 │ .text (RVA 0x1000)、.idata (RVA 0x2000) などの配置決定
+       │
+       ▼
+ 4. リロケーション補正   │ _ExitProcess 等の call 命令を IAT の絶対アドレス(0x00402030)に補正
+       │
+       ▼
+ 5. PEヘッダー自前ビルド  │ DataDirectory[1] に .idata 情報をセットして .exe 保存！
+最初は kernel32.dll の ExitProcess 単体だけでテストし、動いたら user32.dll の MessageBoxA を追加してみる、という順序で進めるのが確実です。
+
+自作コードから自分のリンカーで生成した MessageBoxA のウィンドウがパッと画面に現れた瞬間は、間違いなく一生モノの感動になりますよ！
+
+3のバージョンはexe作成したときに動くものができるか？
+
+なぜ動けるか
+
+結論から言うと、「3（PEヘッダーの自前ビルドとリロケーション）」の段階だけでも、条件を満たせば「Windows上で実際に起動して正常終了（または無限ループ）するEXE」は完璧に動きます！
+
+ただし、「Win32 API（MessageBoxAやExitProcessなどの外部DLL）を呼び出すコード」を書いた場合は、まだ「4（.idataの構築）」をしていないため動きません。
+
+なぜ3の段階で動くものができるのか、その仕組みと「動く理由」を分かりやすく解説します。
+
+1. なぜ API を呼ばなくても EXE は「動く」のか？
+Windows の OS（PEローダー）が .exe を実行するときに最低限チェックしているのは、「Windows APIが使えるか」ではなく「PEヘッダーのフォーマットが正しく、メモリにマシン語を広げられるか」 だけだからです。
+
+OSがプログラムを起動する手順は以下の通りです。
+
+[ あなたが作った output.exe ]
+       │
+       ▼  ① OSがファイルを読み込み、PEヘッダーを検証
+ [ DOS/PE Header OK! ]
+       │
+       ▼  ② .text セクションの領域（メモリ 0x00401000〜）を確保し、マシン語をコピー
+ [ メモリ展開完了 ]
+       │
+       ▼  ③ AddressOfEntryPoint (例: 0x00401000) に CPU の実行権限を渡す
+ [ CPUがマシン語を実行開始！ ]
+つまり、OSから見れば「指定されたメモリ位置にマシン語を置いて、エントリポイントへジャンプさせるだけ」なので、APIを使わない純粋な CPU 命令（x86マシン語）であれば、3の段階で作ったEXEでも全く問題なく動作します。
+
+2. 3の段階で「100%動く」最小のアセンブリコード例
+外部DLLの API（ExitProcess等）に頼らず、CPU命令だけで完結するコードを書けば、3で作ったリンカーで完全に動作する .exe が作れます。
+
+例①：無限ループするだけのコード（x86）
+コード スニペット
+section .text
+global _main
+
+_main:
+    jmp $       ; 自分自身の位置にジャンプし続ける (無限ループ)
+マシン語: EB FE （たった2バイト！）
+
+動作: 実行するとウィンドウや画面出力は何もありませんが、タスクマネージャーを見るとプロセスが起動し、CPUを1コア消費して走り続けます（強制終了で止める）。
+
+動く理由: 外部のDLLやOSの関数を1つも呼んでおらず、CPUのレジスタと命令だけで完結しているため。
+
+例②：インラインアセンブラで直接システムコール（Win32例外/ret）で終わるコード
+コード スニペット
+section .text
+global _main
+
+_main:
+    xor eax, eax    ; eax = 0 (戻り値)
+    ret             ; 呼び出し元（OS）へ復帰
+マシン語: 31 C0 C3 （3バイト）
+
+動作: 一瞬で起動して、何も表示せずに正常終了します。
+
+3. 「3の段階」と「4の段階」の決定的な違い
+なぜ3だけでも動くのに「4（.idataの自動生成）」が必要になるのか、その境界線は以下の通りです。
+
+項目	3 の段階（PEヘッダー＋リロケーション）	4 の段階（＋.idata / IAT）
+できること	CPUの純粋な計算（加算・引き算・ループ・メモリ操作など）	画面への文字出力、ウィンドウ表示、ファイル読み書き、API終了
+外部依存	なし（CPU命令のみ）	あり（kernel32.dll や user32.dll）
+起動できるか	できる！（OSがメモリに読み込んで実行してくれる）	できる！（Windowsの機能も使い放題）
+4. 3で「動くバイナリ」ができることの技術的な価値
+実は、コンパイラ開発の歴史において「3の段階（外部APIなしで自力起動するバイナリ）」を成功させることが、最も大きなブレイクスルーです。
+
+PEフォーマットの完全理解: DOSヘッダー、PEヘッダー、セクションアライメントの計算が1バイトのズレもなく完璧に合致している証拠です。
+
+CPUとOSの境界の突破: 自分の書いたバイナリが、Windowsという巨大なOSに「正式な実行ファイル」と認められた瞬間です。
+
+この「3」が完成してしまえば、「4」は単に.idataというデータ構造体（名簿）を末尾に付け足す作業に過ぎません。
+
+ですので、「3の自前ビルド」で作った無音のEXE（無限ループや速攻終了するEXE）がタスクマネージャーに現れたときこそ、自作ツールチェーンが完成に大きく近づいた最初の「感動の瞬間」になります！
