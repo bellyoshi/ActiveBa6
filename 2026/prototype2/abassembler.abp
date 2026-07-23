@@ -2,7 +2,7 @@
 
 #console
 
-' abassembler - push / call / db の最小アセンブラ
+' abassembler - Phase1 最小アセンブラ
 ' 使い方: abassembler <input.asm> [output.obj]
 '
 ' 対応構文:
@@ -14,11 +14,16 @@
 '   push <imm>           -> 6A xx / 68 xx xx xx xx
 '   push <symbol>        -> 68 00 00 00 00 + DIR32
 '   call <symbol>        -> E8 00 00 00 00 + REL32
+'   ret                  -> C3
+'   ret <imm>            -> C2 iw
+'   mov <reg>, <imm>     -> B8+r id
+'   jmp <label>          -> E9 rel32（アセンブル時解決）
 
 Const MAX_CODE = 4096
 Const MAX_DATA = 4096
 Const MAX_SYMS = 64
 Const MAX_RELOCS = 64
+Const MAX_FIXUPS = 64
 Const MAX_STRTAB = 2048
 Const MAX_LINE = 512
 
@@ -50,6 +55,11 @@ Dim gRelSym(63) As DWord
 Dim gRelType(63) As Word
 Dim gNRelocs As Word
 
+' --- ローカル相対ジャンプの後埋め ---
+Dim gFixOff(63) As Long
+Dim gFixSym(63) As Long
+Dim gNFixups As Long
+
 ' --- セクションバッファ ---
 Dim gCurSect As Word
 Dim gCode(4095) As Byte
@@ -62,7 +72,7 @@ Dim gStrTab(2047) As Byte
 Dim gStrTabSize As DWord
 
 Sub USAGE()
-    Print "abassembler - minimal assembler (push / call / db)"
+    Print "abassembler - Phase1 assembler (push/call/db/ret/mov/jmp)"
     Print "usage: abassembler <input.asm> [output.obj]"
     End
 End Sub
@@ -303,8 +313,27 @@ Function IsNumericToken(s As String) As Long
             Exit Function
         End If
     End If
-    ' 0x / 0X 十六進
+    ' 0x / 0X / &H 十六進
     If i + 1 < n And p[i] = Asc("0") And (p[i + 1] = Asc("x") Or p[i + 1] = Asc("X")) Then
+        i = i + 2
+        If i >= n Then
+            IsNumericToken = 0
+            Exit Function
+        End If
+        While i < n
+            c = p[i]
+            If (c >= Asc("0") And c <= Asc("9")) Or (c >= Asc("a") And c <= Asc("f")) Or (c >= Asc("A") And c <= Asc("F")) Then
+                ' ok
+            Else
+                IsNumericToken = 0
+                Exit Function
+            End If
+            i = i + 1
+        Wend
+        IsNumericToken = 1
+        Exit Function
+    End If
+    If i + 1 < n And p[i] = Asc("&") And (p[i + 1] = Asc("H") Or p[i + 1] = Asc("h")) Then
         i = i + 2
         If i >= n Then
             IsNumericToken = 0
@@ -342,12 +371,14 @@ Function ParseImm(s As String) As Long
     Dim n As Long
     Dim v As Long
     Dim c As Long
+    Dim hexMode As Long
 
     t = Trim$(s)
     n = Len(t)
     p = StrPtr(t)
     sign = 1
     i = 0
+    hexMode = 0
     If p[0] = Asc("-") Then
         sign = -1
         i = 1
@@ -357,6 +388,13 @@ Function ParseImm(s As String) As Long
 
     If i + 1 < n And p[i] = Asc("0") And (p[i + 1] = Asc("x") Or p[i + 1] = Asc("X")) Then
         i = i + 2
+        hexMode = 1
+    ElseIf i + 1 < n And p[i] = Asc("&") And (p[i + 1] = Asc("H") Or p[i + 1] = Asc("h")) Then
+        i = i + 2
+        hexMode = 1
+    End If
+
+    If hexMode <> 0 Then
         v = 0
         While i < n
             c = p[i]
@@ -381,6 +419,94 @@ Function ParseImm(s As String) As Long
         ParseImm = v * sign
     End If
 End Function
+
+' eax=0 .. edi=7。非レジスタなら -1
+Function RegCode(name As String) As Long
+    Dim s As String
+    s = Lower$(Trim$(name))
+    If s = "eax" Then
+        RegCode = 0
+    ElseIf s = "ecx" Then
+        RegCode = 1
+    ElseIf s = "edx" Then
+        RegCode = 2
+    ElseIf s = "ebx" Then
+        RegCode = 3
+    ElseIf s = "esp" Then
+        RegCode = 4
+    ElseIf s = "ebp" Then
+        RegCode = 5
+    ElseIf s = "esi" Then
+        RegCode = 6
+    ElseIf s = "edi" Then
+        RegCode = 7
+    Else
+        RegCode = -1
+    End If
+End Function
+
+' "eax, 1" -> left="eax", right="1"。カンマが無ければ 0
+Function SplitComma(s As String, ByRef left As String, ByRef right As String) As Long
+    Dim n As Long
+    Dim i As Long
+    Dim p As *Byte
+    n = Len(s)
+    left = ""
+    right = ""
+    If n = 0 Then
+        SplitComma = 0
+        Exit Function
+    End If
+    p = StrPtr(s)
+    i = 0
+    While i < n
+        If p[i] = Asc(",") Then
+            left = Trim$(Left$(s, i))
+            right = Trim$(Mid$(s, i + 2, n - i - 1))
+            SplitComma = 1
+            Exit Function
+        End If
+        i = i + 1
+    Wend
+    left = Trim$(s)
+    SplitComma = 0
+End Function
+
+Sub PatchDword(off As Long, v As Long)
+    Dim tmp As Long
+    If off < 0 Or off + 4 > gCodeSize Then
+        Print "patch out of range"
+        End
+    End If
+    tmp = v
+    memcpy(VarPtr(gCode(off)), VarPtr(tmp), 4)
+End Sub
+
+Sub AddFixup(off As Long, symIndex As Long)
+    If gNFixups >= MAX_FIXUPS Then
+        Print "too many fixups"
+        End
+    End If
+    gFixOff(gNFixups) = off
+    gFixSym(gNFixups) = symIndex
+    gNFixups = gNFixups + 1
+End Sub
+
+Sub ResolveFixups()
+    Dim i As Long
+    Dim idx As Long
+    Dim rel As Long
+    If gNFixups <= 0 Then Exit Sub
+    For i = 0 To gNFixups - 1
+        idx = gFixSym(i)
+        If gSymKind(idx) <> 1 Or gSymSection(idx) <> SECT_TEXT Then
+            Print "undefined jump label: " + gSymName(idx)
+            End
+        End If
+        rel = gSymValue(idx) - (gFixOff(i) + 4)
+        PatchDword(gFixOff(i), rel)
+    Next
+End Sub
 
 Function FindSymbol(name As String) As Long
     Dim i As Long
@@ -501,6 +627,51 @@ Sub EmitCall(symName As String)
     EmitDword(0)
 End Sub
 
+Sub EmitRet(imm As Long, hasImm As Long)
+    If gCurSect <> SECT_TEXT Then
+        Print "ret only in .text"
+        End
+    End If
+    If hasImm = 0 Then
+        EmitByte(&HC3)
+    Else
+        EmitByte(&HC2)
+        EmitByte(imm And &HFF)
+        EmitByte((imm \ 256) And &HFF)
+    End If
+End Sub
+
+Sub EmitMovRegImm(reg As Long, imm As Long)
+    If gCurSect <> SECT_TEXT Then
+        Print "mov only in .text"
+        End
+    End If
+    If reg < 0 Or reg > 7 Then
+        Print "bad register for mov"
+        End
+    End If
+    EmitByte(&HB8 + reg)
+    EmitDword(imm)
+End Sub
+
+Sub EmitJmpLabel(symName As String)
+    Dim idx As Long
+    Dim rel As Long
+    If gCurSect <> SECT_TEXT Then
+        Print "jmp only in .text"
+        End
+    End If
+    idx = AddSymbol(symName)
+    EmitByte(&HE9)
+    If gSymKind(idx) = 1 And gSymSection(idx) = SECT_TEXT Then
+        rel = gSymValue(idx) - (gCodeSize + 4)
+        EmitDword(rel)
+    Else
+        AddFixup(gCodeSize, idx)
+        EmitDword(0)
+    End If
+End Sub
+
 ' db 'Hello', 0  のようなオペランド列を .data に書き出す
 Sub EmitDb(args As String)
     Dim p As *Byte
@@ -597,6 +768,8 @@ Sub AssembleLine(lineStr As String)
     Dim arg As String
     Dim op2 As String
     Dim arg2 As String
+    Dim left As String
+    Dim right As String
     Dim lop As String
     Dim lop2 As String
     Dim labelName As String
@@ -604,6 +777,7 @@ Sub AssembleLine(lineStr As String)
     Dim idx As Long
     Dim n As Long
     Dim sectArg As String
+    Dim reg As Long
 
     s = Trim$(StripComment$(lineStr))
     If s = "" Then Exit Sub
@@ -638,7 +812,7 @@ Sub AssembleLine(lineStr As String)
     lop = Lower$(op)
 
     ' "label db ..." 形式 (コロンなし)
-    If lop <> "bits" And lop <> "section" And lop <> "extern" And lop <> "global" And lop <> "push" And lop <> "call" And lop <> "db" Then
+    If lop <> "bits" And lop <> "section" And lop <> "extern" And lop <> "global" And lop <> "push" And lop <> "call" And lop <> "db" And lop <> "ret" And lop <> "mov" And lop <> "jmp" Then
         SplitToken(arg, op2, arg2)
         lop2 = Lower$(op2)
         If lop2 = "db" Then
@@ -713,6 +887,46 @@ Sub AssembleLine(lineStr As String)
         Exit Sub
     End If
 
+    If lop = "ret" Then
+        If arg = "" Then
+            EmitRet(0, 0)
+        Else
+            If IsNumericToken(arg) = 0 Then
+                Print "ret: bad operand"
+                End
+            End If
+            EmitRet(ParseImm(arg), 1)
+        End If
+        Exit Sub
+    End If
+
+    If lop = "mov" Then
+        If SplitComma(arg, left, right) = 0 Then
+            Print "mov needs two operands"
+            End
+        End If
+        reg = RegCode(left)
+        If reg < 0 Then
+            Print "mov: unsupported dest '" + left + "'"
+            End
+        End If
+        If IsNumericToken(right) = 0 Then
+            Print "mov: only reg, imm supported"
+            End
+        End If
+        EmitMovRegImm(reg, ParseImm(right))
+        Exit Sub
+    End If
+
+    If lop = "jmp" Then
+        If arg = "" Then
+            Print "jmp needs a label"
+            End
+        End If
+        EmitJmpLabel(arg)
+        Exit Sub
+    End If
+
     Print "unsupported instruction: " + op
     End
 End Sub
@@ -745,6 +959,8 @@ Sub AssembleBuffer(src As *Byte, srcSize As Long)
         If i < srcSize And src[i] = 13 Then i = i + 1
         If i < srcSize And src[i] = 10 Then i = i + 1
     Wend
+
+    ResolveFixups()
 End Sub
 
 ' シンボル名を COFF_SYMBOL.Name に書き込む。長い名前は文字列テーブルへ
@@ -976,6 +1192,7 @@ Dim hexLine As String
 
 gNSyms = 0
 gNRelocs = 0
+gNFixups = 0
 gCodeSize = 0
 gDataSize = 0
 gCurSect = SECT_NONE

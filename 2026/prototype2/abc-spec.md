@@ -301,6 +301,30 @@ abpc <input.abp> [output.exe]     ' 互換（単一ファイル）
 
 ---
 
+## 13. 実装メモ（進行状況）
+
+### Phase 1（進行中 / ソース反映済み）
+
+| 項目 | 状態 |
+|------|------|
+| `abc.abp`: `#console` / `End` / `ExitProcess(n)` / 空プログラム | ソース更新済み。**ActiveBasic で `abc.pj` を再ビルドする必要あり** |
+| `abassembler.abp`: `ret` / `mov reg,imm` / `jmp label` | ソース更新済み。**`abassembler.pj` を再ビルドする必要あり** |
+| `t1.abp` / `t1.asm` | 追加。手書き `t1.asm` → 現行アセンブラ/リンカで `t1.exe` 起動・終了コード 0 を確認 |
+| `.data` 空回避 | データ無しだと PE が起動しない事例あり → `dummy db 0` を出力 |
+
+**今やること:** ActiveBasic IDE で次をビルドしてから検証:
+
+```
+abc.pj          → abc.exe
+abassembler.pj  → abassembler.exe
+
+abc t1.abp t1.asm
+abpc t1.abp t1.exe
+abassembler t1_mov.asm   … mov/jmp/ret の確認
+```
+
+---
+
 **合格フレーズ（最終形態）:**
 
 ```
