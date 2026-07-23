@@ -243,7 +243,7 @@ Function IsIdentChar(c As Long) As Long
 End Function
 
 ' 先頭トークンと残りを分離
-Sub SplitToken(line As String, ByRef op As String, ByRef arg As String)
+Sub SplitToken(lineStr As String, ByRef op As String, ByRef arg As String)
     Dim p As *Byte
     Dim i As Long
     Dim n As Long
@@ -251,9 +251,9 @@ Sub SplitToken(line As String, ByRef op As String, ByRef arg As String)
 
     op = ""
     arg = ""
-    n = Len(line)
+    n = Len(lineStr)
     If n = 0 Then Exit Sub
-    p = StrPtr(line)
+    p = StrPtr(lineStr)
 
     i = 0
     While i < n And IsSpace(p[i]) <> 0
@@ -264,13 +264,13 @@ Sub SplitToken(line As String, ByRef op As String, ByRef arg As String)
         i = i + 1
     Wend
     If i > start Then
-        op = Mid$(line, start + 1, i - start)
+        op = Mid$(lineStr, start + 1, i - start)
     End If
     While i < n And IsSpace(p[i]) <> 0
         i = i + 1
     Wend
     If i < n Then
-        arg = Trim$(Mid$(line, i + 1, n - i))
+        arg = Trim$(Mid$(lineStr, i + 1, n - i))
     End If
 End Sub
 
@@ -476,7 +476,7 @@ Sub DefineLabel(name As String)
     gSymValue(idx) = gCodeSize
 End Sub
 
-Sub AssembleLine(line As String)
+Sub AssembleLine(lineStr As String)
     Dim s As String
     Dim op As String
     Dim arg As String
@@ -486,7 +486,7 @@ Sub AssembleLine(line As String)
     Dim idx As Long
     Dim n As Long
 
-    s = Trim$(StripComment$(line))
+    s = Trim$(StripComment$(lineStr))
     If s = "" Then Exit Sub
 
     ' ラベル定義 (単独行 "name:" または "name: push 0")
@@ -585,7 +585,7 @@ Sub AssembleBuffer(src As *Byte, srcSize As Long)
     Dim lineBuf[MAX_LINE] As Byte
     Dim lenLine As Long
     Dim c As Long
-    Dim line As String
+    Dim lineStr As String
 
     i = 0
     While i < srcSize
@@ -601,8 +601,8 @@ Sub AssembleBuffer(src As *Byte, srcSize As Long)
             memcpy(lineBuf, VarPtr(src[start]), lenLine)
         End If
         lineBuf[lenLine] = 0
-        line = MakeStr(lineBuf)
-        AssembleLine(line)
+        lineStr = MakeStr(lineBuf)
+        AssembleLine(lineStr)
 
         If i < srcSize And src[i] = 13 Then i = i + 1
         If i < srcSize And src[i] = 10 Then i = i + 1
