@@ -51,7 +51,7 @@ Dim gRelType(63) As Word
 Dim gNRelocs As Word
 
 ' --- セクションバッファ ---
-Dim gCurSect As Long
+Dim gCurSect As Word
 Dim gCode(4095) As Byte
 Dim gCodeSize As Long
 Dim gData(4095) As Byte
