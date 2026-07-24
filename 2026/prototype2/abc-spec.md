@@ -323,20 +323,27 @@ abpc <input.abp> [output.exe]     ' 互換（単一ファイル）
 
 次は Phase 3（`While`/`For`、`Sub`/`Function`）。
 
-### Phase 3（ソース反映済み・再ビルド待ち）
+### Phase 3（完了）
 
-| 項目 | 内容 |
+| 項目 | 状態 |
 |------|------|
-| ループ | `While`/`Wend`/`Exit While`、`For`/`Next`/`Exit For`（Step>0） |
-| 手続き | `Sub`/`Function`、stdcall、`Name=戻り値`、式中の `F(...)` |
-| テスト | `t3_while.abp`→10、`t3_for.abp`→15、`t3_func.abp`→7 |
+| `While`/`Wend`/`For`/`Next` | **完了**（exit 10 / 15） |
+| `Sub`/`Function` / 式中呼び出し | **完了**（`t3_func` exit 7） |
+| 注意 | 式中の `(`/`)` は `InStr`/`Right$` よりバイト `40`/`41` で検出 |
 
-```
-abc.pj を再ビルド
-abpc t3_while.abp
-abpc t3_for.abp
-abpc t3_func.abp
-```
+次は Phase 4（配列・ポインタ・`VarPtr`）。
+
+### Phase 4（実装中 / ソース完了・要リビルド）
+
+| 項目 | 状態 |
+|------|------|
+| `Dim a(N)/a[N] As Byte\|Long` | **ソース完了** |
+| `Dim p As *Byte` / `p[i]` | **ソース完了** |
+| `VarPtr(x)` / `Const` | **ソース完了** |
+| `abassembler` `movzx` / `mov [reg], al` | **ソース完了** |
+| テスト | `t4_arr` exit **10**, `t4_ptr` exit **100**, `t4_varptr` exit **7** |
+
+次は Phase 5（`String` ランタイム）。
 
 ---
 

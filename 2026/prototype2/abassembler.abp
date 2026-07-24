@@ -746,6 +746,27 @@ Sub EmitMovMemRegReg(base As Long, src As Long)
     EmitByte((src * 8) + base)
 End Sub
 
+' movzx r32, byte [reg]  -> 0F B6 /r
+Sub EmitMovzxRegMemReg(dst As Long, base As Long)
+    If base = 5 Or base = 4 Then
+        Print "movzx [ebp]/[esp] not supported"
+        End
+    End If
+    EmitByte(&HF)
+    EmitByte(&HB6)
+    EmitByte((dst * 8) + base)
+End Sub
+
+' mov [reg], al  -> 88 /0
+Sub EmitMovMemRegAl(base As Long)
+    If base = 5 Or base = 4 Then
+        Print "mov al to [ebp]/[esp] not supported"
+        End
+    End If
+    EmitByte(&H88)
+    EmitByte(base)
+End Sub
+
 ' "[ebx]" -> reg。失敗なら -1
 ' 注意: ActiveBasic では "[" を文字列リテラルに書けない場合があるため &H5B/&H5D を使う
 Function ParseMemReg(s As String) As Long
@@ -1045,7 +1066,7 @@ Sub AssembleLine(lineStr As String)
     lop = Lower$(op)
 
     ' "label db ..." 形式 (コロンなし)
-    If lop <> "bits" And lop <> "section" And lop <> "extern" And lop <> "global" And lop <> "push" And lop <> "pop" And lop <> "call" And lop <> "db" And lop <> "ret" And lop <> "mov" And lop <> "jmp" And lop <> "add" And lop <> "sub" And lop <> "cmp" And lop <> "imul" And lop <> "je" And lop <> "jne" And lop <> "jl" And lop <> "jle" And lop <> "jg" And lop <> "jge" And lop <> "jz" And lop <> "jnz" Then
+    If lop <> "bits" And lop <> "section" And lop <> "extern" And lop <> "global" And lop <> "push" And lop <> "pop" And lop <> "call" And lop <> "db" And lop <> "ret" And lop <> "mov" And lop <> "movzx" And lop <> "jmp" And lop <> "add" And lop <> "sub" And lop <> "cmp" And lop <> "imul" And lop <> "je" And lop <> "jne" And lop <> "jl" And lop <> "jle" And lop <> "jg" And lop <> "jge" And lop <> "jz" And lop <> "jnz" Then
         SplitToken(arg, op2, arg2)
         lop2 = Lower$(op2)
         If lop2 = "db" Then
@@ -1147,6 +1168,25 @@ Sub AssembleLine(lineStr As String)
         Exit Sub
     End If
 
+    If lop = "movzx" Then
+        If SplitComma(arg, left, right) = 0 Then
+            Print "movzx needs two operands"
+            End
+        End If
+        reg = RegCode(left)
+        If reg < 0 Then
+            Print "movzx: bad dest"
+            End
+        End If
+        reg2 = ParseMemReg(right)
+        If reg2 < 0 Then
+            Print "movzx: need mem [reg]"
+            End
+        End If
+        EmitMovzxRegMemReg(reg, reg2)
+        Exit Sub
+    End If
+
     If lop = "mov" Then
         If SplitComma(arg, left, right) = 0 Then
             Print "mov needs two operands"
@@ -1173,7 +1213,6 @@ Sub AssembleLine(lineStr As String)
             Exit Sub
         End If
         If ParseMemEbp(left, disp) <> 0 Then
-            ' mov [ebp±d], ...
             reg2 = RegCode(right)
             If reg2 >= 0 Then
                 EmitMovMemEbpReg(disp, reg2)
@@ -1187,7 +1226,10 @@ Sub AssembleLine(lineStr As String)
         End If
         reg2 = ParseMemReg(left)
         If reg2 >= 0 Then
-            ' mov [reg], ...
+            If Lower$(right) = "al" Then
+                EmitMovMemRegAl(reg2)
+                Exit Sub
+            End If
             reg = RegCode(right)
             If reg < 0 Then
                 Print "mov: bad src for [reg] '" + right + "'"
