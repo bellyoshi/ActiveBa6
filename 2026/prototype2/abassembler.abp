@@ -726,6 +726,54 @@ Sub EmitMovMemEbpImm(disp As Long, imm As Long)
     EmitDword(imm)
 End Sub
 
+' mov reg, [reg] / mov [reg], reg （ディスプレースメントなし）
+Sub EmitMovRegMemReg(dst As Long, base As Long)
+    EmitByte(&H8B)
+    ' mod=00, ただし base=ebp(5) は不可（特殊）
+    If base = 5 Or base = 4 Then
+        Print "mov [ebp]/[esp] needs displacement form"
+        End
+    End If
+    EmitByte((dst * 8) + base)
+End Sub
+
+Sub EmitMovMemRegReg(base As Long, src As Long)
+    EmitByte(&H89)
+    If base = 5 Or base = 4 Then
+        Print "mov [ebp]/[esp] needs displacement form"
+        End
+    End If
+    EmitByte((src * 8) + base)
+End Sub
+
+' "[ebx]" -> reg。失敗なら -1
+' 注意: ActiveBasic では "[" を文字列リテラルに書けない場合があるため &H5B/&H5D を使う
+Function ParseMemReg(s As String) As Long
+    Dim t As String
+    Dim p As *Byte
+    Dim n As Long
+    Dim inner As String
+    Dim i As Long
+    Dim buf[15] As Byte
+
+    ParseMemReg = -1
+    t = Trim$(s)
+    n = Len(t)
+    If n < 3 Then Exit Function
+    If n > 16 Then Exit Function
+    p = StrPtr(t)
+    If p[0] <> &H5B Then Exit Function
+    If p[n - 1] <> &H5D Then Exit Function
+
+    ' inner = t[1 .. n-2]
+    For i = 1 To n - 2
+        buf[i - 1] = p[i]
+    Next
+    buf[n - 2] = 0
+    inner = MakeStr(buf)
+    ParseMemReg = RegCode(Trim$(inner))
+End Function
+
 Sub EmitArithRegImm(op As Long, reg As Long, imm As Long)
     ' op: 0=add 1=or 2=adc 3=sbb 4=and 5=sub 6=xor 7=cmp
     If reg = 0 And (imm < -128 Or imm > 127) Then
@@ -785,34 +833,51 @@ End Sub
 ' "[ebp-4]" / "[ebp+8]" -> disp。失敗なら 0
 Function ParseMemEbp(s As String, ByRef disp As Long) As Long
     Dim t As String
-    Dim body As String
-    Dim signCh As String
-    Dim num As String
+    Dim p As *Byte
+    Dim n As Long
+    Dim i As Long
+    Dim sign As Long
+    Dim v As Long
+    Dim c As Long
 
     ParseMemEbp = 0
+    disp = 0
     t = Trim$(s)
-    If Len(t) < 7 Then Exit Function
-    If Left$(t, 1) <> "[" Then Exit Function
-    If Right$(t, 1) <> "]" Then Exit Function
+    n = Len(t)
+    If n < 7 Then Exit Function
+    p = StrPtr(t)
 
-    ' 括弧を外す -> ebp-4
-    body = Mid$(t, 2, Len(t) - 2)
-    body = Lower$(Trim$(body))
-    If Len(body) < 4 Then Exit Function
-    If Left$(body, 3) <> "ebp" Then Exit Function
+    ' [ebp   ([ = &H5B, ] = &H5D)
+    If p[0] <> &H5B Then Exit Function
+    c = ToLowerChar(p[1])
+    If c <> Asc("e") Then Exit Function
+    c = ToLowerChar(p[2])
+    If c <> Asc("b") Then Exit Function
+    c = ToLowerChar(p[3])
+    If c <> Asc("p") Then Exit Function
 
-    signCh = Mid$(body, 4, 1)
-    num = Trim$(Mid$(body, 5, Len(body) - 4))
-    If num = "" Then Exit Function
-    If IsNumericToken(num) = 0 Then Exit Function
-
-    If signCh = "+" Then
-        disp = ParseImm(num)
-    ElseIf signCh = "-" Then
-        disp = 0 - ParseImm(num)
+    ' +/-
+    If p[4] = Asc("+") Then
+        sign = 1
+    ElseIf p[4] = Asc("-") Then
+        sign = -1
     Else
         Exit Function
     End If
+
+    ' digits ... ]
+    i = 5
+    If i >= n - 1 Then Exit Function
+    v = 0
+    While i < n - 1
+        c = p[i]
+        If c < Asc("0") Or c > Asc("9") Then Exit Function
+        v = v * 10 + (c - Asc("0"))
+        i = i + 1
+    Wend
+    If p[n - 1] <> &H5D Then Exit Function
+
+    disp = v * sign
     ParseMemEbp = 1
 End Function
 
@@ -1097,8 +1162,13 @@ Sub AssembleLine(lineStr As String)
             ElseIf ParseMemEbp(right, disp) <> 0 Then
                 EmitMovRegMemEbp(reg, disp)
             Else
-                Print "mov: bad src '" + right + "'"
-                End
+                reg2 = ParseMemReg(right)
+                If reg2 >= 0 Then
+                    EmitMovRegMemReg(reg, reg2)
+                Else
+                    Print "mov: bad src '" + right + "'"
+                    End
+                End If
             End If
             Exit Sub
         End If
@@ -1113,6 +1183,17 @@ Sub AssembleLine(lineStr As String)
                 Print "mov: bad src for mem '" + right + "'"
                 End
             End If
+            Exit Sub
+        End If
+        reg2 = ParseMemReg(left)
+        If reg2 >= 0 Then
+            ' mov [reg], ...
+            reg = RegCode(right)
+            If reg < 0 Then
+                Print "mov: bad src for [reg] '" + right + "'"
+                End
+            End If
+            EmitMovMemRegReg(reg2, reg)
             Exit Sub
         End If
         Print "mov: unsupported dest '" + left + "'"

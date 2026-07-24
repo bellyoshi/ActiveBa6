@@ -1,25 +1,26 @@
 #console
 
-' abc - ABP Phase2 コンパイラ (.abp -> .asm)
+' abc - ABP Phase3 コンパイラ (.abp -> .asm)
 ' 使い方: abc <input.abp> [output.asm]
 '
-' Phase2:
-'   Dim x As Long
-'   x = <式>
-'   If <条件> Then ... [Else ...] End If
-'   ExitProcess(<式>)
-'   MessageBox(...)  ; Phase0 互換
+' Phase3:
+'   While / Wend / Exit While
+'   For / Next / Exit For
+'   Sub / Function / End Sub / End Function / Exit Sub / Exit Function
+'   手続き呼び出し Name(...)
 
 Const MAX_ARGS = 8
 Const MAX_LINE = 512
 Const MAX_VARS = 32
 Const MAX_IF = 16
+Const MAX_LOOP = 16
 
 Dim gArgs(7) As String
 Dim gNArgs As Long
 Dim gAsmArgs(7) As String
 Dim gDataLines As String
 Dim gTextLines As String
+Dim gProcLines As String
 Dim gStrCount As Long
 Dim gUseMsgBox As Long
 Dim gEmittedExit As Long
@@ -33,14 +34,36 @@ Dim gIfElse(15) As String
 Dim gIfEnd(15) As String
 Dim gIfSp As Long
 
+Dim gLoopTop(15) As String
+Dim gLoopCont(15) As String
+Dim gLoopEnd(15) As String
+Dim gForVar(15) As String
+Dim gForStep(15) As String
+Dim gLoopSp As Long
+
+Dim gInProc As Long
+Dim gProcName As String
+Dim gProcIsFunc As Long
+Dim gProcArgBytes As Long
+Dim gRetOff As Long
+Dim gSavedText As String
+Dim gSavedNVars As Long
+Dim gSavedFrame As Long
+Dim gSavedVarName(31) As String
+Dim gSavedVarOff(31) As Long
+
 Sub USAGE()
-    Print "abc - Phase2 ABP compiler (.abp -> .asm)"
+    Print "abc - Phase3 ABP compiler (.abp -> .asm)"
     Print "usage: abc <input.abp> [output.asm]"
     End
 End Sub
 
 Sub EmitAsm(line As String)
     gTextLines = gTextLines + "    " + line + Chr$(13) + Chr$(10)
+End Sub
+
+Sub EmitLabel(lab As String)
+    gTextLines = gTextLines + lab + ":" + Chr$(13) + Chr$(10)
 End Sub
 
 Function NewLabel$() As String
@@ -181,6 +204,20 @@ Function MemRef$(off As Long) As String
     MemRef$ = "[ebp" + Trim$(Str$(off)) + "]"
 End Function
 
+' 変数を eax へロード（ebx 経由。 [ebp+disp] を避ける）
+Sub EmitLoadVar(idx As Long)
+    EmitAsm("mov ebx, ebp")
+    EmitAsm("add ebx, " + Trim$(Str$(gVarOff(idx))))
+    EmitAsm("mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+End Sub
+
+' eax を変数へストア
+Sub EmitStoreVar(idx As Long)
+    EmitAsm("mov ebx, ebp")
+    EmitAsm("add ebx, " + Trim$(Str$(gVarOff(idx))))
+    EmitAsm("mov " + Chr$(&H5B) + "ebx" + Chr$(&H5D) + ", eax")
+End Sub
+
 ' 深さ0の2文字演算子（右端優先）。戻り値は 1-based 開始位置
 Function FindOp2(expr As String, op As String) As Long
     Dim n As Long
@@ -279,6 +316,14 @@ Function GenArith(expr As String) As Long
     Dim right As String
     Dim idx As Long
     Dim n As Long
+    Dim lp As Long
+    Dim rp As Long
+    Dim a As Long
+    Dim callName As String
+    Dim argsText As String
+    Dim savedArgs(7) As String
+    Dim savedN As Long
+    Dim i As Long
 
     GenArith = 0
     e = Trim$(expr)
@@ -296,14 +341,12 @@ Function GenArith(expr As String) As Long
         If GenArith(right) = 0 Then Exit Function
         EmitAsm("pop ecx")
         EmitAsm("add eax, ecx")
-        ' add eax,ecx は eax=ecx+eax。欲しいのは left+right = ecx+eax。OK
         GenArith = 1
         Exit Function
     End If
 
     pos = FindOp1(e, "-")
     If pos > 1 Then
-        ' 先頭の単項マイナスは除外（pos=1）
         left = Trim$(Left$(e, pos - 1))
         right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
         If left <> "" Then
@@ -338,6 +381,43 @@ Function GenArith(expr As String) As Long
         Exit Function
     End If
 
+    ' 関数呼び出し Name(...)（同一関数の再帰呼び出しのみ使う）
+    lp = InStr(1, e, "(")
+    If lp > 1 And Right$(e, 1) = ")" Then
+        callName = Trim$(Left$(e, lp - 1))
+        If FindVar(callName) < 0 And IsNumStr(callName) = 0 And callName <> "" Then
+            rp = 0
+            a = n
+            While a >= 1
+                If Mid$(e, a, 1) = ")" Then
+                    rp = a
+                    Exit While
+                End If
+                a = a - 1
+            Wend
+            If rp > lp Then
+                argsText = Trim$(Mid$(e, lp + 1, rp - lp - 1))
+                savedN = 0
+                If argsText <> "" Then
+                    If SplitArgs(argsText) = 0 Then Exit Function
+                    savedN = gNArgs
+                    For i = 0 To savedN - 1
+                        savedArgs(i) = gArgs(i)
+                    Next
+                End If
+                If savedN > 0 Then
+                    For i = savedN - 1 To 0 Step -1
+                        If GenArith(savedArgs(i)) = 0 Then Exit Function
+                        EmitAsm("push eax")
+                    Next
+                End If
+                EmitAsm("call _" + callName)
+                GenArith = 1
+                Exit Function
+            End If
+        End If
+    End If
+
     ' 数値
     If IsNumStr(e) <> 0 Then
         EmitAsm("mov eax, " + Trim$(Str$(ParseNum(e))))
@@ -348,7 +428,7 @@ Function GenArith(expr As String) As Long
     ' 変数
     idx = FindVar(e)
     If idx >= 0 Then
-        EmitAsm("mov eax, " + MemRef$(gVarOff(idx)))
+        EmitLoadVar(idx)
         GenArith = 1
         Exit Function
     End If
@@ -891,13 +971,26 @@ Function CompileAssign(lineStr As String) As Long
     End If
     name = Trim$(Left$(lineStr, pos - 1))
     expr = Trim$(Mid$(lineStr, pos + 1, Len(lineStr) - pos))
+
+    ' Function 名への代入 = 戻り値
+    If gInProc <> 0 And gProcIsFunc <> 0 Then
+        If Lower$(name) = Lower$(gProcName) Then
+            If GenArith(expr) = 0 Then Exit Function
+            EmitAsm("mov ebx, ebp")
+            EmitAsm("add ebx, " + Trim$(Str$(gRetOff)))
+            EmitAsm("mov " + Chr$(&H5B) + "ebx" + Chr$(&H5D) + ", eax")
+            CompileAssign = 1
+            Exit Function
+        End If
+    End If
+
     idx = FindVar(name)
     If idx < 0 Then
         Print "undeclared variable: " + name
         Exit Function
     End If
     If GenArith(expr) = 0 Then Exit Function
-    EmitAsm("mov " + MemRef$(gVarOff(idx)) + ", eax")
+    EmitStoreVar(idx)
     CompileAssign = 1
 End Function
 
@@ -941,7 +1034,7 @@ Function CompileElse() As Long
     labElse = gIfElse(gIfSp - 1)
     labEnd = gIfEnd(gIfSp - 1)
     EmitAsm("jmp " + labEnd)
-    gTextLines = gTextLines + labElse + ":" + Chr$(13) + Chr$(10)
+    EmitLabel(labElse)
     gIfElse(gIfSp - 1) = ""
     CompileElse = 1
 End Function
@@ -958,10 +1051,415 @@ Function CompileEndIf() As Long
     labElse = gIfElse(gIfSp)
     labEnd = gIfEnd(gIfSp)
     If labElse <> "" Then
-        gTextLines = gTextLines + labElse + ":" + Chr$(13) + Chr$(10)
+        EmitLabel(labElse)
     End If
-    gTextLines = gTextLines + labEnd + ":" + Chr$(13) + Chr$(10)
+    EmitLabel(labEnd)
     CompileEndIf = 1
+End Function
+
+Function CompileWhile(lineStr As String) As Long
+    Dim e As String
+    Dim falseJcc As String
+    Dim labTop As String
+    Dim labEnd As String
+    CompileWhile = 0
+    e = Trim$(Mid$(lineStr, 6, Len(lineStr) - 5))
+    If e = "" Then
+        Print "While needs condition"
+        Exit Function
+    End If
+    If gLoopSp >= MAX_LOOP Then
+        Print "loop nesting too deep"
+        Exit Function
+    End If
+    labTop = NewLabel$()
+    labEnd = NewLabel$()
+    gLoopTop(gLoopSp) = labTop
+    gLoopCont(gLoopSp) = labTop
+    gLoopEnd(gLoopSp) = labEnd
+    gLoopSp = gLoopSp + 1
+    EmitLabel(labTop)
+    If GenCond(e, falseJcc) = 0 Then Exit Function
+    EmitAsm(falseJcc + " " + labEnd)
+    CompileWhile = 1
+End Function
+
+Function CompileWend() As Long
+    CompileWend = 0
+    If gLoopSp <= 0 Then
+        Print "Wend without While"
+        Exit Function
+    End If
+    gLoopSp = gLoopSp - 1
+    EmitAsm("jmp " + gLoopTop(gLoopSp))
+    EmitLabel(gLoopEnd(gLoopSp))
+    CompileWend = 1
+End Function
+
+Function CompileExitWhile() As Long
+    CompileExitWhile = 0
+    If gLoopSp <= 0 Then
+        Print "Exit While without While"
+        Exit Function
+    End If
+    EmitAsm("jmp " + gLoopEnd(gLoopSp - 1))
+    CompileExitWhile = 1
+End Function
+
+Function CompileFor(lineStr As String) As Long
+    Dim rest As String
+    Dim pos As Long
+    Dim posTo As Long
+    Dim posStep As Long
+    Dim varName As String
+    Dim exprFrom As String
+    Dim exprTo As String
+    Dim exprStep As String
+    Dim idx As Long
+    Dim labTop As String
+    Dim labCont As String
+    Dim labEnd As String
+
+    CompileFor = 0
+    rest = Trim$(Mid$(lineStr, 4, Len(lineStr) - 3))
+    pos = FindOp1(rest, "=")
+    If pos = 0 Then
+        Print "For needs ="
+        Exit Function
+    End If
+    varName = Trim$(Left$(rest, pos - 1))
+    rest = Trim$(Mid$(rest, pos + 1, Len(rest) - pos))
+    posTo = InStr(1, Lower$(rest), " to ")
+    If posTo = 0 Then
+        Print "For needs To"
+        Exit Function
+    End If
+    exprFrom = Trim$(Left$(rest, posTo - 1))
+    rest = Trim$(Mid$(rest, posTo + 4, Len(rest) - posTo - 3))
+    posStep = InStr(1, Lower$(rest), " step ")
+    If posStep > 0 Then
+        exprTo = Trim$(Left$(rest, posStep - 1))
+        exprStep = Trim$(Mid$(rest, posStep + 6, Len(rest) - posStep - 5))
+    Else
+        exprTo = rest
+        exprStep = "1"
+    End If
+
+    idx = FindVar(varName)
+    If idx < 0 Then
+        Print "For variable undeclared: " + varName
+        Exit Function
+    End If
+    If GenArith(exprFrom) = 0 Then Exit Function
+    EmitStoreVar(idx)
+
+    If gLoopSp >= MAX_LOOP Then
+        Print "loop nesting too deep"
+        Exit Function
+    End If
+    labTop = NewLabel$()
+    labCont = NewLabel$()
+    labEnd = NewLabel$()
+    gLoopTop(gLoopSp) = labTop
+    gLoopCont(gLoopSp) = labCont
+    gLoopEnd(gLoopSp) = labEnd
+    gForVar(gLoopSp) = varName
+    gForStep(gLoopSp) = exprStep
+    gLoopSp = gLoopSp + 1
+
+    EmitLabel(labTop)
+    ' If var > to Then exit (Step>0 前提)
+    EmitLoadVar(idx)
+    EmitAsm("push eax")
+    If GenArith(exprTo) = 0 Then Exit Function
+    EmitAsm("pop ecx")
+    EmitAsm("cmp ecx, eax")
+    EmitAsm("jg " + labEnd)
+    CompileFor = 1
+End Function
+
+Function CompileNext() As Long
+    Dim sp As Long
+    Dim idx As Long
+    Dim varName As String
+    Dim exprStep As String
+    CompileNext = 0
+    If gLoopSp <= 0 Then
+        Print "Next without For"
+        Exit Function
+    End If
+    sp = gLoopSp - 1
+    varName = gForVar(sp)
+    exprStep = gForStep(sp)
+    idx = FindVar(varName)
+    If idx < 0 Then
+        Print "Next: bad variable"
+        Exit Function
+    End If
+    EmitLabel(gLoopCont(sp))
+    EmitLoadVar(idx)
+    EmitAsm("push eax")
+    If GenArith(exprStep) = 0 Then Exit Function
+    EmitAsm("pop ecx")
+    EmitAsm("add eax, ecx")
+    EmitStoreVar(idx)
+    EmitAsm("jmp " + gLoopTop(sp))
+    EmitLabel(gLoopEnd(sp))
+    gLoopSp = sp
+    CompileNext = 1
+End Function
+
+Function CompileExitFor() As Long
+    CompileExitFor = 0
+    If gLoopSp <= 0 Then
+        Print "Exit For without For"
+        Exit Function
+    End If
+    EmitAsm("jmp " + gLoopEnd(gLoopSp - 1))
+    CompileExitFor = 1
+End Function
+
+Sub SaveMainScope()
+    Dim i As Long
+    gSavedText = gTextLines
+    gSavedNVars = gNVars
+    gSavedFrame = gFrameSize
+    If gNVars > 0 Then
+        For i = 0 To gNVars - 1
+            gSavedVarName(i) = gVarName(i)
+            gSavedVarOff(i) = gVarOff(i)
+        Next
+    End If
+End Sub
+
+Sub RestoreMainScope()
+    Dim i As Long
+    gTextLines = gSavedText
+    gNVars = gSavedNVars
+    gFrameSize = gSavedFrame
+    If gNVars > 0 Then
+        For i = 0 To gNVars - 1
+            gVarName(i) = gSavedVarName(i)
+            gVarOff(i) = gSavedVarOff(i)
+        Next
+    End If
+End Sub
+
+Function AddArgVar(name As String, off As Long) As Long
+    Dim idx As Long
+    If gNVars >= MAX_VARS Then
+        Print "too many variables"
+        AddArgVar = -1
+        Exit Function
+    End If
+    idx = gNVars
+    gVarName(idx) = name
+    gVarOff(idx) = off
+    gNVars = gNVars + 1
+    AddArgVar = idx
+End Function
+
+Function CompileProcHeader(lineStr As String, isFunc As Long) As Long
+    Dim low As String
+    Dim rest As String
+    Dim name As String
+    Dim argsText As String
+    Dim lp As Long
+    Dim rp As Long
+    Dim a As Long
+    Dim arg As String
+    Dim pos As Long
+    Dim argOff As Long
+    Dim i As Long
+
+    CompileProcHeader = 0
+    If gInProc <> 0 Then
+        Print "nested Sub/Function not allowed"
+        Exit Function
+    End If
+    If gIfSp <> 0 Or gLoopSp <> 0 Then
+        Print "Sub/Function inside If/loop not allowed"
+        Exit Function
+    End If
+
+    low = Lower$(lineStr)
+    If isFunc <> 0 Then
+        rest = Trim$(Mid$(lineStr, 9, Len(lineStr) - 8))
+    Else
+        rest = Trim$(Mid$(lineStr, 4, Len(lineStr) - 3))
+    End If
+
+    lp = InStr(1, rest, "(")
+    If lp = 0 Then
+        Print "Sub/Function needs ()"
+        Exit Function
+    End If
+    name = Trim$(Left$(rest, lp - 1))
+    rp = 0
+    a = Len(rest)
+    While a >= 1
+        If Mid$(rest, a, 1) = ")" Then
+            rp = a
+            Exit While
+        End If
+        a = a - 1
+    Wend
+    If rp = 0 Or rp <= lp Then
+        Print "bad Sub/Function header"
+        Exit Function
+    End If
+    argsText = Trim$(Mid$(rest, lp + 1, rp - lp - 1))
+
+    SaveMainScope()
+    gTextLines = ""
+    gNVars = 0
+    gFrameSize = 0
+    gInProc = 1
+    gProcName = name
+    gProcIsFunc = isFunc
+    gProcArgBytes = 0
+    gRetOff = 0
+
+    If isFunc <> 0 Then
+        ' 戻り値スロット
+        gFrameSize = 4
+        gRetOff = -4
+    End If
+
+    If argsText <> "" Then
+        If SplitArgs(argsText) = 0 Then Exit Function
+        argOff = 8
+        For i = 0 To gNArgs - 1
+            arg = Trim$(gArgs(i))
+            ' ByRef/ByVal を除去
+            If StartsWith(Lower$(arg), "byref ") <> 0 Then
+                arg = Trim$(Mid$(arg, 7, Len(arg) - 6))
+            ElseIf StartsWith(Lower$(arg), "byval ") <> 0 Then
+                arg = Trim$(Mid$(arg, 7, Len(arg) - 6))
+            End If
+            pos = InStr(1, Lower$(arg), " as ")
+            If pos > 0 Then
+                arg = Trim$(Left$(arg, pos - 1))
+            End If
+            If AddArgVar(arg, argOff) < 0 Then Exit Function
+            argOff = argOff + 4
+            gProcArgBytes = gProcArgBytes + 4
+        Next
+    End If
+
+    CompileProcHeader = 1
+End Function
+
+Function CompileEndProc() As Long
+    Dim body As String
+    Dim procAsm As String
+    CompileEndProc = 0
+    If gInProc = 0 Then
+        Print "End Sub/Function without header"
+        Exit Function
+    End If
+    If gIfSp <> 0 Or gLoopSp <> 0 Then
+        Print "unclosed If/loop in procedure"
+        Exit Function
+    End If
+
+    body = gTextLines
+    gTextLines = ""
+    EmitAsm("push ebp")
+    EmitAsm("mov ebp, esp")
+    If gFrameSize > 0 Then
+        EmitAsm("sub esp, " + Trim$(Str$(gFrameSize)))
+    End If
+    gTextLines = gTextLines + body
+
+    If gProcIsFunc <> 0 Then
+        EmitAsm("mov ebx, ebp")
+        EmitAsm("add ebx, " + Trim$(Str$(gRetOff)))
+        EmitAsm("mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    End If
+    EmitAsm("mov esp, ebp")
+    EmitAsm("pop ebp")
+    If gProcArgBytes > 0 Then
+        EmitAsm("ret " + Trim$(Str$(gProcArgBytes)))
+    Else
+        EmitAsm("ret")
+    End If
+
+    procAsm = "_" + gProcName + ":" + Chr$(13) + Chr$(10) + gTextLines + Chr$(13) + Chr$(10)
+    gProcLines = gProcLines + procAsm
+
+    gInProc = 0
+    gProcName = ""
+    gProcIsFunc = 0
+    RestoreMainScope()
+    CompileEndProc = 1
+End Function
+
+Function CompileExitProc() As Long
+    CompileExitProc = 0
+    If gInProc = 0 Then
+        Print "Exit Sub/Function outside procedure"
+        Exit Function
+    End If
+    If gProcIsFunc <> 0 Then
+        EmitAsm("mov ebx, ebp")
+        EmitAsm("add ebx, " + Trim$(Str$(gRetOff)))
+        EmitAsm("mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    End If
+    EmitAsm("mov esp, ebp")
+    EmitAsm("pop ebp")
+    If gProcArgBytes > 0 Then
+        EmitAsm("ret " + Trim$(Str$(gProcArgBytes)))
+    Else
+        EmitAsm("ret")
+    End If
+    CompileExitProc = 1
+End Function
+
+Function CompileCallStmt(lineStr As String) As Long
+    Dim lp As Long
+    Dim rp As Long
+    Dim a As Long
+    Dim name As String
+    Dim argsText As String
+    Dim i As Long
+
+    CompileCallStmt = 0
+    lp = InStr(1, lineStr, "(")
+    If lp <= 1 Then Exit Function
+    name = Trim$(Left$(lineStr, lp - 1))
+    If Lower$(name) = "if" Or Lower$(name) = "while" Or Lower$(name) = "for" Then Exit Function
+
+    rp = 0
+    a = Len(lineStr)
+    While a >= 1
+        If Mid$(lineStr, a, 1) = ")" Then
+            rp = a
+            Exit While
+        End If
+        a = a - 1
+    Wend
+    If rp = 0 Or rp <= lp Then
+        Print "bad call: " + lineStr
+        Exit Function
+    End If
+    argsText = Trim$(Mid$(lineStr, lp + 1, rp - lp - 1))
+
+    If argsText = "" Then
+        gNArgs = 0
+    Else
+        If SplitArgs(argsText) = 0 Then Exit Function
+    End If
+
+    ' stdcall: 右から push
+    If gNArgs > 0 Then
+        For i = gNArgs - 1 To 0 Step -1
+            If GenArith(gArgs(i)) = 0 Then Exit Function
+            EmitAsm("push eax")
+        Next
+    End If
+    EmitAsm("call _" + name)
+    CompileCallStmt = 1
 End Function
 
 Function CompileBuffer$(src As *Byte, srcSize As Long) As String
@@ -977,6 +1475,7 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
 
     gDataLines = ""
     gTextLines = ""
+    gProcLines = ""
     gStrCount = 0
     gUseMsgBox = 0
     gEmittedExit = 0
@@ -984,6 +1483,10 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     gFrameSize = 0
     gLabelId = 0
     gIfSp = 0
+    gLoopSp = 0
+    gInProc = 0
+    gProcName = ""
+    gProcIsFunc = 0
 
     i = 0
     While i < srcSize
@@ -1005,8 +1508,8 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
             low = Lower$(lineStr)
             If StartsWith(lineStr, "#console") <> 0 Then
                 ' ignore
-            ElseIf lineStr = "End" Then
-                ' ignore
+            ElseIf lineStr = "End" And gInProc = 0 Then
+                ' ignore (program end)
             ElseIf low = "else" Then
                 If CompileElse() = 0 Then
                     CompileBuffer$ = ""
@@ -1014,6 +1517,56 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
                 End If
             ElseIf low = "end if" Then
                 If CompileEndIf() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "wend" Then
+                If CompileWend() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "next" Or StartsWith(low, "next ") <> 0 Then
+                If CompileNext() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "exit while" Then
+                If CompileExitWhile() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "exit for" Then
+                If CompileExitFor() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "exit sub" Or low = "exit function" Then
+                If CompileExitProc() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "end sub" Or low = "end function" Then
+                If CompileEndProc() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf StartsWith(low, "while ") <> 0 Then
+                If CompileWhile(lineStr) = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf StartsWith(low, "for ") <> 0 Then
+                If CompileFor(lineStr) = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf StartsWith(low, "sub ") <> 0 Then
+                If CompileProcHeader(lineStr, 0) = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf StartsWith(low, "function ") <> 0 Then
+                If CompileProcHeader(lineStr, 1) = 0 Then
                     CompileBuffer$ = ""
                     Exit Function
                 End If
@@ -1042,6 +1595,12 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
                     CompileBuffer$ = ""
                     Exit Function
                 End If
+            ElseIf InStr(1, lineStr, "(") > 1 Then
+                If CompileCallStmt(lineStr) = 0 Then
+                    Print "unknown statement: " + lineStr
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
             Else
                 Print "unknown statement: " + lineStr
                 CompileBuffer$ = ""
@@ -1053,8 +1612,18 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
         If i < srcSize And src[i] = 10 Then i = i + 1
     Wend
 
+    If gInProc <> 0 Then
+        Print "unclosed Sub/Function"
+        CompileBuffer$ = ""
+        Exit Function
+    End If
     If gIfSp <> 0 Then
         Print "unclosed If"
+        CompileBuffer$ = ""
+        Exit Function
+    End If
+    If gLoopSp <> 0 Then
+        Print "unclosed loop"
         CompileBuffer$ = ""
         Exit Function
     End If
@@ -1075,7 +1644,7 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     End If
 
     outAsm = "bits 32" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
-    outAsm = outAsm + "; generated by abc (Phase2)" + Chr$(13) + Chr$(10)
+    outAsm = outAsm + "; generated by abc (Phase3)" + Chr$(13) + Chr$(10)
     If gUseMsgBox <> 0 Then
         outAsm = outAsm + "extern _MessageBoxA@16" + Chr$(13) + Chr$(10)
     End If
@@ -1089,6 +1658,9 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     outAsm = outAsm + Chr$(13) + Chr$(10)
     outAsm = outAsm + "section .text" + Chr$(13) + Chr$(10)
     outAsm = outAsm + "    global _main" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
+    If gProcLines <> "" Then
+        outAsm = outAsm + gProcLines
+    End If
     outAsm = outAsm + "_main:" + Chr$(13) + Chr$(10)
     outAsm = outAsm + gTextLines
 

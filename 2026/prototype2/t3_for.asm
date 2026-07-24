@@ -13,26 +13,50 @@ _main:
     push ebp
     mov ebp, esp
     sub esp, 8
+    mov eax, 0
+    mov ebx, ebp
+    add ebx, -8
+    mov [ebx], eax
     mov eax, 1
     mov ebx, ebp
     add ebx, -4
     mov [ebx], eax
-    mov eax, 2
-    mov ebx, ebp
-    add ebx, -8
-    mov [ebx], eax
+L1:
     mov ebx, ebp
     add ebx, -4
     mov eax, [ebx]
     push eax
+    mov eax, 5
+    pop ecx
+    cmp ecx, eax
+    jg L3
     mov ebx, ebp
     add ebx, -8
     mov eax, [ebx]
     push eax
-    mov eax, 3
-    pop ecx
-    imul eax, ecx
+    mov ebx, ebp
+    add ebx, -4
+    mov eax, [ebx]
     pop ecx
     add eax, ecx
+    mov ebx, ebp
+    add ebx, -8
+    mov [ebx], eax
+L2:
+    mov ebx, ebp
+    add ebx, -4
+    mov eax, [ebx]
+    push eax
+    mov eax, 1
+    pop ecx
+    add eax, ecx
+    mov ebx, ebp
+    add ebx, -4
+    mov [ebx], eax
+    jmp L1
+L3:
+    mov ebx, ebp
+    add ebx, -8
+    mov eax, [ebx]
     push eax
     call _ExitProcess@4

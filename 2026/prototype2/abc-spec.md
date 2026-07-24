@@ -311,26 +311,31 @@ abpc <input.abp> [output.exe]     ' 互換（単一ファイル）
 | `abassembler.abp`: `ret` / `mov` / `jmp` / `push reg` | **完了**（`t1_mov`） |
 | `.data` 空回避 | `dummy db 0` |
 
-### Phase 2（ソース反映済み・再ビルド待ち）
+### Phase 2（完了）
 
 | 項目 | 状態 |
 |------|------|
-| `abc.abp`: `Dim Long` / 代入 / `+ - *` / `If Else End If` / `ExitProcess(式)` | ソース更新済み |
-| `abassembler.abp`: `pop` / `add`/`sub`/`cmp` / `imul` / `jcc` / `mov` メモリ | ソース更新済み |
-| テスト | `t2.abp`（期待 exit 7）、`t2_if.abp`（期待 exit 10） |
+| `Dim Long` / 代入 / `+ - *` / `If Else End If` / `ExitProcess(式)` | **完了** |
+| `pop` / `add`/`sub`/`cmp` / `imul` / `jcc` / `mov [reg]` | **完了** |
+| `t2.abp` | exit **7**（`1+2*3`） |
+| `t2_if.abp` | exit **10** |
+| 注意 | ActiveBasic では `"["` 単独リテラルが危ない → `Chr$(&H5B)` / `&H5B` 比較を使う |
 
-**今やること:** ActiveBasic で再ビルド
+次は Phase 3（`While`/`For`、`Sub`/`Function`）。
+
+### Phase 3（ソース反映済み・再ビルド待ち）
+
+| 項目 | 内容 |
+|------|------|
+| ループ | `While`/`Wend`/`Exit While`、`For`/`Next`/`Exit For`（Step>0） |
+| 手続き | `Sub`/`Function`、stdcall、`Name=戻り値`、式中の `F(...)` |
+| テスト | `t3_while.abp`→10、`t3_for.abp`→15、`t3_func.abp`→7 |
 
 ```
-abc.pj
-abassembler.pj
-```
-
-その後:
-
-```
-abpc t2.abp t2.exe
-abpc t2_if.abp t2_if.exe
+abc.pj を再ビルド
+abpc t3_while.abp
+abpc t3_for.abp
+abpc t3_func.abp
 ```
 
 ---

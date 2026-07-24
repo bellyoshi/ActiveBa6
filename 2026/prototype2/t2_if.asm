@@ -14,8 +14,12 @@ _main:
     mov ebp, esp
     sub esp, 4
     mov eax, 1
-    mov [ebp-4], eax
-    mov eax, [ebp-4]
+    mov ebx, ebp
+    add ebx, -4
+    mov [ebx], eax
+    mov ebx, ebp
+    add ebx, -4
+    mov eax, [ebx]
     push eax
     mov eax, 1
     pop ecx
