@@ -1,0 +1,15 @@
+#include "actba64linker.idx"
+
+#console
+
+' actba64linker - generate minimal 64bit PE (PE32+) EXE
+' usage: actba64linker [output.exe]
+'        (default: test64.exe)
+
+Dim filename[MAX_PATH] As Byte
+
+If GetCmd(1, filename) = 0 Then
+    lstrcpy(filename, "test64.exe")
+End If
+GenerateMinimal64BitExe(filename)
+End

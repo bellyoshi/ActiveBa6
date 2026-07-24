@@ -1,0 +1,24 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=actba64linker
+
+#PLATFORM=32
+
+#USEWINDOW=0
+
+#OPTION=&H00010000
+
+#OUTPUT_RELEASE=.\actba64linker.exe
+
+#OUTPUT_DEBUG=.\actba64linker_debug.exe
+
+#RESOURCE=0
+
+#SOURCE
+actba64linker.abp
+PE32PLUS.abp
+GenerateMinimal64BitExe.abp

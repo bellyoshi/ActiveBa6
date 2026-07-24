@@ -1,0 +1,265 @@
+' ===================================================
+'  Minimal / file-based 64bit PE (PE32+) EXE writer
+'  (prototype2/ablinker style: CreateFile + memory buffer)
+' ===================================================
+
+Const IMAGE_BASE_LOW = &H40000000
+Const IMAGE_BASE_HIGH = &H00000001
+Const TEXT_RVA = &H00001000
+Const SECTION_ALIGN = &H1000
+Const FILE_ALIGN = &H200
+Const SIZEOF_HEADERS = &H200
+Const E_LFANEW = &H80
+
+Function AlignUp(v As DWord, a As DWord) As DWord
+    AlignUp = (v + a - 1) And ((a - 1) Xor &HFFFFFFFF)
+End Function
+
+Function GetCmd(cnt As Long, buf As *Byte) As Long
+    Dim cmd As *Byte
+    Dim cmdlen As Long
+    Dim cidx As Long
+    Dim ctmp[MAX_PATH] As Byte
+    Dim n As Long
+    Dim m As Long
+    cmd = GetCommandLine()
+    cmdlen = lstrlen(cmd)
+    cmd[cmdlen] = &H20
+    buf[0] = 0
+    cidx = 0
+    For n = 0 To cmdlen
+        If cmd[n] = &H20 And cmd[n + 1] = &H20 Then
+            memcpy(VarPtr(cmd[n]), VarPtr(cmd[n + 1]), cmdlen - n)
+            n = n - 1
+            cmdlen = cmdlen - 1
+        End If
+    Next
+    For n = 0 To cmdlen
+        m = 0
+        While cmd[n] <> &H20
+            ctmp[m] = cmd[n]
+            m = m + 1
+            n = n + 1
+        Wend
+        ctmp[m] = 0
+        If cidx = cnt Then
+            lstrcpy(buf, ctmp)
+            GetCmd = 1
+            Exit Function
+        End If
+        cidx = cidx + 1
+    Next
+    GetCmd = 0
+End Function
+
+Function LoadFile(path As *Byte, ByRef outSize As Long) As *Byte
+    Dim hFile As HANDLE
+    Dim fsiz As Long
+    Dim nRead As DWord
+    Dim p As *Byte
+    LoadFile = NULL
+    outSize = 0
+    hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, ByVal NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)
+    If hFile = INVALID_HANDLE_VALUE Then Exit Function
+    fsiz = GetFileSize(hFile, NULL)
+    If fsiz <= 0 Then
+        CloseHandle(hFile)
+        Exit Function
+    End If
+    p = malloc(fsiz)
+    If p = NULL Then
+        CloseHandle(hFile)
+        Exit Function
+    End If
+    ReadFile(hFile, p, fsiz, VarPtr(nRead), ByVal NULL)
+    CloseHandle(hFile)
+    outSize = fsiz
+    LoadFile = p
+End Function
+
+Function WriteAll(path As *Byte, p As *Byte, size As Long) As Long
+    Dim hFile As HANDLE
+    Dim nWritten As DWord
+    WriteAll = 0
+    hFile = CreateFile(path, GENERIC_WRITE, 0, ByVal NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)
+    If hFile = INVALID_HANDLE_VALUE Then Exit Function
+    WriteFile(hFile, p, size, VarPtr(nWritten), ByVal NULL)
+    CloseHandle(hFile)
+    If nWritten = size Then WriteAll = 1
+End Function
+
+Sub ZeroMem(p As *Byte, n As Long)
+    Dim i As Long
+    If n <= 0 Then Exit Sub
+    For i = 0 To n - 1
+        p[i] = 0
+    Next
+End Sub
+
+Sub PutDword(p As *Byte, off As DWord, v As DWord)
+    memcpy(VarPtr(p[off]), VarPtr(v), 4)
+End Sub
+
+Sub PutWord(p As *Byte, off As DWord, v As Word)
+    memcpy(VarPtr(p[off]), VarPtr(v), 2)
+End Sub
+
+Sub WriteDosStub(buf As *Byte)
+    buf[&H40] = &H0E
+    buf[&H41] = &H1F
+    buf[&H42] = &HBA
+    buf[&H43] = &H0E
+    buf[&H44] = &H00
+    buf[&H45] = &HB4
+    buf[&H46] = &H09
+    buf[&H47] = &HCD
+    buf[&H48] = &H21
+    buf[&H49] = &HB8
+    buf[&H4A] = &H01
+    buf[&H4B] = &H4C
+    buf[&H4C] = &HCD
+    buf[&H4D] = &H21
+    lstrcpy(VarPtr(buf[&H4E]), "This program cannot be run in DOS mode.")
+    buf[&H75] = &H0D
+    buf[&H76] = &H0A
+    buf[&H77] = &H24
+End Sub
+
+' Build PE32+ EXE from raw machine code (codeSize bytes at codeBuf)
+Function Generate64BitExe(outPath As *Byte, codeBuf As *Byte, codeSize As Long) As Long
+    Dim outBuf As *Byte
+    Dim outSize As Long
+    Dim textRaw As DWord
+    Dim textVirt As DWord
+    Dim sizeImage As DWord
+    Dim optOff As DWord
+    Dim sectOff As DWord
+    Dim chars As Word
+    Dim textChars As DWord
+    Dim fileOff As DWord
+
+    Generate64BitExe = 0
+    If codeBuf = NULL Or codeSize <= 0 Then
+        Print "Error: empty code"
+        Exit Function
+    End If
+
+    textVirt = codeSize
+    If textVirt < &H10 Then
+        textVirt = &H10
+    End If
+    textRaw = AlignUp(codeSize, FILE_ALIGN)
+    If textRaw < FILE_ALIGN Then
+        textRaw = FILE_ALIGN
+    End If
+    sizeImage = TEXT_RVA + AlignUp(textVirt, SECTION_ALIGN)
+    outSize = SIZEOF_HEADERS + textRaw
+
+    outBuf = calloc(outSize)
+    If outBuf = NULL Then
+        Print "calloc failed"
+        Exit Function
+    End If
+
+    ZeroMem(outBuf, SIZEOF_HEADERS)
+    PutWord(outBuf, 0, IMAGE_DOS_SIGNATURE)
+    PutWord(outBuf, 2, &H90)
+    PutWord(outBuf, 4, 3)
+    PutWord(outBuf, 8, 4)
+    PutWord(outBuf, 12, &HFFFF)
+    PutWord(outBuf, 16, &HB8)
+    PutWord(outBuf, 24, &H40)
+    PutDword(outBuf, 60, E_LFANEW)
+    WriteDosStub(outBuf)
+
+    PutDword(outBuf, E_LFANEW, IMAGE_NT_SIGNATURE)
+    PutWord(outBuf, E_LFANEW + 4, IMAGE_FILE_MACHINE_AMD64)
+    PutWord(outBuf, E_LFANEW + 6, 1)
+    PutDword(outBuf, E_LFANEW + 8, 0)
+    PutDword(outBuf, E_LFANEW + 12, 0)
+    PutDword(outBuf, E_LFANEW + 16, 0)
+    PutWord(outBuf, E_LFANEW + 20, SIZEOF_OPTIONAL_HEADER64)
+    chars = IMAGE_FILE_EXECUTABLE_IMAGE Or IMAGE_FILE_LARGE_ADDRESS_AWARE
+    PutWord(outBuf, E_LFANEW + 22, chars)
+
+    optOff = E_LFANEW + 24
+    PutWord(outBuf, optOff + 0, IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    outBuf[optOff + 2] = 1
+    outBuf[optOff + 3] = 0
+    PutDword(outBuf, optOff + 4, textRaw)
+    PutDword(outBuf, optOff + 8, 0)
+    PutDword(outBuf, optOff + 12, 0)
+    PutDword(outBuf, optOff + 16, TEXT_RVA)
+    PutDword(outBuf, optOff + 20, TEXT_RVA)
+    PutDword(outBuf, optOff + 24, IMAGE_BASE_LOW)
+    PutDword(outBuf, optOff + 28, IMAGE_BASE_HIGH)
+    PutDword(outBuf, optOff + 32, SECTION_ALIGN)
+    PutDword(outBuf, optOff + 36, FILE_ALIGN)
+    PutWord(outBuf, optOff + 40, 6)
+    PutWord(outBuf, optOff + 42, 0)
+    PutWord(outBuf, optOff + 44, 0)
+    PutWord(outBuf, optOff + 46, 0)
+    PutWord(outBuf, optOff + 48, 6)
+    PutWord(outBuf, optOff + 50, 0)
+    PutDword(outBuf, optOff + 52, 0)
+    PutDword(outBuf, optOff + 56, sizeImage)
+    PutDword(outBuf, optOff + 60, SIZEOF_HEADERS)
+    PutDword(outBuf, optOff + 64, 0)
+    PutWord(outBuf, optOff + 68, IMAGE_SUBSYSTEM_WINDOWS_CUI)
+    PutWord(outBuf, optOff + 70, 0)
+    PutDword(outBuf, optOff + 72, &H100000)
+    PutDword(outBuf, optOff + 76, 0)
+    PutDword(outBuf, optOff + 80, &H1000)
+    PutDword(outBuf, optOff + 84, 0)
+    PutDword(outBuf, optOff + 88, &H100000)
+    PutDword(outBuf, optOff + 92, 0)
+    PutDword(outBuf, optOff + 96, &H1000)
+    PutDword(outBuf, optOff + 100, 0)
+    PutDword(outBuf, optOff + 104, 0)
+    PutDword(outBuf, optOff + 108, 16)
+
+    textChars = IMAGE_SCN_CNT_CODE Or IMAGE_SCN_MEM_EXECUTE Or IMAGE_SCN_MEM_READ
+    sectOff = optOff + SIZEOF_OPTIONAL_HEADER64
+    fileOff = SIZEOF_HEADERS
+
+    lstrcpy(VarPtr(outBuf[sectOff]), ".text")
+    PutDword(outBuf, sectOff + 8, textVirt)
+    PutDword(outBuf, sectOff + 12, TEXT_RVA)
+    PutDword(outBuf, sectOff + 16, textRaw)
+    PutDword(outBuf, sectOff + 20, fileOff)
+    PutDword(outBuf, sectOff + 36, textChars)
+
+    memcpy(VarPtr(outBuf[fileOff]), codeBuf, codeSize)
+
+    If WriteAll(outPath, outBuf, outSize) = 0 Then
+        Print "cannot write: " + MakeStr(outPath)
+    Else
+        Print "OK: " + MakeStr(outPath) + " size=" + Str$(outSize)
+        Generate64BitExe = 1
+    End If
+    free(outBuf)
+End Function
+
+' Read machine-code file and write PE32+ EXE
+Sub LinkFileToExe(inPath As *Byte, outPath As *Byte)
+    Dim codeBuf As *Byte
+    Dim codeSize As Long
+    codeBuf = LoadFile(inPath, codeSize)
+    If codeBuf = NULL Then
+        Print "cannot open: " + MakeStr(inPath)
+        Exit Sub
+    End If
+    Print "Read " + Str$(codeSize) + " bytes from " + MakeStr(inPath)
+    Generate64BitExe(outPath, codeBuf, codeSize)
+    free(codeBuf)
+End Sub
+
+' Test: xor ecx, ecx / ret
+Sub GenerateMinimal64BitExe(outPath As *Byte)
+    Dim code[16] As Byte
+    ZeroMem(code, 16)
+    code[0] = &H31
+    code[1] = &HC9
+    code[2] = &HC3
+    Generate64BitExe(outPath, code, 3)
+End Sub

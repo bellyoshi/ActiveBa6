@@ -1,0 +1,9 @@
+' インデックス プログラム
+
+#strict
+
+'Win32APIの定義ファイル
+
+'プロジェクト内のプログラム ファイル
+#include "PE32PLUS.abp"
+#include "GenerateMinimal64BitExe.abp"
