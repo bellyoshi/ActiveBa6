@@ -12,6 +12,7 @@
 '   <label>:
 '   db 'str', 0, ...     (.data)
 '   push <imm>           -> 6A xx / 68 xx xx xx xx
+'   push <reg>           -> 50+r
 '   push <symbol>        -> 68 00 00 00 00 + DIR32
 '   call <symbol>        -> E8 00 00 00 00 + REL32
 '   ret                  -> C3
@@ -72,7 +73,7 @@ Dim gStrTab(2047) As Byte
 Dim gStrTabSize As DWord
 
 Sub USAGE()
-    Print "abassembler - Phase1 assembler (push/call/db/ret/mov/jmp)"
+    Print "abassembler - Phase2 assembler"
     Print "usage: abassembler <input.asm> [output.obj]"
     End
 End Sub
@@ -603,6 +604,18 @@ Sub EmitPushImm(imm As Long)
     End If
 End Sub
 
+Sub EmitPushReg(reg As Long)
+    If gCurSect <> SECT_TEXT Then
+        Print "push only in .text"
+        End
+    End If
+    If reg < 0 Or reg > 7 Then
+        Print "bad register for push"
+        End
+    End If
+    EmitByte(&H50 + reg)
+End Sub
+
 Sub EmitPushSym(symName As String)
     Dim idx As Long
     If gCurSect <> SECT_TEXT Then
@@ -641,19 +654,6 @@ Sub EmitRet(imm As Long, hasImm As Long)
     End If
 End Sub
 
-Sub EmitMovRegImm(reg As Long, imm As Long)
-    If gCurSect <> SECT_TEXT Then
-        Print "mov only in .text"
-        End
-    End If
-    If reg < 0 Or reg > 7 Then
-        Print "bad register for mov"
-        End
-    End If
-    EmitByte(&HB8 + reg)
-    EmitDword(imm)
-End Sub
-
 Sub EmitJmpLabel(symName As String)
     Dim idx As Long
     Dim rel As Long
@@ -671,6 +671,170 @@ Sub EmitJmpLabel(symName As String)
         EmitDword(0)
     End If
 End Sub
+
+Sub EmitPopReg(reg As Long)
+    If gCurSect <> SECT_TEXT Then
+        Print "pop only in .text"
+        End
+    End If
+    EmitByte(&H58 + reg)
+End Sub
+
+' mod=11 の ModRM
+Sub EmitModRM_RR(regField As Long, rmField As Long)
+    EmitByte(&HC0 + (regField * 8) + rmField)
+End Sub
+
+' [ebp+disp] の ModRM（regField は /r の reg）
+Sub EmitModRM_Ebp(regField As Long, disp As Long)
+    If disp >= -128 And disp <= 127 Then
+        EmitByte(&H40 + (regField * 8) + 5)
+        EmitByte(disp And &HFF)
+    Else
+        EmitByte(&H80 + (regField * 8) + 5)
+        EmitDword(disp)
+    End If
+End Sub
+
+Sub EmitMovRegReg(dst As Long, src As Long)
+    EmitByte(&H8B)
+    EmitModRM_RR(dst, src)
+End Sub
+
+Sub EmitMovRegImm(reg As Long, imm As Long)
+    If gCurSect <> SECT_TEXT Then
+        Print "mov only in .text"
+        End
+    End If
+    EmitByte(&HB8 + reg)
+    EmitDword(imm)
+End Sub
+
+Sub EmitMovRegMemEbp(dst As Long, disp As Long)
+    EmitByte(&H8B)
+    EmitModRM_Ebp(dst, disp)
+End Sub
+
+Sub EmitMovMemEbpReg(disp As Long, src As Long)
+    EmitByte(&H89)
+    EmitModRM_Ebp(src, disp)
+End Sub
+
+Sub EmitMovMemEbpImm(disp As Long, imm As Long)
+    EmitByte(&HC7)
+    EmitModRM_Ebp(0, disp)
+    EmitDword(imm)
+End Sub
+
+Sub EmitArithRegImm(op As Long, reg As Long, imm As Long)
+    ' op: 0=add 1=or 2=adc 3=sbb 4=and 5=sub 6=xor 7=cmp
+    If reg = 0 And (imm < -128 Or imm > 127) Then
+        ' eax 専用: 05/2D/3D...
+        If op = 0 Then
+            EmitByte(&H5)
+        ElseIf op = 5 Then
+            EmitByte(&H2D)
+        ElseIf op = 7 Then
+            EmitByte(&H3D)
+        Else
+            EmitByte(&H81)
+            EmitModRM_RR(op, reg)
+            EmitDword(imm)
+            Exit Sub
+        End If
+        EmitDword(imm)
+    ElseIf imm >= -128 And imm <= 127 Then
+        EmitByte(&H83)
+        EmitModRM_RR(op, reg)
+        EmitByte(imm And &HFF)
+    Else
+        EmitByte(&H81)
+        EmitModRM_RR(op, reg)
+        EmitDword(imm)
+    End If
+End Sub
+
+Sub EmitArithRegReg(op As Long, dst As Long, src As Long)
+    ' 01/09/.../39 /r : r/m += r  →  dst が r/m, src が reg
+    EmitByte(op * 8 + 1)
+    EmitModRM_RR(src, dst)
+End Sub
+
+Sub EmitImulRegReg(dst As Long, src As Long)
+    EmitByte(&HF)
+    EmitByte(&HAF)
+    EmitModRM_RR(dst, src)
+End Sub
+
+Sub EmitJccLabel(cc As Long, symName As String)
+    ' cc: 2nd opcode byte (84=je, 85=jne, 8C=jl, 8D=jge, 8E=jle, 8F=jg)
+    Dim idx As Long
+    Dim rel As Long
+    idx = AddSymbol(symName)
+    EmitByte(&HF)
+    EmitByte(cc)
+    If gSymKind(idx) = 1 And gSymSection(idx) = SECT_TEXT Then
+        rel = gSymValue(idx) - (gCodeSize + 4)
+        EmitDword(rel)
+    Else
+        AddFixup(gCodeSize, idx)
+        EmitDword(0)
+    End If
+End Sub
+
+' "[ebp-4]" / "[ebp+8]" -> disp。失敗なら 0
+Function ParseMemEbp(s As String, ByRef disp As Long) As Long
+    Dim t As String
+    Dim body As String
+    Dim signCh As String
+    Dim num As String
+
+    ParseMemEbp = 0
+    t = Trim$(s)
+    If Len(t) < 7 Then Exit Function
+    If Left$(t, 1) <> "[" Then Exit Function
+    If Right$(t, 1) <> "]" Then Exit Function
+
+    ' 括弧を外す -> ebp-4
+    body = Mid$(t, 2, Len(t) - 2)
+    body = Lower$(Trim$(body))
+    If Len(body) < 4 Then Exit Function
+    If Left$(body, 3) <> "ebp" Then Exit Function
+
+    signCh = Mid$(body, 4, 1)
+    num = Trim$(Mid$(body, 5, Len(body) - 4))
+    If num = "" Then Exit Function
+    If IsNumericToken(num) = 0 Then Exit Function
+
+    If signCh = "+" Then
+        disp = ParseImm(num)
+    ElseIf signCh = "-" Then
+        disp = 0 - ParseImm(num)
+    Else
+        Exit Function
+    End If
+    ParseMemEbp = 1
+End Function
+
+Function JccCode(op As String) As Long
+    Dim s As String
+    s = Lower$(op)
+    If s = "je" Or s = "jz" Then
+        JccCode = &H84
+    ElseIf s = "jne" Or s = "jnz" Then
+        JccCode = &H85
+    ElseIf s = "jl" Or s = "jnge" Then
+        JccCode = &H8C
+    ElseIf s = "jle" Or s = "jng" Then
+        JccCode = &H8E
+    ElseIf s = "jg" Or s = "jnle" Then
+        JccCode = &H8F
+    ElseIf s = "jge" Or s = "jnl" Then
+        JccCode = &H8D
+    Else
+        JccCode = -1
+    End If
+End Function
 
 ' db 'Hello', 0  のようなオペランド列を .data に書き出す
 Sub EmitDb(args As String)
@@ -778,6 +942,10 @@ Sub AssembleLine(lineStr As String)
     Dim n As Long
     Dim sectArg As String
     Dim reg As Long
+    Dim reg2 As Long
+    Dim disp As Long
+    Dim cc As Long
+    Dim arithOp As Long
 
     s = Trim$(StripComment$(lineStr))
     If s = "" Then Exit Sub
@@ -812,7 +980,7 @@ Sub AssembleLine(lineStr As String)
     lop = Lower$(op)
 
     ' "label db ..." 形式 (コロンなし)
-    If lop <> "bits" And lop <> "section" And lop <> "extern" And lop <> "global" And lop <> "push" And lop <> "call" And lop <> "db" And lop <> "ret" And lop <> "mov" And lop <> "jmp" Then
+    If lop <> "bits" And lop <> "section" And lop <> "extern" And lop <> "global" And lop <> "push" And lop <> "pop" And lop <> "call" And lop <> "db" And lop <> "ret" And lop <> "mov" And lop <> "jmp" And lop <> "add" And lop <> "sub" And lop <> "cmp" And lop <> "imul" And lop <> "je" And lop <> "jne" And lop <> "jl" And lop <> "jle" And lop <> "jg" And lop <> "jge" And lop <> "jz" And lop <> "jnz" Then
         SplitToken(arg, op2, arg2)
         lop2 = Lower$(op2)
         If lop2 = "db" Then
@@ -870,11 +1038,25 @@ Sub AssembleLine(lineStr As String)
             End
         End If
         If IsNumericToken(arg) <> 0 Then
-            imm = ParseImm(arg)
-            EmitPushImm(imm)
+            EmitPushImm(ParseImm(arg))
         Else
-            EmitPushSym(arg)
+            reg = RegCode(arg)
+            If reg >= 0 Then
+                EmitPushReg(reg)
+            Else
+                EmitPushSym(arg)
+            End If
         End If
+        Exit Sub
+    End If
+
+    If lop = "pop" Then
+        reg = RegCode(arg)
+        If reg < 0 Then
+            Print "pop: register required"
+            End
+        End If
+        EmitPopReg(reg)
         Exit Sub
     End If
 
@@ -906,15 +1088,79 @@ Sub AssembleLine(lineStr As String)
             End
         End If
         reg = RegCode(left)
+        If reg >= 0 Then
+            ' mov reg, ...
+            If IsNumericToken(right) <> 0 Then
+                EmitMovRegImm(reg, ParseImm(right))
+            ElseIf RegCode(right) >= 0 Then
+                EmitMovRegReg(reg, RegCode(right))
+            ElseIf ParseMemEbp(right, disp) <> 0 Then
+                EmitMovRegMemEbp(reg, disp)
+            Else
+                Print "mov: bad src '" + right + "'"
+                End
+            End If
+            Exit Sub
+        End If
+        If ParseMemEbp(left, disp) <> 0 Then
+            ' mov [ebp±d], ...
+            reg2 = RegCode(right)
+            If reg2 >= 0 Then
+                EmitMovMemEbpReg(disp, reg2)
+            ElseIf IsNumericToken(right) <> 0 Then
+                EmitMovMemEbpImm(disp, ParseImm(right))
+            Else
+                Print "mov: bad src for mem '" + right + "'"
+                End
+            End If
+            Exit Sub
+        End If
+        Print "mov: unsupported dest '" + left + "'"
+        End
+    End If
+
+    If lop = "add" Or lop = "sub" Or lop = "cmp" Then
+        If SplitComma(arg, left, right) = 0 Then
+            Print lop + " needs two operands"
+            End
+        End If
+        reg = RegCode(left)
         If reg < 0 Then
-            Print "mov: unsupported dest '" + left + "'"
+            Print lop + ": dest must be register"
             End
         End If
-        If IsNumericToken(right) = 0 Then
-            Print "mov: only reg, imm supported"
+        If lop = "add" Then
+            arithOp = 0
+        ElseIf lop = "sub" Then
+            arithOp = 5
+        Else
+            arithOp = 7
+        End If
+        If IsNumericToken(right) <> 0 Then
+            EmitArithRegImm(arithOp, reg, ParseImm(right))
+        Else
+            reg2 = RegCode(right)
+            If reg2 < 0 Then
+                Print lop + ": bad src"
+                End
+            End If
+            EmitArithRegReg(arithOp, reg, reg2)
+        End If
+        Exit Sub
+    End If
+
+    If lop = "imul" Then
+        If SplitComma(arg, left, right) = 0 Then
+            Print "imul needs two operands"
             End
         End If
-        EmitMovRegImm(reg, ParseImm(right))
+        reg = RegCode(left)
+        reg2 = RegCode(right)
+        If reg < 0 Or reg2 < 0 Then
+            Print "imul: registers required"
+            End
+        End If
+        EmitImulRegReg(reg, reg2)
         Exit Sub
     End If
 
@@ -924,6 +1170,16 @@ Sub AssembleLine(lineStr As String)
             End
         End If
         EmitJmpLabel(arg)
+        Exit Sub
+    End If
+
+    cc = JccCode(lop)
+    If cc >= 0 Then
+        If arg = "" Then
+            Print lop + " needs a label"
+            End
+        End If
+        EmitJccLabel(cc, arg)
         Exit Sub
     End If
 

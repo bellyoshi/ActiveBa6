@@ -1,16 +1,19 @@
 #console
 
-' abc - ABP Phase1 コンパイラ (.abp -> .asm)
+' abc - ABP Phase2 コンパイラ (.abp -> .asm)
 ' 使い方: abc <input.abp> [output.asm]
 '
-' 対応構文 (Phase 1):
-'   #console
-'   End
-'   ExitProcess(<imm>)
-'   MessageBox(NULL, "text", "caption", MB_OK)
+' Phase2:
+'   Dim x As Long
+'   x = <式>
+'   If <条件> Then ... [Else ...] End If
+'   ExitProcess(<式>)
+'   MessageBox(...)  ; Phase0 互換
 
 Const MAX_ARGS = 8
 Const MAX_LINE = 512
+Const MAX_VARS = 32
+Const MAX_IF = 16
 
 Dim gArgs(7) As String
 Dim gNArgs As Long
@@ -21,11 +24,444 @@ Dim gStrCount As Long
 Dim gUseMsgBox As Long
 Dim gEmittedExit As Long
 
+Dim gVarName(31) As String
+Dim gVarOff(31) As Long
+Dim gNVars As Long
+Dim gFrameSize As Long
+Dim gLabelId As Long
+Dim gIfElse(15) As String
+Dim gIfEnd(15) As String
+Dim gIfSp As Long
+
 Sub USAGE()
-    Print "abc - Phase1 ABP compiler (.abp -> .asm)"
+    Print "abc - Phase2 ABP compiler (.abp -> .asm)"
     Print "usage: abc <input.abp> [output.asm]"
     End
 End Sub
+
+Sub EmitAsm(line As String)
+    gTextLines = gTextLines + "    " + line + Chr$(13) + Chr$(10)
+End Sub
+
+Function NewLabel$() As String
+    gLabelId = gLabelId + 1
+    NewLabel$ = "L" + Trim$(Str$(gLabelId))
+End Function
+
+Function IsIdentStart(c As Long) As Long
+    If (c >= Asc("A") And c <= Asc("Z")) Or (c >= Asc("a") And c <= Asc("z")) Or c = Asc("_") Then
+        IsIdentStart = 1
+    Else
+        IsIdentStart = 0
+    End If
+End Function
+
+Function IsIdentChar2(c As Long) As Long
+    If IsIdentStart(c) <> 0 Or (c >= Asc("0") And c <= Asc("9")) Or c = Asc("$") Then
+        IsIdentChar2 = 1
+    Else
+        IsIdentChar2 = 0
+    End If
+End Function
+
+Function IsNumStr(s As String) As Long
+    Dim t As String
+    Dim p As *Byte
+    Dim i As Long
+    Dim n As Long
+    t = Trim$(s)
+    n = Len(t)
+    If n = 0 Then
+        IsNumStr = 0
+        Exit Function
+    End If
+    p = StrPtr(t)
+    i = 0
+    If p[0] = Asc("-") Or p[0] = Asc("+") Then
+        i = 1
+        If n = 1 Then
+            IsNumStr = 0
+            Exit Function
+        End If
+    End If
+    If i + 1 < n And p[i] = Asc("&") And (p[i + 1] = Asc("H") Or p[i + 1] = Asc("h")) Then
+        IsNumStr = 1
+        Exit Function
+    End If
+    While i < n
+        If p[i] < Asc("0") Or p[i] > Asc("9") Then
+            IsNumStr = 0
+            Exit Function
+        End If
+        i = i + 1
+    Wend
+    IsNumStr = 1
+End Function
+
+Function ParseNum(s As String) As Long
+    Dim t As String
+    Dim p As *Byte
+    Dim i As Long
+    Dim n As Long
+    Dim sign As Long
+    Dim v As Long
+    Dim c As Long
+    t = Trim$(s)
+    n = Len(t)
+    p = StrPtr(t)
+    sign = 1
+    i = 0
+    If p[0] = Asc("-") Then
+        sign = -1
+        i = 1
+    ElseIf p[0] = Asc("+") Then
+        i = 1
+    End If
+    If i + 1 < n And p[i] = Asc("&") And (p[i + 1] = Asc("H") Or p[i + 1] = Asc("h")) Then
+        i = i + 2
+        v = 0
+        While i < n
+            c = p[i]
+            v = v * 16
+            If c >= Asc("0") And c <= Asc("9") Then
+                v = v + (c - Asc("0"))
+            ElseIf c >= Asc("a") And c <= Asc("f") Then
+                v = v + (c - Asc("a") + 10)
+            ElseIf c >= Asc("A") And c <= Asc("F") Then
+                v = v + (c - Asc("A") + 10)
+            End If
+            i = i + 1
+        Wend
+        ParseNum = v * sign
+        Exit Function
+    End If
+    v = 0
+    While i < n
+        v = v * 10 + (p[i] - Asc("0"))
+        i = i + 1
+    Wend
+    ParseNum = v * sign
+End Function
+
+Function FindVar(name As String) As Long
+    Dim i As Long
+    Dim n As String
+    n = Lower$(name)
+    FindVar = -1
+    If gNVars <= 0 Then Exit Function
+    For i = 0 To gNVars - 1
+        If Lower$(gVarName(i)) = n Then
+            FindVar = i
+            Exit Function
+        End If
+    Next
+End Function
+
+Function AddVar(name As String) As Long
+    Dim idx As Long
+    idx = FindVar(name)
+    If idx >= 0 Then
+        AddVar = idx
+        Exit Function
+    End If
+    If gNVars >= MAX_VARS Then
+        Print "too many variables"
+        AddVar = -1
+        Exit Function
+    End If
+    idx = gNVars
+    gVarName(idx) = name
+    gFrameSize = gFrameSize + 4
+    gVarOff(idx) = -gFrameSize
+    gNVars = gNVars + 1
+    AddVar = idx
+End Function
+
+Function MemRef$(off As Long) As String
+    MemRef$ = "[ebp" + Trim$(Str$(off)) + "]"
+End Function
+
+' 深さ0の2文字演算子（右端優先）。戻り値は 1-based 開始位置
+Function FindOp2(expr As String, op As String) As Long
+    Dim n As Long
+    Dim i As Long
+    Dim depth As Long
+    Dim inQ As Long
+    Dim c As Long
+    n = Len(expr)
+    depth = 0
+    inQ = 0
+    FindOp2 = 0
+    i = n - 1
+    While i >= 1
+        c = Asc(Mid$(expr, i, 1))
+        If inQ <> 0 Then
+            If c = 34 Then inQ = 0
+        ElseIf c = 34 Then
+            inQ = 1
+        ElseIf c = Asc(")") Then
+            depth = depth + 1
+        ElseIf c = Asc("(") Then
+            depth = depth - 1
+        ElseIf depth = 0 Then
+            If Mid$(expr, i, 2) = op Then
+                FindOp2 = i
+                Exit Function
+            End If
+        End If
+        i = i - 1
+    Wend
+End Function
+
+' 深さ0の1文字演算子（右端優先）。partOf2 が隣にあれば無視
+Function FindOp1(expr As String, ch As String) As Long
+    Dim n As Long
+    Dim i As Long
+    Dim depth As Long
+    Dim inQ As Long
+    Dim c As Long
+    Dim p As *Byte
+    Dim oc As Long
+    n = Len(expr)
+    p = StrPtr(expr)
+    oc = Asc(ch)
+    depth = 0
+    inQ = 0
+    FindOp1 = 0
+    i = n - 1
+    While i >= 0
+        c = p[i]
+        If inQ <> 0 Then
+            If c = 34 Then inQ = 0
+        ElseIf c = 34 Then
+            inQ = 1
+        ElseIf c = Asc(")") Then
+            depth = depth + 1
+        ElseIf c = Asc("(") Then
+            depth = depth - 1
+        ElseIf depth = 0 And c = oc Then
+            ' <> <= >= の一部を除外
+            If ch = "=" Then
+                If i > 0 And (p[i - 1] = Asc("<") Or p[i - 1] = Asc(">") Or p[i - 1] = Asc("=")) Then
+                    ' skip
+                Else
+                    FindOp1 = i + 1
+                    Exit Function
+                End If
+            ElseIf ch = "<" Then
+                If i + 1 < n And (p[i + 1] = Asc("=") Or p[i + 1] = Asc(">")) Then
+                    ' skip
+                Else
+                    FindOp1 = i + 1
+                    Exit Function
+                End If
+            ElseIf ch = ">" Then
+                If i + 1 < n And p[i + 1] = Asc("=") Then
+                    ' skip
+                Else
+                    FindOp1 = i + 1
+                    Exit Function
+                End If
+            Else
+                FindOp1 = i + 1
+                Exit Function
+            End If
+        End If
+        i = i - 1
+    Wend
+End Function
+
+' 算術式 → eax
+Function GenArith(expr As String) As Long
+    Dim e As String
+    Dim pos As Long
+    Dim left As String
+    Dim right As String
+    Dim idx As Long
+    Dim n As Long
+
+    GenArith = 0
+    e = Trim$(expr)
+    If e = "" Then
+        Print "empty expression"
+        Exit Function
+    End If
+
+    pos = FindOp1(e, "+")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("add eax, ecx")
+        ' add eax,ecx は eax=ecx+eax。欲しいのは left+right = ecx+eax。OK
+        GenArith = 1
+        Exit Function
+    End If
+
+    pos = FindOp1(e, "-")
+    If pos > 1 Then
+        ' 先頭の単項マイナスは除外（pos=1）
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If left <> "" Then
+            If GenArith(left) = 0 Then Exit Function
+            EmitAsm("push eax")
+            If GenArith(right) = 0 Then Exit Function
+            EmitAsm("mov ecx, eax")
+            EmitAsm("pop eax")
+            EmitAsm("sub eax, ecx")
+            GenArith = 1
+            Exit Function
+        End If
+    End If
+
+    pos = FindOp1(e, "*")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("imul eax, ecx")
+        GenArith = 1
+        Exit Function
+    End If
+
+    ' 括弧
+    n = Len(e)
+    If n >= 2 And Left$(e, 1) = "(" And Right$(e, 1) = ")" Then
+        GenArith = GenArith(Mid$(e, 2, n - 2))
+        Exit Function
+    End If
+
+    ' 数値
+    If IsNumStr(e) <> 0 Then
+        EmitAsm("mov eax, " + Trim$(Str$(ParseNum(e))))
+        GenArith = 1
+        Exit Function
+    End If
+
+    ' 変数
+    idx = FindVar(e)
+    If idx >= 0 Then
+        EmitAsm("mov eax, " + MemRef$(gVarOff(idx)))
+        GenArith = 1
+        Exit Function
+    End If
+
+    If Lower$(e) = "null" Then
+        EmitAsm("mov eax, 0")
+        GenArith = 1
+        Exit Function
+    End If
+
+    Print "unknown expression: " + e
+End Function
+
+' 条件式。偽のとき飛ぶ jcc 名を falseJcc に返す
+Function GenCond(expr As String, ByRef falseJcc As String) As Long
+    Dim e As String
+    Dim pos As Long
+    Dim left As String
+    Dim right As String
+
+    GenCond = 0
+    e = Trim$(expr)
+
+    pos = FindOp2(e, "<>")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 2, Len(e) - pos - 1))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("cmp ecx, eax")
+        falseJcc = "je"
+        GenCond = 1
+        Exit Function
+    End If
+
+    pos = FindOp2(e, "<=")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 2, Len(e) - pos - 1))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("cmp ecx, eax")
+        falseJcc = "jg"
+        GenCond = 1
+        Exit Function
+    End If
+
+    pos = FindOp2(e, ">=")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 2, Len(e) - pos - 1))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("cmp ecx, eax")
+        falseJcc = "jl"
+        GenCond = 1
+        Exit Function
+    End If
+
+    pos = FindOp1(e, "=")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("cmp ecx, eax")
+        falseJcc = "jne"
+        GenCond = 1
+        Exit Function
+    End If
+
+    pos = FindOp1(e, "<")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("cmp ecx, eax")
+        falseJcc = "jge"
+        GenCond = 1
+        Exit Function
+    End If
+
+    pos = FindOp1(e, ">")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If GenArith(left) = 0 Then Exit Function
+        EmitAsm("push eax")
+        If GenArith(right) = 0 Then Exit Function
+        EmitAsm("pop ecx")
+        EmitAsm("cmp ecx, eax")
+        falseJcc = "jle"
+        GenCond = 1
+        Exit Function
+    End If
+
+    ' 値の真偽
+    If GenArith(e) = 0 Then Exit Function
+    EmitAsm("cmp eax, 0")
+    falseJcc = "je"
+    GenCond = 1
+End Function
 
 Function GetCmd(cnt As Long, buf As *Byte) As Long
     Dim cmd As *Byte
@@ -145,6 +581,31 @@ Function Trim$(s As String) As String
     Else
         Trim$ = Mid$(s, i + 1, j - i + 1)
     End If
+End Function
+
+Function Lower$(s As String) As String
+    Dim p As *Byte
+    Dim i As Long
+    Dim n As Long
+    Dim c As Long
+    Dim buf[511] As Byte
+    n = Len(s)
+    If n = 0 Then
+        Lower$ = ""
+        Exit Function
+    End If
+    If n >= 512 Then n = 511
+    p = StrPtr(s)
+    For i = 0 To n - 1
+        c = p[i]
+        If c >= Asc("A") And c <= Asc("Z") Then
+            buf[i] = c + 32
+        Else
+            buf[i] = c
+        End If
+    Next
+    buf[n] = 0
+    Lower$ = MakeStr(buf)
 End Function
 
 Function StartsWith(s As String, prefix As String) As Long
@@ -368,7 +829,6 @@ Function CompileExitProcess(lineStr As String) As Long
     Dim lp As Long
     Dim rp As Long
     Dim a As Long
-    Dim imm As String
 
     CompileExitProcess = 0
     lp = InStr(1, lineStr, "(")
@@ -391,16 +851,117 @@ Function CompileExitProcess(lineStr As String) As Long
         Print "ExitProcess needs 1 argument"
         Exit Function
     End If
-    If argsText = "NULL" Then
-        imm = "0"
-    Else
-        imm = argsText
-    End If
-
-    gTextLines = gTextLines + "    push    " + imm + Chr$(13) + Chr$(10)
-    gTextLines = gTextLines + "    call    _ExitProcess@4" + Chr$(13) + Chr$(10)
+    If GenArith(argsText) = 0 Then Exit Function
+    EmitAsm("push eax")
+    EmitAsm("call _ExitProcess@4")
     gEmittedExit = 1
     CompileExitProcess = 1
+End Function
+
+Function CompileDim(lineStr As String) As Long
+    Dim rest As String
+    Dim name As String
+    Dim pos As Long
+    CompileDim = 0
+    rest = Trim$(Mid$(lineStr, 4, Len(lineStr) - 3))
+    pos = InStr(1, Lower$(rest), " as ")
+    If pos = 0 Then
+        Print "Dim needs As: " + lineStr
+        Exit Function
+    End If
+    name = Trim$(Left$(rest, pos - 1))
+    If FindVar(name) >= 0 Then
+        Print "duplicate Dim: " + name
+        Exit Function
+    End If
+    If AddVar(name) < 0 Then Exit Function
+    CompileDim = 1
+End Function
+
+Function CompileAssign(lineStr As String) As Long
+    Dim pos As Long
+    Dim name As String
+    Dim expr As String
+    Dim idx As Long
+    CompileAssign = 0
+    pos = FindOp1(lineStr, "=")
+    If pos = 0 Then
+        Print "bad assignment: " + lineStr
+        Exit Function
+    End If
+    name = Trim$(Left$(lineStr, pos - 1))
+    expr = Trim$(Mid$(lineStr, pos + 1, Len(lineStr) - pos))
+    idx = FindVar(name)
+    If idx < 0 Then
+        Print "undeclared variable: " + name
+        Exit Function
+    End If
+    If GenArith(expr) = 0 Then Exit Function
+    EmitAsm("mov " + MemRef$(gVarOff(idx)) + ", eax")
+    CompileAssign = 1
+End Function
+
+Function CompileIfThen(lineStr As String) As Long
+    Dim e As String
+    Dim falseJcc As String
+    Dim labElse As String
+    Dim labEnd As String
+    Dim pos As Long
+    CompileIfThen = 0
+    ' If <cond> Then
+    e = Trim$(Mid$(lineStr, 3, Len(lineStr) - 2))
+    pos = InStr(1, Lower$(e), " then")
+    If pos = 0 Then
+        Print "If needs Then: " + lineStr
+        Exit Function
+    End If
+    e = Trim$(Left$(e, pos - 1))
+    If gIfSp >= MAX_IF Then
+        Print "If nesting too deep"
+        Exit Function
+    End If
+    labElse = NewLabel$()
+    labEnd = NewLabel$()
+    gIfElse(gIfSp) = labElse
+    gIfEnd(gIfSp) = labEnd
+    gIfSp = gIfSp + 1
+    If GenCond(e, falseJcc) = 0 Then Exit Function
+    EmitAsm(falseJcc + " " + labElse)
+    CompileIfThen = 1
+End Function
+
+Function CompileElse() As Long
+    Dim labElse As String
+    Dim labEnd As String
+    CompileElse = 0
+    If gIfSp <= 0 Then
+        Print "Else without If"
+        Exit Function
+    End If
+    labElse = gIfElse(gIfSp - 1)
+    labEnd = gIfEnd(gIfSp - 1)
+    EmitAsm("jmp " + labEnd)
+    gTextLines = gTextLines + labElse + ":" + Chr$(13) + Chr$(10)
+    gIfElse(gIfSp - 1) = ""
+    CompileElse = 1
+End Function
+
+Function CompileEndIf() As Long
+    Dim labElse As String
+    Dim labEnd As String
+    CompileEndIf = 0
+    If gIfSp <= 0 Then
+        Print "End If without If"
+        Exit Function
+    End If
+    gIfSp = gIfSp - 1
+    labElse = gIfElse(gIfSp)
+    labEnd = gIfEnd(gIfSp)
+    If labElse <> "" Then
+        gTextLines = gTextLines + labElse + ":" + Chr$(13) + Chr$(10)
+    End If
+    gTextLines = gTextLines + labEnd + ":" + Chr$(13) + Chr$(10)
+    CompileEndIf = 1
 End Function
 
 Function CompileBuffer$(src As *Byte, srcSize As Long) As String
@@ -411,12 +972,18 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     Dim c As Long
     Dim lineStr As String
     Dim outAsm As String
+    Dim body As String
+    Dim low As String
 
     gDataLines = ""
     gTextLines = ""
     gStrCount = 0
     gUseMsgBox = 0
     gEmittedExit = 0
+    gNVars = 0
+    gFrameSize = 0
+    gLabelId = 0
+    gIfSp = 0
 
     i = 0
     While i < srcSize
@@ -435,10 +1002,31 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
         lineStr = Trim$(StripComment$(MakeStr(lineBuf)))
 
         If lineStr <> "" Then
+            low = Lower$(lineStr)
             If StartsWith(lineStr, "#console") <> 0 Then
                 ' ignore
             ElseIf lineStr = "End" Then
-                ' Phase1: プログラム終端（追加コードなし）
+                ' ignore
+            ElseIf low = "else" Then
+                If CompileElse() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf low = "end if" Then
+                If CompileEndIf() = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf StartsWith(low, "if ") <> 0 Then
+                If CompileIfThen(lineStr) = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf StartsWith(low, "dim ") <> 0 Then
+                If CompileDim(lineStr) = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
             ElseIf StartsWith(lineStr, "MessageBox(") <> 0 Then
                 If CompileMessageBox(lineStr) = 0 Then
                     CompileBuffer$ = ""
@@ -446,6 +1034,11 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
                 End If
             ElseIf StartsWith(lineStr, "ExitProcess(") <> 0 Then
                 If CompileExitProcess(lineStr) = 0 Then
+                    CompileBuffer$ = ""
+                    Exit Function
+                End If
+            ElseIf FindOp1(lineStr, "=") > 0 Then
+                If CompileAssign(lineStr) = 0 Then
                     CompileBuffer$ = ""
                     Exit Function
                 End If
@@ -460,15 +1053,29 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
         If i < srcSize And src[i] = 10 Then i = i + 1
     Wend
 
-    ' Phase1: 文が無くても ExitProcess(0) を出す
+    If gIfSp <> 0 Then
+        Print "unclosed If"
+        CompileBuffer$ = ""
+        Exit Function
+    End If
+
+    body = gTextLines
+    gTextLines = ""
+    If gNVars > 0 Then
+        EmitAsm("push ebp")
+        EmitAsm("mov ebp, esp")
+        EmitAsm("sub esp, " + Trim$(Str$(gFrameSize)))
+    End If
+    gTextLines = gTextLines + body
+
     If gEmittedExit = 0 Then
-        gTextLines = gTextLines + "    push    0" + Chr$(13) + Chr$(10)
-        gTextLines = gTextLines + "    call    _ExitProcess@4" + Chr$(13) + Chr$(10)
+        EmitAsm("push 0")
+        EmitAsm("call _ExitProcess@4")
         gEmittedExit = 1
     End If
 
     outAsm = "bits 32" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
-    outAsm = outAsm + "; generated by abc (Phase1)" + Chr$(13) + Chr$(10)
+    outAsm = outAsm + "; generated by abc (Phase2)" + Chr$(13) + Chr$(10)
     If gUseMsgBox <> 0 Then
         outAsm = outAsm + "extern _MessageBoxA@16" + Chr$(13) + Chr$(10)
     End If
@@ -477,7 +1084,6 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     If gDataLines <> "" Then
         outAsm = outAsm + gDataLines
     Else
-        ' ablinker は .data 無し PE で起動に失敗する場合があるため最低1バイト置く
         outAsm = outAsm + "    dummy db 0" + Chr$(13) + Chr$(10)
     End If
     outAsm = outAsm + Chr$(13) + Chr$(10)

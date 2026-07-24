@@ -303,24 +303,34 @@ abpc <input.abp> [output.exe]     ' 互換（単一ファイル）
 
 ## 13. 実装メモ（進行状況）
 
-### Phase 1（進行中 / ソース反映済み）
+### Phase 1（完了）
 
 | 項目 | 状態 |
 |------|------|
-| `abc.abp`: `#console` / `End` / `ExitProcess(n)` / 空プログラム | ソース更新済み。**ActiveBasic で `abc.pj` を再ビルドする必要あり** |
-| `abassembler.abp`: `ret` / `mov reg,imm` / `jmp label` | ソース更新済み。**`abassembler.pj` を再ビルドする必要あり** |
-| `t1.abp` / `t1.asm` | 追加。手書き `t1.asm` → 現行アセンブラ/リンカで `t1.exe` 起動・終了コード 0 を確認 |
-| `.data` 空回避 | データ無しだと PE が起動しない事例あり → `dummy db 0` を出力 |
+| `abc.abp`: `#console` / `End` / `ExitProcess(n)` / 空プログラム | **完了**（`t1` / `t1_exit=42`） |
+| `abassembler.abp`: `ret` / `mov` / `jmp` / `push reg` | **完了**（`t1_mov`） |
+| `.data` 空回避 | `dummy db 0` |
 
-**今やること:** ActiveBasic IDE で次をビルドしてから検証:
+### Phase 2（ソース反映済み・再ビルド待ち）
+
+| 項目 | 状態 |
+|------|------|
+| `abc.abp`: `Dim Long` / 代入 / `+ - *` / `If Else End If` / `ExitProcess(式)` | ソース更新済み |
+| `abassembler.abp`: `pop` / `add`/`sub`/`cmp` / `imul` / `jcc` / `mov` メモリ | ソース更新済み |
+| テスト | `t2.abp`（期待 exit 7）、`t2_if.abp`（期待 exit 10） |
+
+**今やること:** ActiveBasic で再ビルド
 
 ```
-abc.pj          → abc.exe
-abassembler.pj  → abassembler.exe
+abc.pj
+abassembler.pj
+```
 
-abc t1.abp t1.asm
-abpc t1.abp t1.exe
-abassembler t1_mov.asm   … mov/jmp/ret の確認
+その後:
+
+```
+abpc t2.abp t2.exe
+abpc t2_if.abp t2_if.exe
 ```
 
 ---

@@ -1,7 +1,10 @@
 bits 32
 
-; Phase1 assembler smoke: mov / jmp / ret (after rebuild)
+; Phase1 assembler smoke: mov / jmp / ret / push reg
 extern _ExitProcess@4
+
+section .data
+    dummy db 0
 
 section .text
     global _main
