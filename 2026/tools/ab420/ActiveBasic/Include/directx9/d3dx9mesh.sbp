@@ -1,0 +1,427 @@
+'d3dx9mesh.sbp
+
+
+' patch mesh can be quads or tris
+Enum D3DXPATCHMESHTYPE
+    D3DXPATCHMESH_RECT   = &H001
+    D3DXPATCHMESH_TRI    = &H002
+    D3DXPATCHMESH_NPATCH = &H003
+
+    D3DXPATCHMESH_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+' Mesh options - lower 3 bytes only, upper byte used by _D3DXMESHOPT option flags
+Enum D3DXMESH
+    D3DXMESH_32BIT                  = &H001  'If set, then use 32 bit indices, if not set use 16 bit indices.
+	D3DXMESH_DONOTCLIP              = &H002  'Use D3DUSAGE_DONOTCLIP for VB & IB.
+	D3DXMESH_POINTS                 = &H004  'Use D3DUSAGE_POINTS for VB & IB. 
+	D3DXMESH_RTPATCHES              = &H008  'Use D3DUSAGE_RTPATCHES for VB & IB. 
+	D3DXMESH_NPATCHES               = &H4000 'Use D3DUSAGE_NPATCHES for VB & IB. 
+	D3DXMESH_VB_SYSTEMMEM           = &H010  'Use D3DPOOL_SYSTEMMEM for VB. Overrides D3DXMESH_MANAGEDVERTEXBUFFER
+	D3DXMESH_VB_MANAGED             = &H020  'Use D3DPOOL_MANAGED for VB. 
+	D3DXMESH_VB_WRITEONLY           = &H040  'Use D3DUSAGE_WRITEONLY for VB.
+	D3DXMESH_VB_DYNAMIC             = &H080  'Use D3DUSAGE_DYNAMIC for VB.
+	D3DXMESH_VB_SOFTWAREPROCESSING  = &H8000 'Use D3DUSAGE_SOFTWAREPROCESSING for VB.
+	D3DXMESH_IB_SYSTEMMEM           = &H100  'Use D3DPOOL_SYSTEMMEM for IB. Overrides D3DXMESH_MANAGEDINDEXBUFFER
+	D3DXMESH_IB_MANAGED             = &H200  'Use D3DPOOL_MANAGED for IB.
+	D3DXMESH_IB_WRITEONLY           = &H400  'Use D3DUSAGE_WRITEONLY for IB.
+	D3DXMESH_IB_DYNAMIC             = &H800  'Use D3DUSAGE_DYNAMIC for IB.
+	D3DXMESH_IB_SOFTWAREPROCESSING  = &H10000 'Use D3DUSAGE_SOFTWAREPROCESSING for IB.
+
+	D3DXMESH_VB_SHARE               = &H1000  'Valid for Clone* calls only, forces cloned mesh/pmesh to share vertex buffer
+
+	D3DXMESH_USEHWONLY              = &H2000  'Valid for ID3DXSkinInfo::ConvertToBlendedMesh
+
+    'Helper options
+	D3DXMESH_SYSTEMMEM              = &H110  'D3DXMESH_VB_SYSTEMMEM | D3DXMESH_IB_SYSTEMMEM
+	D3DXMESH_MANAGED                = &H220  'D3DXMESH_VB_MANAGED | D3DXMESH_IB_MANAGED
+	D3DXMESH_WRITEONLY              = &H440  'D3DXMESH_VB_WRITEONLY | D3DXMESH_IB_WRITEONLY
+	D3DXMESH_DYNAMIC                = &H880  'D3DXMESH_VB_DYNAMIC | D3DXMESH_IB_DYNAMIC
+	D3DXMESH_SOFTWAREPROCESSING     = &H18000  'D3DXMESH_VB_SOFTWAREPROCESSING | D3DXMESH_IB_SOFTWAREPROCESSING
+End Enum
+
+' patch mesh options
+Enum D3DXPATCHMESH
+    D3DXPATCHMESH_DEFAULT = 000
+End Enum
+
+Enum D3DXCLEANTYPE
+	D3DXCLEAN_BACKFACING	= &H00000001
+	D3DXCLEAN_BOWTIES		= &H00000002
+
+	' Helper options
+	D3DXCLEAN_SKINNING		= &H00000001	' Bowtie cleaning modifies geometry and breaks skinning
+	D3DXCLEAN_OPTIMIZATION	= &H00000001
+	D3DXCLEAN_SIMPLIFICATION= &H00000003
+End Enum
+
+Type D3DXATTRIBUTERANGE
+	AttribId As DWord
+	FaceStart As DWord
+	FaceCount As DWord
+	VertexStart As DWord
+	VertexCount As DWord
+End Type
+
+Type D3DXMATERIAL
+	MatD3D As D3DMATERIAL9
+	pTextureFilename As BytePtr
+End Type
+
+Enum D3DXEFFECTDEFAULTTYPE
+    D3DXEDT_STRING = &H1       ' pValue points to a null terminated ASCII string 
+    D3DXEDT_FLOATS = &H2       ' pValue points to an array of floats - number of floats is NumBytes / sizeof(float)
+    D3DXEDT_DWORD  = &H3       ' pValue points to a DWORD
+
+    D3DXEDT_FORCEDWORD = &H7FFFFFFF
+End Enum
+
+Type D3DXEFFECTDEFAULT
+	pParamName As BytePtr
+	_Type As D3DXEFFECTDEFAULTTYPE
+	NumBytes As DWord
+	pValue As VoidPtr
+End Type
+
+Type D3DXEFFECTINSTANCE
+	pEffectFilename As BytePtr
+	NumDefaults As DWord
+	pDefaults As *D3DXEFFECTDEFAULT
+End Type
+
+Type D3DXATTRIBUTEWEIGHTS
+	Position As Single
+	Boundary As Single
+	Normal As Single
+	Diffuse As Single
+	Specular As Single
+	Texcoord[7] As Single
+	Tangent As Single
+	Binormal As Single
+End Type
+
+Type D3DXWELDEPSILONS
+	Position As Single
+	BlendWeights As Single
+	Normal As Single
+	PSize As Single
+	Specular As Single
+	Diffuse As Single
+	Texcoord[7] As Single
+	Tangent As Single
+	Binormal As Single
+	TessFactor As Single
+End Type
+
+
+Class ID3DXBaseMesh
+	Inherits IUnknown
+Public
+    'ID3DXBaseMesh
+	Virtual Function DrawSubset(AttribId As DWord) As DWord
+	Virtual Function GetNumFaces() As DWord
+	Virtual Function GetNumVertices() As DWord
+	Virtual Function GetFVF() As DWord
+	Virtual Function GetDeclaration(Declaration As *D3DVERTEXELEMENT9) As DWord
+	Virtual Function GetNumBytesPerVertex() As DWord
+	Virtual Function GetOptions() As DWord
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function CloneMeshFVF(Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function CloneMesh(Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function GetVertexBuffer(ppVB As **IDirect3DVertexBuffer9) As DWord
+	Virtual Function GetIndexBuffer(ppIB As **IDirect3DIndexBuffer9) As DWord
+	Virtual Function LockVertexBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockVertexBuffer() As DWord
+	Virtual Function LockIndexBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockIndexBuffer() As DWord
+	Virtual Function GetAttributeTable(pAttribTable As *D3DXATTRIBUTERANGE, pAttribTableSize As DWordPtr) As DWord
+
+	Virtual Function ConvertPointRepsToAdjacency(pPRep As DWordPtr, pAdjacency As DWordPtr) As DWord
+	Virtual Function ConvertAdjacencyToPointReps(pAdjacency As DWordPtr, pPRep As DWordPtr) As DWord
+	Virtual Function GenerateAdjacency(Epsilon As Single, pAdjacency As DWordPtr) As DWord
+
+	Virtual Function UpdateSemantics(Declaration As *D3DVERTEXELEMENT9) As DWord
+End Class
+TypeDef LPD3DXBASEMESH = *ID3DXBaseMesh
+
+
+Class ID3DXMesh
+	Inherits IUnknown
+Public
+    'ID3DXBaseMesh
+	Virtual Function DrawSubset(AttribId As DWord) As DWord
+	Virtual Function GetNumFaces() As DWord
+	Virtual Function GetNumVertices() As DWord
+	Virtual Function GetFVF() As DWord
+	Virtual Function GetDeclaration(Declaration As *D3DVERTEXELEMENT9) As DWord
+	Virtual Function GetNumBytesPerVertex() As DWord
+	Virtual Function GetOptions() As DWord
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function CloneMeshFVF(Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function CloneMesh(Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function GetVertexBuffer(ppVB As **IDirect3DVertexBuffer9) As DWord
+	Virtual Function GetIndexBuffer(ppIB As **IDirect3DIndexBuffer9) As DWord
+	Virtual Function LockVertexBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockVertexBuffer() As DWord
+	Virtual Function LockIndexBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockIndexBuffer() As DWord
+	Virtual Function GetAttributeTable(pAttribTable As *D3DXATTRIBUTERANGE, pAttribTableSize As DWordPtr) As DWord
+
+	Virtual Function ConvertPointRepsToAdjacency(pPRep As DWordPtr, pAdjacency As DWordPtr) As DWord
+	Virtual Function ConvertAdjacencyToPointReps(pAdjacency As DWordPtr, pPRep As DWordPtr) As DWord
+	Virtual Function GenerateAdjacency(Epsilon As Single, pAdjacency As DWordPtr) As DWord
+
+	Virtual Function UpdateSemantics(Declaration As *D3DVERTEXELEMENT9) As DWord
+
+    'ID3DXMesh
+	Virtual Function LockAttributeBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockAttributeBuffer() As DWord
+	Virtual Function Optimize(Flags As DWord, pAdjacencyIn As DWordPtr, pAdjacencyOut As DWordPtr, pFaceRemap As DWordPtr, ppVertexRemap As **ID3DXBuffer, ppOptMesh As **ID3DXMesh) As DWord
+	Virtual Function OptimizeInplace(Flags As DWord, pAdjacencyIn As DWordPtr, pAdjacencyOut As DWordPtr, pFaceRemap As DWordPtr, ppVertexRemap As **ID3DXBuffer) As DWord
+	Virtual Function SetAttributeTable(pAttribTable As *D3DXATTRIBUTERANGE, cAttribTableSize As DWord) As DWord
+End Class
+TypeDef LPD3DXMESH = *ID3DXMesh
+
+
+Class ID3DXPMesh
+	Inherits IUnknown
+Public
+    'ID3DXBaseMesh
+	Virtual Function DrawSubset(AttribId As DWord) As DWord
+	Virtual Function GetNumFaces() As DWord
+	Virtual Function GetNumVertices() As DWord
+	Virtual Function GetFVF() As DWord
+	Virtual Function GetDeclaration(Declaration As *D3DVERTEXELEMENT9) As DWord
+	Virtual Function GetNumBytesPerVertex() As DWord
+	Virtual Function GetOptions() As DWord
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function CloneMeshFVF(Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function CloneMesh(Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function GetVertexBuffer(ppVB As **IDirect3DVertexBuffer9) As DWord
+	Virtual Function GetIndexBuffer(ppIB As **IDirect3DIndexBuffer9) As DWord
+	Virtual Function LockVertexBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockVertexBuffer() As DWord
+	Virtual Function LockIndexBuffer(Flags As DWord, ppData As VoidPtr) As DWord
+	Virtual Function UnlockIndexBuffer() As DWord
+	Virtual Function GetAttributeTable(pAttribTable As *D3DXATTRIBUTERANGE, pAttribTableSize As DWordPtr) As DWord
+
+	Virtual Function ConvertPointRepsToAdjacency(pPRep As DWordPtr, pAdjacency As DWordPtr) As DWord
+	Virtual Function ConvertAdjacencyToPointReps(pAdjacency As DWordPtr, pPRep As DWordPtr) As DWord
+	Virtual Function GenerateAdjacency(Epsilon As Single, pAdjacency As DWordPtr) As DWord
+
+	Virtual Function UpdateSemantics(Declaration As *D3DVERTEXELEMENT9) As DWord
+
+    'ID3DXPMesh
+	Virtual Function ClonePMeshFVF(Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function ClonePMesh(Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function SetNumFaces(Faces As DWord) As DWord
+	Virtual Function SetNumVertices(Vertices As DWord) As DWord
+	Virtual Function GetMaxFaces() As DWord
+	Virtual Function GetMinFaces() As DWord
+	Virtual Function GetMaxVertices() As DWord
+	Virtual Function GetMinVertices() As DWord
+	Virtual Function Save(pStream As *IStream, pMaterials As *D3DXMATERIAL, pEffectInstances As *D3DXEFFECTINSTANCE, NumMaterials As DWord) As DWord
+	Virtual Function Optimize(Flags As DWord, pAdjacencyOut As DWordPtr, pFaceRemap As DWordPtr, ppVertexRemap As **ID3DXBuffer, ppOptMesh As **ID3DXMesh) As DWord
+	Virtual Function OptimizeBaseLOD(Flags As DWord, pFaceRemap As DWordPtr) As DWord
+	Virtual Function TrimByFaces(NewFacesMin As DWord, NewFacesMax As DWord, rgiFaceRemap As DWordPtr, rgiVertRemap As DWordPtr) As DWord
+	Virtual Function TrimByVertices(NewVerticesMin As DWord, NewVerticesMax As DWord, rgiFaceRemap As DWordPtr, rgiVertRemap As DWord) As DWord
+	Virtual Function GetAdjacency(pAdjacency As DWordPtr) As DWord
+	Virtual Function GenerateVertexHistory(pVertexHistory As DWordPtr) As DWord
+End Class
+TypeDef LPD3DXPMESH = *ID3DXPMesh
+
+
+Class ID3DXSPMesh
+	Inherits IUnknown
+Public
+    'ID3DXSPMesh
+	Virtual Function GetNumFaces() As DWord
+	Virtual Function GetNumVertices() As DWord
+	Virtual Function GetFVF() As DWord
+	Virtual Function GetDeclaration(Declaration As *D3DVERTEXELEMENT9) As DWord
+	Virtual Function GetOptions() As DWord
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function CloneMeshFVF(Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, pAdjacencyOut As DWordPtr, pVertexRemapOut As DWordPtr, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function CloneMesh(Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, pAdjacencyOut As DWordPtr, pVertexRemapOut As DWordPtr, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function ClonePMeshFVF(Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, pVertexRemapOut As DWordPtr, pErrorsByFace As SinglePtr, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function ClonePMesh(Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, pVertexRemapOut As DWordPtr, pErrorsbyFace As SinglePtr, ppCloneMesh As **ID3DXMesh) As DWord
+	Virtual Function ReduceFaces(Faces As DWord) As DWord
+	Virtual Function ReduceVertices(Vertices As DWord) As DWord
+	Virtual Function GetMaxFaces() As DWord
+	Virtual Function GetMaxVertices() As DWord
+	Virtual Function GetVertexAttributeWeights(pVertexAttributeWeights As *D3DXATTRIBUTEWEIGHTS) As DWord
+	Virtual Function GetVertexWeights(pVertexWeights As SinglePtr) As DWord
+End Class
+TypeDef LPD3DXSPMESH = *ID3DXSPMesh
+
+
+' Subset of the mesh that has the same attribute and bone combination.
+' This subset can be rendered in a single draw call
+Type D3DXBONECOMBINATION
+	AttribId As DWord
+	FaceStart As DWord
+	FaceCount As DWord
+	VertexStart As DWord
+	VertexCount As DWord
+	BoneId As DWordPtr
+End Type
+
+Type D3DXPATCHINFO
+	PatchType As D3DXPATCHMESHTYPE
+	Degree As D3DDEGREETYPE
+	Basis As D3DBASISTYPE
+End Type
+
+
+Class ID3DXPatchMesh
+	Inherits IUnknown
+Public
+	'ID3DXPatchMesh
+
+	'Return creation parameters
+	Virtual Function GetNumPatches() As DWord
+	Virtual Function GetNumVertices() As DWord
+	Virtual Function GetDeclaration(Declaration As *D3DVERTEXELEMENT9) As DWord
+	Virtual Function GetControlVerticesPerPatch() As DWord
+	Virtual Function GetOptions() As DWord
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetPatchInfo(PatchInfo As *D3DXPATCHINFO) As DWord
+
+	'Control mesh access    
+	Virtual Function GetVertexBuffer(ppVB As **IDirect3DVertexBuffer9) As DWord
+	Virtual Function GetIndexBuffer(ppIB As **IDirect3DIndexBuffer9) As DWord
+	Virtual Function LockVertexBuffer(flags As DWord, ppData As DWordPtr) As DWord
+	Virtual Function UnlockVertexBuffer() As DWord
+	Virtual Function LockIndexBuffer(flags As DWord, ppData As DWordPtr) As DWord
+	Virtual Function UnlockIndexBuffer() As DWord
+	Virtual Function LockAttributeBuffer(flags As DWord, ppData As DWordPtr) As DWord
+	Virtual Function UnlockAttributeBuffer() As DWord
+
+	Virtual Function GetTessSize(fTessLevel As Single, Adaptive As DWord, NumTriangles As DWordPtr, NumVertices As DWordPtr) As DWord
+	Virtual Function GenerateAdjacency(Tolerance As Single) As DWord
+	Virtual Function CloneMesh(Options As DWord, pDecl As *D3DVERTEXELEMENT9, pMesh As *ID3DXPatchMesh) As DWord
+	Virtual Function Optimize(flags As DWord) As DWord
+	Virtual Function SetDisplaceParam(pTexture As *IDirect3DBaseTexture9, MinFilter As D3DTEXTUREFILTERTYPE, MagFilter As D3DTEXTUREFILTERTYPE, MipFilter As D3DTEXTUREFILTERTYPE, Wrap As D3DTEXTUREADDRESS, dwLODBias As DWord) As DWord
+	Virtual Function GetDisplaceParam(ppTexture As **IDirect3DBaseTexture9, pMinFilter As *D3DTEXTUREFILTERTYPE, pMagFilter As *D3DTEXTUREFILTERTYPE, pMipFilter As *D3DTEXTUREFILTERTYPE, pWrap As *D3DTEXTUREADDRESS, lpdwLODBias As DWordPtr) As DWord
+	Virtual Function Tessellate(fTessLevel As Single, pMesh As *ID3DXMesh) As DWord
+	Virtual Function TessellateAdaptive(pTrans As *D3DXVECTOR4, dwMaxTessLevel As DWord, dwMinTessLevel As DWord, pMesh As *ID3DXMesh) As DWord
+End Class
+TypeDef LPD3DXPATCHMESH = *ID3DXPatchMesh
+
+
+'---------------
+' ID3DXSkinInfo
+'---------------
+
+Class ID3DXSkinInfo
+	Inherits IUnknown
+Public
+	'Specify the which vertices do each bones influence and by how much
+	Virtual Function SetBoneInfluence(bone As DWord, numInfluences As DWord, vertices As DWordPtr, weights As SinglePtr) As DWord
+	Virtual Function SetBoneVertexInfluence(boneNum As DWord, influenceNum As DWord, weight As Single) As DWord
+	Virtual Function GetNumBoneInfluences(bone As DWord) As DWord
+	Virtual Function GetBoneInfluence(bone As DWord, vertices As DWordPtr, weights As SinglePtr) As DWord
+	Virtual Function GetBoneVertexInfluence(boneNum As DWord, influenceNum As DWord, pWeight As SinglePtr, pVertexNum As DWordPtr) As DWord
+	Virtual Function GetMaxVertexInfluences(maxVertexInfluences As DWordPtr) As DWord
+	Virtual Function GetNumBones() As DWord
+	Virtual Function FindBoneVertexInfluenceIndex(boneNum As DWord, vertexNum As DWord, pInfluenceIndex As DWordPtr) As DWord
+
+	'This gets the max face influences based on a triangle mesh with the specified index buffer
+	Virtual Function GetMaxFaceInfluences(pIB As *IDirect3DIndexBuffer9, NumFaces As DWord, maxFaceInfluences As DWordPtr) As DWord
+
+	'Set min bone influence. Bone influences that are smaller than this are ignored
+	Virtual Function SetMinBoneInfluence(MinInfl As Single) As DWord
+	'Get min bone influence. 
+	Virtual Function GetMinBoneInfluence() As Single
+
+	'Bone names are returned by D3DXLoadSkinMeshFromXof. They are not used by any other method of this object
+	Virtual Function SetBoneName(Bone As DWord, pName As BytePtr) As DWord
+	Virtual Function GetBoneName(Bone As DWord) As BytePtr
+
+	'Bone offset matrices are returned by D3DXLoadSkinMeshFromXof. They are not used by any other method of this object
+	Virtual Function SetBoneOffsetMatrix(Bone As DWord, pBoneTransform As *D3DXMATRIX) As DWord
+	Virtual Function GetBoneOffsetMatrix(Bone As DWord) As *D3DXMATRIX
+
+	'Clone a skin info object
+	Virtual Function Clone(ppSkinInfo As **ID3DXSkinInfo) As DWord
+
+	'Update bone influence information to match vertices after they are reordered. This should be called 
+	'if the target vertex buffer has been reordered externally.
+	Virtual Function Remap(NumVertices As DWord, pVertexRemap As DWordPtr) As DWord
+
+	'These methods enable the modification of the vertex layout of the vertices that will be skinned
+	Virtual Function SetFVF(FVF As DWord) As DWord
+	Virtual Function SetDeclaration(pDeclaration As *D3DVERTEXELEMENT9) As DWord
+	Virtual Function GetFVF() As DWord
+	Virtual Function GetDeclaration(Declaration As *D3DVERTEXELEMENT9) As DWord
+
+	'Apply SW skinning based on current pose matrices to the target vertices.
+	Virtual Function UpdateSkinnedMesh(pBoneTransforms As *D3DXMATRIX, pBoneInvTransposeTransforms As *D3DXMATRIX, pVerticesSrc As VoidPtr, pVerticesDst As VoidPtr) As DWord
+
+	'Takes a mesh and returns a new mesh with per vertex blend weights and a bone combination
+	'table that describes which bones affect which subsets of the mesh
+	Virtual Function ConvertToBlendedMesh(pMesh As *ID3DXMesh, Options As DWord, pAdjacencyIn As DWordPtr, pAdjacencyOut As DWordPtr, pFaceRemap As DWordPtr, ppVertexRemap As **ID3DXBuffer, pMaxFaceInfl As DWordPtr, pNumBoneCombinations As DWordPtr, ppBoneCombinationTable As **ID3DXBuffer, ppMesh As **ID3DXMesh) As DWord
+
+	'Takes a mesh and returns a new mesh with per vertex blend weights and indices 
+	'and a bone combination table that describes which bones palettes affect which subsets of the mesh
+	Virtual Function ConvertToIndexedBlendedMesh(pMesh As *ID3DXMesh, Options As DWord, paletteSize As DWord, pAdjacencyIn As DWordPtr, pAdjacencyOut As DWordPtr, pFaceRemap As DWordPtr, ppVertexRemap As **ID3DXBuffer, pMaxVertexInfl As DWordPtr, pNumBoneCombinations As DWordPtr, ppBoneCombinationTable As **ID3DXBuffer, ppMesh As **ID3DXMesh) As DWord
+End Class
+TypeDef LPD3DXSKININFO = *ID3DXSkinInfo
+
+Declare Function D3DXCreateMesh Lib "dx9abm" Alias "D3DXCreateMesh_abm" (NumFaces As DWord, NumVertices As DWord, Options As DWord, pDeclaration As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, ppMesh As **ID3DXMesh) As DWord
+Declare Function D3DXCreateMeshFVF Lib "dx9abm" Alias "D3DXCreateMeshFVF_abm" (NumFaces As DWord, NumVertices As DWord, Options As DWord, FVF As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppMesh As **ID3DXMesh) As DWord
+Declare Function D3DXCreateSPMesh Lib "dx9abm" Alias "D3DXCreateSPMesh_abm" (pMesh As *ID3DXMesh, pAdjacency As DWordPtr, pVertexAttributeWeights As *D3DXATTRIBUTEWEIGHTS, ppSMesh As **ID3DXSPMesh) As DWord
+Declare Function D3DXCleanMesh Lib "dx9abm" Alias "D3DXCleanMesh_abm" (CleanType As D3DXCLEANTYPE, pMeshIn As *ID3DXMesh, pAdjacencyIn As DWordPtr, ppMeshOut As **ID3DXMesh, pAdjacencyOut As DWordPtr, ppErrorsAndWarnings As **ID3DXBuffer) As DWord
+Declare Function D3DXValidMesh Lib "dx9abm" Alias "D3DXValidMesh_abm" (pMeshIn As *ID3DXMesh, pAdjacency As DWordPtr, ppErrorsAndWarnings As **ID3DXBuffer) As DWord
+Declare Function D3DXGeneratePMesh Lib "dx9abm" Alias "D3DXGeneratePMesh_abm" (pMesh As *ID3DXMesh, pAdjacency As DWordPtr, pVertexAttributeWeights As *D3DXATTRIBUTEWEIGHTS, MinValue As DWord, Options As DWord, ppPMesh As **ID3DXPMesh) As DWord
+Declare Function D3DXSimplifyMesh Lib "dx9abm" Alias "D3DXSimplifyMesh_abm" (pMesh As *ID3DXMesh, pAdjacency As DWordPtr, pVertexAttributeWeights As *D3DXATTRIBUTEWEIGHTS, pVertexWeights As SinglePtr, MinValue As DWord, Options As DWord, ppMesh As **ID3DXMesh) As DWord
+Declare Function D3DXComputeBoundingSphere Lib "dx9abm" Alias "D3DXComputeBoundingSphere_abm" (pFirstPosition As *D3DXVECTOR3, NumVertices As DWord, dwStride As DWord, pCenter As *D3DXVECTOR3, pRadius As SinglePtr) As DWord
+Declare Function D3DXComputeBoundingBox Lib "dx9abm" Alias "D3DXComputeBoundingBox_abm" (pFirstPosition As *D3DXVECTOR3, NumVertices As DWord, dwStride As DWord, pMin As *D3DXVECTOR3, pMax As *D3DXVECTOR3) As DWord
+Declare Function D3DXComputeNormals Lib "dx9abm" Alias "D3DXComputeNormals_abm" (pMesh As *ID3DXBaseMesh, pAdjacency As DWordPtr) As DWord
+Declare Function D3DXCreateBuffer Lib "dx9abm" Alias "D3DXCreateBuffer_abm" (NumBytes As DWord, ppBuffer As **ID3DXBuffer) As DWord
+Declare Function D3DXLoadMeshFromX Lib "dx9abm" Alias "D3DXLoadMeshFromX_abm" (pFilename As BytePtr, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppAdjacency As VoidPtr, ppMaterials As VoidPtr, ppEffectInstances As VoidPtr, pNumMaterials As DWordPtr, ppMesh As VoidPtr) As DWord
+Declare Function D3DXLoadMeshFromXInMemory Lib "dx9abm" Alias "D3DXLoadMeshFromXInMemory_abm" (Memory As VoidPtr, SizeOfMemory As DWord, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppAdjacency As **ID3DXBuffer, ppMaterials As **ID3DXBuffer, ppEffectInstances As **ID3DXBuffer, pNumMaterials As DWordPtr, ppMesh As *ID3DXMesh) As DWord
+Declare Function D3DXLoadMeshFromXResource Lib "dx9abm" Alias "D3DXLoadMeshFromXResource_abm" (Module As DWord, Name As BytePtr, lpszType As BytePtr, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppAdjacency As **ID3DXBuffer, ppMaterials As **ID3DXBuffer, ppEffectInstances As **ID3DXBuffer, pNumMaterials As DWordPtr, ppMesh As **ID3DXMesh) As DWord
+Declare Function D3DXSaveMeshToX Lib "dx9abm" Alias "D3DXSaveMeshToX_abm" (pFilename As BytePtr, pMesh As *ID3DXMesh, pAdjacency As DWordPtr, pMaterials As *D3DXMATERIAL, pEffectInstances As *D3DXEFFECTINSTANCE, NumMaterials As DWord, Format As DWord) As DWord
+Declare Function D3DXCreatePMeshFromStream Lib "dx9abm" Alias "D3DXCreatePMeshFromStream_abm" (pStream As *IStream, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppMaterials As **ID3DXBuffer, ppEffectInstances As **ID3DXBuffer, pNumMaterials As DWordPtr, ppPMesh As **ID3DXPMesh) As DWord
+Declare Function D3DXCreateSkinInfo Lib "dx9abm" Alias "D3DXCreateSkinInfo_abm" (NumVertices As DWord, pDeclaration As *D3DVERTEXELEMENT9, NumBones As DWord, ppSkinInfo As **ID3DXSkinInfo) As DWord
+Declare Function D3DXCreateSkinInfoFVF Lib "dx9abm" Alias "D3DXCreateSkinInfoFVF_abm" (NumVertices As DWord, FVF As DWord, NumBones As DWord, ppSkinInfo As **ID3DXSkinInfo) As DWord
+
+Declare Function D3DXLoadMeshFromXof Lib "dx9abm" Alias "D3DXLoadMeshFromXof_abm" (pxofMesh As *ID3DXFileData, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppAdjacency As **ID3DXBuffer, ppMaterials As **ID3DXBuffer, ppEffectInstances As **ID3DXBuffer, pNumMaterials As DWordPtr, ppMesh As **ID3DXMesh) As DWord
+Declare Function D3DXLoadSkinMeshFromXof Lib "dx9abm" Alias "D3DXLoadSkinMeshFromXof_abm" (pxofMesh As *ID3DXFileData, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppAdjacency As **ID3DXBuffer, ppMaterials As **ID3DXBuffer, ppEffectInstances As **ID3DXBuffer, pMatOut As DWordPtr, ppSkinInfo As **ID3DXSkinInfo, ppMesh As **ID3DXMesh) As DWord
+Declare Function D3DXCreateSkinInfoFromBlendedMesh Lib "dx9abm" Alias "D3DXCreateSkinInfoFromBlendedMesh_abm" (pMesh As *ID3DXBaseMesh, NumBones As DWord, pBoneCombinationTable As *D3DXBONECOMBINATION, ppSkinInfo As **ID3DXSkinInfo) As DWord
+Declare Function D3DXTessellateNPatches Lib "dx9abm" Alias "D3DXTessellateNPatches_abm" (pMeshIn As *ID3DXMesh, pAdjacencyIn As DWordPtr, NumSegs As Single, QuadraticInterpNormals As Long, ppMeshOut As **ID3DXMesh, ppAdjacencyOut As **ID3DXBuffer) As DWord
+Declare Function D3DXGenerateOutputDecl Lib "dx9abm" Alias "D3DXGenerateOutputDecl_abm" (pOutput As *D3DVERTEXELEMENT9, pInput As *D3DVERTEXELEMENT9) As DWord
+Declare Function D3DXLoadPatchMeshFromXof Lib "dx9abm" Alias "D3DXLoadPatchMeshFromXof_abm" (pXofObjMesh As *ID3DXFileData, Options As DWord, pD3DDevice As LPDIRECT3DDEVICE9, ppMaterials As **ID3DXBuffer, ppEffectInstances As **ID3DXBuffer, pNumMaterials As DWordPtr, ppMesh As **ID3DXPatchMesh) As DWord
+Declare Function D3DXRectPatchSize Lib "dx9abm" Alias "D3DXRectPatchSize_abm" (pfNumSegs As SinglePtr, pdwTriangles As DWordPtr, pdwVertices As DWordPtr) As DWord
+Declare Function D3DXTriPatchSize Lib "dx9abm" Alias "D3DXTriPatchSize_abm" (pfNumSegs As SinglePtr, pdwTriangles As DWordPtr, pdwVertices As DWordPtr) As DWord
+Declare Function D3DXTessellateRectPatch Lib "dx9abm" Alias "D3DXTessellateRectPatch_abm" (pVB As *IDirect3DVertexBuffer9, pNumSegs As SinglePtr, pdwInDecl As *D3DVERTEXELEMENT9, pRectPatchInfo As *D3DRECTPATCH_INFO, pMesh As *ID3DXMesh) As DWord
+Declare Function D3DXTessellateTriPatch Lib "dx9abm" Alias "D3DXTessellateTriPatch_abm" (pVB As *IDirect3DVertexBuffer9, pNumSegs As SinglePtr, pInDecl As *D3DVERTEXELEMENT9, pTriPatchInfo As *D3DTRIPATCH_INFO, pMesh As *ID3DXMesh) As DWord
+Declare Function D3DXCreateNPatchMesh Lib "dx9abm" Alias "D3DXCreateNPatchMesh_abm" (pMeshSysMem As *ID3DXMesh, pPatchMesh As *ID3DXPatchMesh) As DWord
+Declare Function D3DXCreatePatchMesh Lib "dx9abm" Alias "D3DXCreatePatchMesh_abm" (pInfo As *D3DXPATCHINFO, dwNumPatches As DWord, dwNumVertices As DWord, dwOptions As DWord, pDecl As *D3DVERTEXELEMENT9, pD3DDevice As LPDIRECT3DDEVICE9, pPatchMesh As *ID3DXPatchMesh) As DWord
+Declare Function D3DXValidPatchMesh Lib "dx9abm" Alias "D3DXValidPatchMesh_abm" (pMesh As *ID3DXPatchMesh, dwcDegenerateVertices As DWord, dwcDegeneratePatches As DWord, ppErrorsAndWarnings As **ID3DXBuffer) As DWord
+Declare Function D3DXGetFVFVertexSize Lib "dx9abm" Alias "D3DXGetFVFVertexSize_abm" (FVF As DWord) As DWord
+Declare Function D3DXGetDeclVertexSize Lib "dx9abm" Alias "D3DXGetDeclVertexSize_abm" (pDecl As *D3DVERTEXELEMENT9, Stream As DWord) As DWord
+Declare Function D3DXGetDeclLength Lib "dx9abm" Alias "D3DXGetDeclLength_abm" (pDecl As *D3DVERTEXELEMENT9) As DWord
+Declare Function D3DXDeclaratorFromFVF Lib "dx9abm" Alias "D3DXDeclaratorFromFVF_abm" (FVF As DWord, pDeclarator As *D3DVERTEXELEMENT9) As DWord
+Declare Function D3DXFVFFromDeclarator Lib "dx9abm" Alias "D3DXFVFFromDeclarator_abm" (pDeclarator As *D3DVERTEXELEMENT9, pFVF As DWordPtr) As DWord
+Declare Function D3DXWeldVertices Lib "dx9abm" Alias "D3DXWeldVertices_abm" (pMesh As *ID3DXMesh, Flags As DWord, pEpsilons As *D3DXWELDEPSILONS, pAdjacencyOut As DWord, pFaceRemap As DWordPtr, ppVertexRemap As **ID3DXBuffer) As DWord
+
+Type D3DXINTERSECTINFO
+	FaceIndex As DWord
+	U As Single
+	V As Single
+	Dist As Single
+End Type
+
+Declare Function D3DXIntersect Lib "dx9abm" Alias "D3DXIntersect_abm" (pMesh As *ID3DXBaseMesh, pRayPos As *D3DXVECTOR3, pRayDir As *D3DXVECTOR3, pHit As DWordPtr, pFaceIndex As DWordPtr, pU As SinglePtr, pV As SinglePtr, pDist As SinglePtr, ppAllHits As **ID3DXBuffer, pCountOfHits As DWordPtr) As DWord
+Declare Function D3DXIntersectSubset Lib "dx9abm" Alias "D3DXIntersectSubset_abm" (pMesh As *ID3DXBaseMesh, AttribId As DWord, pRayPos As *D3DXVECTOR3, pRayDir As *D3DXVECTOR3, pHit As DWordPtr, pFaceIndex As DWordPtr, pU As SinglePtr, pV As SinglePtr, pDist As SinglePtr, ppAllHits As **ID3DXBuffer, pCountOfHits As DWordPtr) As DWord
+Declare Function D3DXSplitMesh Lib "dx9abm" Alias "D3DXSplitMesh_abm" (pMeshIn As *ID3DXMesh, pAdjacencyIn As DWord, MaxSize As DWord, Options As DWord, pMeshesOut As DWordPtr, ppMeshArrayOut As **ID3DXBuffer, ppAdjacencyArrayOut As **ID3DXBuffer, ppFaceRemapArrayOut As **ID3DXBuffer, ppVertRemapArrayOut As **ID3DXBuffer) As DWord
+Declare Function D3DXIntersectTri Lib "dx9abm" Alias "D3DXIntersectTri_abm" (p0 As *D3DXVECTOR3, p1 As *D3DXVECTOR3, p2 As *D3DXVECTOR3, pRayPos As *D3DXVECTOR3, pRayDir As *D3DXVECTOR3, pU As SinglePtr, pV As SinglePtr, pDist As SinglePtr) As Long
+Declare Function D3DXSphereBoundProbe Lib "dx9abm" Alias "D3DXSphereBoundProbe_abm" (pCenter As *D3DXVECTOR3, Radius As Single, pRayPos As *D3DXVECTOR3, pRayDir As *D3DXVECTOR3) As Long
+Declare Function D3DXBoxBoundProbe Lib "dx9abm" Alias "D3DXBoxBoundProbe_abm" (pMin As *D3DXVECTOR3, pMax As *D3DXVECTOR3, pRayPos As *D3DXVECTOR3, pRayDir As *D3DXVECTOR3) As Long
+Declare Function D3DXComputeTangent Lib "dx9abm" Alias "D3DXComputeTangent_abm" (pMesh As *ID3DXMesh, TexStage As DWord, TangentIndex As DWord, BinormIndex As DWord, Wrap As DWord, pAdjacency As DWordPtr) As DWord
+Declare Function D3DXConvertMeshSubsetToSingleStrip Lib "dx9abm" Alias "D3DXConvertMeshSubsetToSingleStrip_abm" (pMeshIn As *ID3DXBaseMesh, AttribId As DWord, IBOptions As DWord, ppIndexBuffer As **IDirect3DIndexBuffer9, pNumIndices As DWordPtr) As DWord
+Declare Function D3DXConvertMeshSubsetToStrips Lib "dx9abm" Alias "D3DXConvertMeshSubsetToStrips_abm" (pMeshIn As *ID3DXBaseMesh, AttribId As DWord, IBOptions As DWord, ppIndexBuffer As **IDirect3DIndexBuffer9, pNumIndices As DWordPtr, ppStripLengths As **ID3DXBuffer, pNumStrips As DWordPtr) As DWord
+Declare Function D3DXOptimizeFaces Lib "dx9abm" Alias "D3DXOptimizeFaces_abm" (pbIndices As VoidPtr, cFaces As DWord, cVertices As DWord, b32BitIndices As Long, pFaceRemap As DWordPtr) As DWord
+Declare Function D3DXOptimizeVertices Lib "dx9abm" Alias "D3DXOptimizeVertices_abm" (pbIndices As VoidPtr, cFaces As DWord, cVertices As DWord, b32BitIndices As Long, pFaceRemap As DWordPtr) As DWord

@@ -1,0 +1,61 @@
+' Windows.sbp - declarations file for window control.
+
+TypeDef HANDLE    = VoidPtr
+
+'variable type - System
+TypeDef HGLOBAL   = HANDLE
+TypeDef HLOCAL    = HANDLE
+Type _System_DeclareHandle_HINSTANCE:unused As DWord:End Type
+TypeDef HINSTANCE = *_System_DeclareHandle_HINSTANCE
+Type _System_DeclareHandle_HKEY:unused As DWord:End Type
+TypeDef HKEY      = *_System_DeclareHandle_HKEY
+Type _System_DeclareHandle_HMENU:unused As DWord:End Type
+TypeDef HMENU     = *_System_DeclareHandle_HMENU
+Type _System_DeclareHandle_HWND:unused As DWord:End Type
+TypeDef HWND      = *_System_DeclareHandle_HWND
+TypeDef HFILE     = Long
+
+'variable type - GDI
+Type _System_DeclareHandle_HBITMAP:unused As DWord:End Type
+TypeDef HBITMAP   = *_System_DeclareHandle_HBITMAP
+Type _System_DeclareHandle_HBRUSH:unused As DWord:End Type
+TypeDef HBRUSH    = *_System_DeclareHandle_HBRUSH
+Type _System_DeclareHandle_HCURSOR:unused As DWord:End Type
+TypeDef HCURSOR   = *_System_DeclareHandle_HCURSOR
+Type _System_DeclareHandle_HDC:unused As DWord:End Type
+TypeDef HDC       = *_System_DeclareHandle_HDC
+Type _System_DeclareHandle_HFONT:unused As DWord:End Type
+TypeDef HFONT     = *_System_DeclareHandle_HFONT
+Type _System_DeclareHandle_HICON:unused As DWord:End Type
+TypeDef HICON     = *_System_DeclareHandle_HICON
+Type _System_DeclareHandle_HPEN:unused As DWord:End Type
+TypeDef HPEN      = *_System_DeclareHandle_HPEN
+Type _System_DeclareHandle_HRGN:unused As DWord:End Type
+TypeDef HRGN      = *_System_DeclareHandle_HRGN
+
+'variable type - Shell
+Type _System_DeclareHandle_HDROP:unused As DWord:End Type
+TypeDef HDROP     = *_System_DeclareHandle_HDROP
+
+
+TypeDef LRESULT = LONG_PTR
+
+TypeDef WPARAM = ULONG_PTR
+TypeDef LPARAM = LONG_PTR
+
+
+TypeDef LPSTR = *Byte
+TypeDef LPCSTR = *Byte
+
+
+#include <api_winerror.sbp>
+#include <api_system.sbp>
+#include <api_window.sbp>
+#include <api_commdlg.sbp>
+#include <api_gdi.sbp>
+#include <api_shell.sbp>
+#include <api_reg.sbp>
+#include <api_msg.sbp>
+#include <api_windowstyles.sbp>
+
+#include <memory.sbp>

@@ -1,0 +1,26 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=driving
+
+#PLATFORM=32
+
+#USEWINDOW=1
+
+#OPTION=&H00000001
+
+#OUTPUT_RELEASE=.\driving.exe
+
+#OUTPUT_DEBUG=.\driving_debug.exe
+
+#RESOURCE=0
+
+#SOURCE
+driving.abp
+MainWnd.sbp
+dx_graphics.sbp
+dx_music.sbp
+dx_input.sbp

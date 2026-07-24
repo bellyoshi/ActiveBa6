@@ -1,0 +1,273 @@
+' ----------------------------------------------------------------------------
+'  イベント プロシージャ
+' ----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [MainWnd] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hMainWnd
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+
+'シャッフル回数を指定（ここでは1000回）
+Const SHUFFLENUM=1000
+
+'ピースの幅、高さ
+Const PIECE_X=80
+Const PIECE_Y=80
+
+'テーブル配列
+Dim table[15] As Long
+
+'十字キーのコードが格納される
+Dim MoveCode As Long
+
+Sub ShowTable(hdc As DWord)
+    '----------------------
+    ' パズルテーブルを描画
+    '----------------------
+
+    Dim i As Long, j As Long, n As Long
+    Dim buf[16] As Byte
+
+    'メモリデバイスコンテキストを生成
+    Dim memdc As DWord
+    memdc=CreateCompatibleDC(hdc)
+
+    'ビットマップをロードし、memdcで選択する
+    Dim hBmp As DWord
+    hBmp=LoadImage(GetModuleHandle(0),IDB_BITMAP1,IMAGE_BITMAP,0,0,LR_DEFAULTSIZE)
+    SelectObject(memdc,hBmp)
+
+    '空白ピース用のブラシを生成し、hdcで選択する
+    Dim hBrush As DWord, hOldBrush As DWord
+    hBrush=GetStockObject(LTGRAY_BRUSH)
+    hOldBrush=SelectObject(hdc,hBrush)
+
+    '文字色を黒に、背景色を薄い青色にセット
+    SetTextColor(hdc,RGB(0,0,0))
+    SetBkColor(hdc,RGB(210,220,255))
+
+    n=0
+    For i=0 To 3
+        For j=0 To 3
+            If table[n]=0 Then
+                '空白のピース
+                PatBlt(hdc, j*PIECE_X, i*PIECE_Y, PIECE_X, PIECE_Y, PATCOPY)
+            Else
+                '通常のピース
+                BitBlt(hdc, j*PIECE_X, i*PIECE_Y, PIECE_X, PIECE_Y, memdc, (table[n] mod 4)*PIECE_X, (table[n]\4)*PIECE_Y, SRCCOPY)
+
+                'ピース番号を描画
+                wsprintf(buf,"%d",table[n])
+                TextOut(hdc, j*PIECE_X, i*PIECE_Y, buf, lstrlen(buf))
+            End If
+
+            n=n+1
+        Next
+    Next
+
+    '以前のブラシに戻す
+    SelectObject(hdc,hOldBrush)
+
+    'メモリデバイスコンテキストを破棄
+    DeleteDC(memdc)
+
+    'ビットマップハンドルを破棄
+    DeleteObject(hBmp)
+End Sub
+
+Sub SwapLong(ByRef a As Long, ByRef b As Long)
+    Dim temp As Long
+    temp=a
+    a=b
+    b=temp
+End Sub
+
+Sub MoveLeft()
+    '左へ移動
+
+    Dim i As Long
+
+    '空白が右端にある場合は抜け出す
+    If table[3]=0 or table[7]=0 or table[11]=0 or table[15]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i],table[i+1])
+End Sub
+
+Sub MoveRight()
+    '右へ移動
+    Dim temp As Long
+    Dim i As Long
+
+    '空白が左端にある場合は抜け出す
+    If table[0]=0 or table[4]=0 or table[8]=0 or table[12]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i-1],table[i])
+End Sub
+
+Sub MoveUp()
+    '上へ移動
+    Dim temp As Long
+    Dim i As Long
+
+    '空白が下端にある場合は抜け出す
+    If table[12]=0 or table[13]=0 or table[14]=0 or table[15]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i],table[i+4])
+End Sub
+
+Sub MoveDown()
+    '下へ移動
+    Dim temp As Long
+    Dim i As Long
+
+    '空白が上端にある場合は抜け出す
+    If table[0]=0 or table[1]=0 or table[2]=0 or table[3]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i-4],table[i])
+End Sub
+
+Sub Shuffle()
+    '------------------------------------
+    ' SHUFFLENUMの回数だけシャッフルする
+    '------------------------------------
+
+    Dim i As Long
+
+    For i=0 To SHUFFLENUM
+        '0～3の間で乱数を生成
+        Select Case CInt(Rnd()*3)
+            Case 0
+                MoveLeft()
+            Case 1
+                MoveRight()
+            Case 2
+                MoveUp()
+            Case 3
+                MoveDown()
+        End Select
+    Next
+End Sub
+
+Function MainThread(dw As DWord) As DWord
+    Dim i As Long
+    Dim hdc As DWord
+
+    Do
+        While MoveCode=0
+            'キーが押されていない間は待機する
+            Sleep(10)
+        Wend
+
+        Select Case MoveCode
+            Case VK_LEFT
+                '左へ移動
+                MoveLeft()
+            Case VK_RIGHT
+                '右へ移動
+                MoveRight()
+            Case VK_UP
+                '上へ移動
+                MoveUp()
+            Case VK_DOWN
+                '下へ移動
+                MoveDown()
+        End Select
+
+        MoveCode=0
+
+        'パズルテーブルを描画
+        hdc=GetDC(hMainWnd)
+        ShowTable(hdc)
+        ReleaseDC(hdc,hMainWnd)
+
+        'クリア判定
+        For i=0 To 15
+            If not table[i]=i Then Exit For
+        Next
+        If i=16 Then
+            If MessageBox(hMainWnd, Ex"Congratulation！\n\n再挑戦しますか？", "Puzzle", MB_YESNO)=IDYES Then
+                'シャッフルを行い、ゲームを継続する
+                Shuffle()
+
+                '再描画
+                InvalidateRect(hMainWnd,ByVal 0,0)
+            Else
+                '「シャッフル」ボタンを無効にしてスレッドを終了する
+                EnableWindow(GetDlgItem(hMainWnd,ShuffleButton),0)
+                Exit Do
+            End If
+        End If
+    Loop
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Sub MainWnd_Destroy()
+    Puzzle_DestroyObjects()
+    PostQuitMessage(0)
+End Sub
+
+Sub MainWnd_Create(ByRef CreateStruct As CREATESTRUCT)
+    ' テーブル配列の初期化
+    Dim i As Long
+    For i=0 To 15
+        table[i]=i
+    Next
+
+    '擬似乱数を初期化
+    Randomize
+
+    ' シャッフル
+	Shuffle()
+
+    ' MainThread関数を新規スレッドで実行する
+    Dim dwDummy As DWord
+    CreateThread(ByVal 0,0,AddressOf(MainThread),0,0,VarPtr(dwDummy))
+End Sub
+
+Sub MainWnd_KeyDown(KeyCode As Long, flags As Long)
+    If KeyCode=VK_LEFT or KeyCode=VK_RIGHT or KeyCode=VK_UP or KeyCode=VK_DOWN Then
+        '十字キーが押された時はMoveCode変数に値をセット
+        MoveCode=KeyCode
+    Else
+        'それ以外は0をセット
+        MoveCode=0
+    End If
+End Sub
+
+Sub MainWnd_Paint(hDC As Long)
+    'パズルテーブルを描画
+    ShowTable(hDC)
+End Sub
+
+Sub MainWnd_ShuffleButton_Click()
+    'シャッフルする
+    Shuffle()
+
+    '再描画
+    InvalidateRect(hMainWnd,ByVal 0,0)
+
+    'メインウィンドウにフォーカスをセット
+    SetFocus(hMainWnd)
+End Sub

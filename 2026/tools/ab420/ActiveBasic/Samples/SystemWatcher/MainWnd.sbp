@@ -1,0 +1,136 @@
+'-----------------------------------------------------------------------------
+'  イベント プロシージャ
+'-----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [MainWnd] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hMainWnd
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+Dim RenewalTiming As Long    '更新間隔
+RenewalTiming=500            'ミリ秒
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Function MainWndProc(hWnd As DWord, dwMsg As DWord, wParam As DWord, lParam As DWord) As DWord
+	' TODO: この位置にウィンドウメッセージを処理するためのコードを記述します。
+
+	' イベントプロシージャの呼び出しを行います。
+	MainWndProc=EventCall_MainWnd(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ここから下は、イベントプロシージャを記述するための領域になります。
+
+Sub MainWnd_Destroy()
+
+    'タイマーを終了する
+    KillTimer(hMainWnd,0)
+
+    SystemWatcher_DestroyObjects()
+    PostQuitMessage(0)
+End Sub
+
+Sub MainWnd_Create(ByRef CreateStruct As CREATESTRUCT)
+    Dim buf As String
+    Dim hProgBar As Long
+
+    '--------------------------
+    ' OSのバージョン情報を取得
+    '--------------------------
+    Dim OsVerInfo As OSVERSIONINFO
+    Dim BuildNum As Long
+    OsVerInfo.dwOSVersionInfoSize=Len(OsVerInfo)
+    GetVersionEx(OsVerInfo)
+
+    If OsVerInfo.dwPlatformId=VER_PLATFORM_WIN32_WINDOWS Then
+        'Windows 9x系OS（メジャーバージョンは常に4）
+        Select Case OsVerInfo.dwMinorVersion
+            Case 0
+                buf="Windows 95"
+            Case 10
+                buf="Windows 98"
+            Case 90
+                buf="Windows Me"
+        End Select
+        BuildNum=LOWORD(OsVerInfo.dwBuildNumber)
+    ElseIf OsVerInfo.dwPlatformId=VER_PLATFORM_WIN32_NT Then
+        'Windows NT系OS
+        If OsVerInfo.dwMajorVersion=4 Then
+            buf="Windows NT"
+        ElseIf OsVerInfo.dwMajorVersion=5 Then
+            If OsVerInfo.dwMinorVersion=0 Then
+                buf="Windows 2000"
+            ElseIf OsVerInfo.dwMinorVersion=1 Then
+                buf="Windows XP"
+            End If
+        End If
+        BuildNum=OsVerInfo.dwBuildNumber
+    End If
+
+    'OS情報をウィンドウに表示する
+    SetWindowText(GetDlgItem(hMainWnd,Static_OSName),buf)
+    SetWindowText(GetDlgItem(hMainWnd,Static_OSBuildNum),Str$(BuildNum))
+    SetWindowText(GetDlgItem(hMainWnd,Static_OSNote),OsVerInfo.szCSDVersion)
+
+
+    '------------------
+    ' メモリ情報を取得
+    '------------------
+    Dim MemStatus As MEMORYSTATUS
+	Dim rate_Physical As Long, rate_Virtual As Long
+    MemStatus.dwLength=Len(MemStatus)
+    GlobalMemoryStatus(MemStatus)
+
+    '物理メモリに関する情報を表示する
+    rate_Physical=MemStatus.dwMemoryLoad
+    SetWindowText(GetDlgItem(hMainWnd,Static_RatePhysical),Str$(rate_Physical)+"%")
+    SetWindowText(GetDlgItem(hMainWnd,Static_TotalPhysical),Str$(Int(MemStatus.dwTotalPhys/1024))+"KB")
+    SetWindowText(GetDlgItem(hMainWnd,Static_UsedPhysical),Str$(Int((MemStatus.dwTotalPhys-MemStatus.dwAvailPhys)/1024))+"KB")
+
+    '仮想メモリに関する情報を表示する
+    rate_Virtual=Int(CDbl(MemStatus.dwTotalPageFile-MemStatus.dwAvailPageFile)/CDbl(MemStatus.dwTotalPageFile)*100)
+    SetWindowText(GetDlgItem(hMainWnd,Static_RateVirtual),Str$(rate_Virtual)+"%")
+    SetWindowText(GetDlgItem(hMainWnd,Static_TotalVirtual),Str$(Int(MemStatus.dwTotalPageFile/1024))+"KB")
+    SetWindowText(GetDlgItem(hMainWnd,Static_UsedVirtual),Str$(Int((MemStatus.dwTotalPageFile-MemStatus.dwAvailPageFile)/1024))+"KB")
+
+    '物理メモリ使用率のプログレスバーの初期設定
+    SendMessage(GetDlgItem(hMainWnd,ProgressBar_Physical),PBM_SETRANGE,0,MAKELONG(0,100))
+    SendMessage(GetDlgItem(hMainWnd,ProgressBar_Physical),PBM_SETPOS,rate_Physical,0)
+
+    '仮想メモリ使用率のプログレスバーの初期設定
+    SendMessage(GetDlgItem(hMainWnd,ProgressBar_Virtual),PBM_SETRANGE,0,MAKELONG(0,100))
+    SendMessage(GetDlgItem(hMainWnd,ProgressBar_Virtual),PBM_SETPOS,rate_Virtual,0)
+
+
+    'メモリ使用率のタイマーを設定（RenewalTiming秒間隔）
+    SetTimer(hMainWnd,0,RenewalTiming,0)
+End Sub
+
+Sub MainWnd_Timer(ByVal TimerID As Long)
+    Dim MemStatus As MEMORYSTATUS
+    Dim rate_Physical As Long, rate_Virtual As Long
+
+
+    '------------------
+    ' メモリ情報を取得
+    '------------------
+
+    MemStatus.dwLength=Len(MemStatus)
+    GlobalMemoryStatus(MemStatus)
+
+    '物理メモリに関する情報を更新する
+    rate_Physical=MemStatus.dwMemoryLoad
+    SetWindowText(GetDlgItem(hMainWnd,Static_RatePhysical),Str$(rate_Physical)+"%")
+    SetWindowText(GetDlgItem(hMainWnd,Static_UsedPhysical),Str$(Int((MemStatus.dwTotalPhys-MemStatus.dwAvailPhys)/1024))+"KB")
+
+    '仮想メモリに関する情報を更新する
+	rate_Virtual=Int(CDbl(MemStatus.dwTotalPageFile-MemStatus.dwAvailPageFile)/CDbl(MemStatus.dwTotalPageFile)*100)
+    SetWindowText(GetDlgItem(hMainWnd,Static_RateVirtual),Str$(rate_Virtual)+"%")
+    SetWindowText(GetDlgItem(hMainWnd,Static_UsedVirtual),Str$(Int((MemStatus.dwTotalPageFile-MemStatus.dwAvailPageFile)/1024))+"KB")
+
+    'プログレスバーの位置を設定
+    SendMessage(GetDlgItem(hMainWnd,ProgressBar_Physical),PBM_SETPOS,rate_Physical,0)
+    SendMessage(GetDlgItem(hMainWnd,ProgressBar_Virtual),PBM_SETPOS,rate_Virtual,0)
+End Sub

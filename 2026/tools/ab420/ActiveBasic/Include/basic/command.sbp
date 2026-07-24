@@ -1,0 +1,422 @@
+'command.sbp
+
+Const _System_Type_Byte =	2
+Const _System_Type_Word =	4
+Const _System_Type_DWord =	6
+Const _System_Type_Single =	9
+Const _System_Type_Double =	10
+Const _System_Type_String =	11
+Const _System_MAX_PARMSNUM = 32-1
+
+Macro BEEP()
+	MessageBeep(MB_OK)
+End Macro
+
+Sub _System_Call_Destructor_of_GlobalObject()	'dummy
+End Sub
+
+Macro END()
+	_System_Call_Destructor_of_GlobalObject()
+	ExitProcess(0)
+End Macro
+
+Macro EXEC(lpFilePath As *Byte)(lpCmdLine As *Byte)
+	ShellExecute(0,"open",lpFilePath,lpCmdLine,0,SW_SHOWNORMAL)
+End Macro
+
+Macro INPUT()	'dummy（INPUT_FromFile、INPUT_FromPromptを参照）
+End Macro
+
+Macro PRINT()	'dummy（PRINT_ToFile、PRINT_ToPromptを参照）
+End Macro
+
+Macro RANDOMIZE()
+	srand(GetTickCount())
+End Macro
+
+Macro WRITE()	'dummy（PRINT_ToFile、PRINT_ToPromptを参照）
+End Macro
+
+
+'----------------
+' ウィンドウ関連
+'----------------
+
+Macro MSGBOX(hWnd As HWND, lpStr As String)(lpTitle As String, BoxType As DWord, ByRef retAns As DWord)
+	If VarPtr(retAns) Then
+		retAns=MessageBox(hWnd,lpStr,lpTitle,BoxType)
+	Else
+		MessageBox(hWnd,lpStr,lpTitle,BoxType)
+	End If
+End Macro
+
+Macro WINDOW(ByRef hWnd As Long, hOwner As Long, x As Long, y As Long, nWidth As Long, nHeight As Long, lpTitle As String, dwStyle As DWord)(lpClass As String, id As DWord, lpFunc As DWord, dwExStyle As DWord)
+	If VarPtr(hWnd) Then
+		hWnd=CreateWindowEx(dwExStyle,lpClass,lpTitle,dwStyle,x,y,nWidth,nHeight,hOwner,id,GetModuleHandle(0),NULL)
+	Else
+		CreateWindowEx(dwExStyle,lpClass,lpTitle,dwStyle,x,y,nWidth,nHeight,hOwner,id,GetModuleHandle(0),NULL)
+	End If
+End Macro
+
+Macro DELWND(hWnd As HWND)
+	DestroyWindow(hWnd)
+End Macro
+
+Macro INSMENU(hMenu As HMENU, PosID As Long, flag As Long)(lpString As String, id As Long, hSubMenu As HMENU, state As Long)
+	Dim mii As MENUITEMINFO
+
+	FillMemory(VarPtr(mii),Len(mii),0)
+	mii.cbSize=Len(mii)
+	mii.fMask=MIIM_TYPE
+
+	If StrPtr(lpString)=0 Then
+		mii.fType=MFT_SEPARATOR
+	Else
+		mii.fType=MFT_STRING
+		mii.fMask=mii.fMask or MIIM_STATE or MIIM_ID
+		mii.dwTypeData=StrPtr(lpString)
+		mii.wID=id
+		If hSubMenu Then
+			mii.fMask=mii.fMask or MIIM_SUBMENU
+			mii.hSubMenu=hSubMenu
+		End If
+		mii.fState=state
+	End If
+
+	InsertMenuItem(hMenu,PosID,flag,mii)
+End Macro
+
+
+'--------------
+' ファイル関連
+'--------------
+
+Dim _System_hFile(255) As Long
+Macro OPEN(lpFileName As String, AccessFor As Long, FileNumber As Long)
+	Dim dwAccess As Long
+	Dim bAppend As Long
+	Dim dwCreationDisposition As Long
+
+	FileNumber=FileNumber-1
+
+	bAppend=0
+	Select Case AccessFor
+		Case 0
+			dwAccess=GENERIC_READ or GENERIC_WRITE
+			dwCreationDisposition=OPEN_ALWAYS
+		Case 1
+			dwAccess=GENERIC_READ
+			dwCreationDisposition=OPEN_EXISTING
+		Case 2
+			dwAccess=GENERIC_WRITE
+			dwCreationDisposition=CREATE_ALWAYS
+		Case 3
+			dwAccess=GENERIC_WRITE
+			dwCreationDisposition=OPEN_ALWAYS
+			bAppend=1
+	End Select
+
+	_System_hFile(FileNumber)=CreateFile(lpFileName,dwAccess,0,ByVal NULL,dwCreationDisposition,FILE_ATTRIBUTE_NORMAL,NULL)
+
+	If bAppend Then SetFilePointer(_System_hFile(FileNumber),0,NULL,FILE_END)
+End Macro
+Macro CLOSE()(FileNumber As Long)
+	FileNumber=FileNumber-1
+
+	If _System_hFile(FileNumber) Then
+		CloseHandle(_System_hFile(FileNumber))
+		_System_hFile(FileNumber)=0
+	End If
+End Macro
+
+'INPUT Command Data
+Dim _System_InputDataPtr[_System_MAX_PARMSNUM] As VoidPtr
+Dim _System_InputDataType[_System_MAX_PARMSNUM] As DWord
+Sub INPUT_FromFile(FileNumber As Long)
+	Dim i As Long ,i2 As Long, i3 As Long
+	Dim buffer As String
+	Dim temp[1] As Byte
+	Dim dwAccessBytes As DWord
+	Dim IsStr As Long
+
+	FileNumber=FileNumber-1
+
+	buffer=ZeroString(GetFileSize(_System_hFile[FileNumber],0))
+
+	i=0
+	While 1
+		'次のデータをサーチ
+		Do
+			i2=ReadFile(_System_hFile[FileNumber],temp,1,VarPtr(dwAccessBytes),ByVal 0)
+			If i2=0 or dwAccessBytes=0 Then
+				'error
+				Exit Macro
+			End If
+		Loop While temp[0]=32 or temp[0]=9
+		SetFilePointer(_System_hFile[FileNumber],-1,0,FILE_CURRENT)
+
+		'読み込み
+		i3=-1
+		IsStr=0
+		While 1
+			i3=i3+1
+
+			i2=ReadFile(_System_hFile[FileNumber],temp,1,VarPtr(dwAccessBytes),ByVal 0)
+			If i2=0 or (i3=0 and dwAccessBytes=0) Then
+				'error
+				Exit Macro
+			End If
+			If temp[0]=34 Then IsStr=IsStr xor 1
+
+			buffer[i3]=temp[0]
+			If dwAccessBytes=0 or temp[0]=0 or temp[0]=13 or temp[0]=10 or (IsStr=0 and temp[0]=Asc(",")) or (IsStr=0 and (temp[0]=32 or temp[0]=9) and _System_InputDataType[i]<>_System_Type_String) Then
+				If temp[0]=13 Then
+					ReadFile(_System_hFile[FileNumber],temp,1,VarPtr(dwAccessBytes),ByVal 0)
+					If Not(dwAccessBytes<>0 And temp[0]=10) Then
+						SetFilePointer(_System_hFile[FileNumber],-1,0,FILE_CURRENT)
+						Continue
+					End If
+				End If
+
+				If temp[0]=32 or temp[0]=9 Then
+					While 1
+						ReadFile(_System_hFile[FileNumber],temp,1,VarPtr(dwAccessBytes),ByVal 0)
+						If dwAccessBytes=0 Then Exit While
+						If temp[0]=Asc(",") Then Exit While
+						If Not(temp[0]=32 or temp[0]=9) Then
+							SetFilePointer(_System_hFile[FileNumber],-1,0,FILE_CURRENT)
+							Exit While
+						End If
+					Wend
+				End If
+
+				buffer[i3]=0
+				Exit While
+			End If
+		Wend
+
+		'データを変数に格納
+		Select Case _System_InputDataType[i]
+			Case _System_Type_Double
+				SetDouble(_System_InputDataPtr[i],Val(buffer))
+			Case _System_Type_Single
+				SetSingle(_System_InputDataPtr[i],Val(buffer))
+			Case _System_Type_DWord
+				SetDWord(_System_InputDataPtr[i],Val(buffer))
+			Case _System_Type_Word
+				SetWord(_System_InputDataPtr[i],Val(buffer))
+			Case _System_Type_Byte
+				SetByte(_System_InputDataPtr[i],Val(buffer))
+			Case _System_Type_String
+				_System_HeapStringFree(GetDWord(_System_InputDataPtr[i]))
+				i2=lstrlen(buffer)
+				SetDWord(_System_InputDataPtr[i],_System_HeapStringAlloc(i2))
+				memcpy(GetDWord(_System_InputDataPtr[i]),buffer,i2)
+		End Select
+
+		i=i+1
+		If _System_InputDataPtr[i]=0 Then Exit While
+	Wend
+End Sub
+
+Sub PRINT_ToFile(FileNumber As Long, buf As String)
+	Dim dwAccessByte As DWord
+	FileNumber=FileNumber-1
+
+	WriteFile(_System_hFile(FileNumber),buf,Len(buf),VarPtr(dwAccessByte),ByVal NULL)
+End Sub
+
+Dim _System_UsingDblData[_System_MAX_PARMSNUM] As Double
+Dim _System_UsingStrData[_System_MAX_PARMSNUM] As String
+Dim _System_UsingDataType[_System_MAX_PARMSNUM] As DWord
+Function _System_GetUsingFormat(UsingStr As String) As String
+	Dim i2 As Long, i3 As Long, i4 As Long, i5 As Long, ParmNum As Long
+	Dim temporary[255] As Byte
+	Dim buffer As String
+
+	buffer=ZeroString(1024)
+
+	ParmNum=0
+	i2=0
+	While 1
+		While 1
+			If UsingStr[i2]=Asc("#") or UsingStr[i2]=Asc("@") or UsingStr[i2]=Asc("&") Then Exit While
+			buffer[i3]=UsingStr[i2]
+			If UsingStr[i2]=0 Then Exit While
+			i2=i2+1
+			i3=i3+1
+		Wend
+
+		If UsingStr[i2]=0 Then Exit While
+
+		If UsingStr[i2]=Asc("#") Then
+			Dim dec As Long, sign As Long
+			Dim temp2 As BytePtr
+
+			Dim length_num As Long, length_buf As Long
+			Dim dblRoundOff=0 As Double
+
+
+			'----------------------
+			' 四捨五入を考慮
+			'----------------------
+
+			i4=i2
+			While UsingStr[i4]=Asc("#")
+				i4=i4+1
+			Wend
+			If UsingStr[i4]=Asc(".") Then
+				i4=i4+1
+
+				dblRoundOff=0.5
+				While UsingStr[i4]=Asc("#")
+					i4=i4+1
+					dblRoundOff=dblRoundOff/10
+				Wend
+			End If
+
+
+			'浮動小数点を文字列に変換
+			temp2=_ecvt(_System_UsingDblData[ParmNum]+dblRoundOff,15,dec,sign)
+
+			'整数部
+			length_num=dec
+			If length_num<=0 Then length_num=1
+
+			'符号が有る場合は、一文字分のスペースを考慮する
+			If sign Then length_num=length_num+1
+
+			length_buf=0
+			Do
+				i2=i2+1
+				length_buf=length_buf+1
+			Loop While UsingStr[i2]=Asc("#")
+
+			If length_buf>=length_num Then
+				'通常時
+				FillMemory(StrPtr(buffer)+i3,length_buf-length_num,Asc(" "))
+				i3=i3+(length_buf-length_num)
+
+				If sign Then
+					buffer[i3]=Asc("-")
+					i3=i3+1
+
+					length_num=length_num-1
+				End If
+
+				If dec>0 Then
+					memcpy(StrPtr(buffer)+i3,temp2,length_num)
+				Else
+					buffer[i3]=&H30
+				End If
+
+				i3=i3+length_num
+			Else
+				'表示桁が足りないとき
+				FillMemory(StrPtr(buffer)+i3,length_buf,Asc("#"))
+				i3=i3+length_buf
+			End If
+
+			If UsingStr[i2]=Asc(".") Then
+				buffer[i3]=UsingStr[i2]
+				i2=i2+1
+				i3=i3+1
+
+				i4=dec
+				While UsingStr[i2]=Asc("#")
+					If i4<0 Then
+						buffer[i3]=&H30
+					Else
+						buffer[i3]=temp2[i4]
+					End If
+					i3=i3+1
+					i4=i4+1
+
+					i2=i2+1
+				Wend
+			End If
+		ElseIf UsingStr[i2]=Asc("@") Then
+			i2=i2+1
+
+			lstrcat(StrPtr(buffer)+i3,_System_UsingStrData[ParmNum])
+			i3=i3+lstrlen(_System_UsingStrData[ParmNum])
+		ElseIf UsingStr[i2]=Asc("&") Then
+			i4=0
+			Do
+				i4=i4+1
+				i2=i2+1
+			Loop While UsingStr[i2]=Asc(" ")
+
+			If UsingStr[i2]=Asc("&") Then
+				i4=i4+1
+				i2=i2+1
+				i5=lstrlen(_System_UsingStrData[ParmNum])
+				If i4<=i5 Then
+					i5=i4
+				Else
+					FillMemory(StrPtr(buffer)+i3,i4,Asc(" "))
+				End If
+				memcpy(StrPtr(buffer)+i3,_System_UsingStrData[ParmNum],i5)
+				i3=i3+i4
+			Else
+				i2=i2-i4
+				buffer[i3]=Asc("&")
+				i2=i2+1
+				i3=i3+1
+				Continue
+			End If
+		End If
+
+		ParmNum=ParmNum+1
+	Wend
+
+	_System_GetUsingFormat=Left$(buffer,lstrlen(buffer))
+End Function
+Sub PRINTUSING_ToFile(FileNumber As Long, UsingStr As String)
+	Dim dwAccessByte As DWord
+	Dim buf As String
+
+	FileNumber=FileNumber-1
+	buf=_System_GetUsingFormat(UsingStr)
+
+	WriteFile(_System_hFile(FileNumber),buf,Len(buf),VarPtr(dwAccessByte),ByVal NULL)
+End Sub
+
+Dim _System_FieldSize(255) As Long
+Macro FIELD(FileNumber As Long, FieldSize As Long)
+	FileNumber=FileNumber-1
+
+	_System_FieldSize(FileNumber)=FieldSize
+End Macro
+Macro GET(FileNumber As Long, RecodeNumber As Long, ByRef lpBuffer As String)
+	Dim dwAccessByte As Long
+
+	FileNumber=FileNumber-1
+	RecodeNumber=RecodeNumber-1
+
+	SetFilePointer(_System_hFile(FileNumber),RecodeNumber*_System_FieldSize(FileNumber),NULL,FILE_BEGIN)
+	lpBuffer=ZeroString(_System_FieldSize(FileNumber))
+	ReadFile(_System_hFile(FileNumber),lpBuffer,_System_FieldSize(FileNumber),VarPtr(dwAccessByte),ByVal NULL)
+	If Not dwAccessByte=_System_FieldSize(FileNumber) Then
+		lpBuffer=Left$(lpBuffer,dwAccessByte)
+	End If
+End Macro
+Macro PUT(FileNumber As Long, RecodeNumber As Long, ByRef lpBuffer As String)
+	Dim dwAccessByte As Long
+
+	FileNumber=FileNumber-1
+	RecodeNumber=RecodeNumber-1
+
+	SetFilePointer(_System_hFile(FileNumber),RecodeNumber*_System_FieldSize(FileNumber),NULL,FILE_BEGIN)
+	WriteFile(_System_hFile(FileNumber),lpBuffer,_System_FieldSize(FileNumber),VarPtr(dwAccessByte),ByVal NULL)
+End Macro
+
+Macro CHDIR(path As String)
+	SetCurrentDirectory(path)
+End Macro
+Macro MKDIR(path As String)
+	CreateDirectory(path,ByVal 0)
+End Macro
+Macro KILL(path As String)
+	DeleteFile(path)
+End Macro

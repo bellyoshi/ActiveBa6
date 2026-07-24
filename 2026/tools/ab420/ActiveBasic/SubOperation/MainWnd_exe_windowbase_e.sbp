@@ -1,0 +1,29 @@
+'=============================================================================
+'  Event Procedures
+'=============================================================================
+' You input event codes of window[MainWnd].
+' Window Handle: hMainWnd
+
+' TODO: Add code here to define global variables or objects or constants or functions.
+
+
+'-----------------------------------------------------------------------------
+' Callback function to process window messages
+'-----------------------------------------------------------------------------
+
+Function MainWndProc(hWnd As HWND, dwMsg As DWord, wParam As WPARAM, lParam As LPARAM) As DWord
+	' TODO: Add code here to process window messages.
+
+	' Call the default event procedure.
+	MainWndProc=EventCall_MainWnd(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' The following is Event Procedures
+'-----------------------------------------------------------------------------
+
+Sub MainWnd_Destroy()
+	#name#_DestroyObjects()
+	PostQuitMessage(0)
+End Sub

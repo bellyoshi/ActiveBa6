@@ -1,0 +1,434 @@
+'-----------------------------------------------------------------------------
+'  イベント プロシージャ
+'-----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [MainWnd] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hMainWnd
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+
+'ファイルをダウンロードする際の区切りサイズ
+Const BUF_LEN=4096
+
+'URLの最大文字数
+Const MAX_URL=1024
+
+
+'URLを一時的に保持するためのバッファ
+Dim szDownloadUrl[MAX_URL-1] As Byte
+
+'フォルダパスを一時的に保持するためのバッファ
+Dim szFolderPath[MAX_PATH-1] As Byte
+
+
+'ダウンロードの回数をカウントするための変数
+Dim CountDownNum As Long
+CountDownNum=0
+
+
+'キャンセル用（通常時は-1、キャンセル指定時はダウンロードナンバー）
+Dim CancelDownNum As Long
+CancelDownNum=-1
+
+
+Function GetContentByteSize(buffer As BytePtr) As Long
+    'この関数では、ヘッダデータを元にコンテンツ（ファイル）サイズを取得します
+
+    Dim i As Long
+
+    For i=0 To BUF_LEN
+        If buffer[i]=0 Then
+            '一致しなかったときは、戻り値を-1にセットする（不明扱い）
+            GetContentByteSize=-1
+            Exit For
+        End If
+
+        If memicmp(buffer+i,"Content-Length:",15)=0 Then
+            '"Content-Length:" を検索し、それに続く数値を取得する
+            i=i+16
+            While buffer[i]=32
+                i=i+1
+            Wend
+
+            '戻り値にファイルサイズを指定する
+            GetContentByteSize=Val(buffer+i)
+            Exit For
+        End If
+    Next
+End Function
+
+Sub SetMsgText_To_ListView(lpszText As BytePtr, ParamNum As Long)
+    Dim lvFind As LVFINDINFO
+    Dim lvItem As LVITEM
+    Dim nIndex As Long
+
+    'ParamNumを元に、先頭からのインデックス番号を取得
+    lvFind.flags=LVFI_PARAM
+    lvFind.lParam=ParamNum
+    nIndex=SendDlgItemMessage(hMainWnd,ListView1,LVM_FINDITEM,-1,VarPtr(lvFind))
+
+    'リストビューの「状況」欄を設定
+    lvItem.mask=LVIF_TEXT
+    lvItem.pszText=lpszText
+    lvItem.iItem=nIndex
+    lvItem.iSubItem=1
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_SETITEM,0,VarPtr(lvItem))
+End Sub 
+
+Sub SetNowDownByte_To_ListView(NowByte As Long, AllDownSize As Long, StartTime As Long, ParamNum As Long)
+    Dim lvFind As LVFINDINFO
+    Dim lvItem As LVITEM
+    Dim nIndex As Long
+    Dim buffer[32] As Byte
+
+    'ParamNumを元に、先頭からのインデックス番号を取得
+    lvFind.flags=LVFI_PARAM
+    lvFind.lParam=ParamNum
+    nIndex=SendDlgItemMessage(hMainWnd,ListView1,LVM_FINDITEM,-1,VarPtr(lvFind))
+
+    'リストビューの「現在のバイト数」欄を設定
+    wsprintf(buffer,"%d",NowByte)
+    lvItem.mask=LVIF_TEXT
+    lvItem.pszText=buffer
+    lvItem.iItem=nIndex
+    lvItem.iSubItem=3
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_SETITEM,0,VarPtr(lvItem))
+
+    'リストビューの「進行率」欄を設定
+    If AllDownSize=-1 Then
+        lstrcpy(buffer,"不明")
+    Else
+        wsprintf(buffer,"%d%%",Int((NowByte/AllDownSize)*100))
+    End If
+    lvItem.mask=LVIF_TEXT
+    lvItem.pszText=buffer
+    lvItem.iItem=nIndex
+    lvItem.iSubItem=4
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_SETITEM,0,VarPtr(lvItem))
+
+    'リストビューの「スピード」欄を設定
+    Dim Second As Long
+    Second=(GetTickCount()-StartTime)\1000
+    If Second=0 Then
+        buffer[0]=0
+    Else
+        wsprintf(buffer,"%d",(NowByte\Second)\1024)
+    End If
+    lvItem.mask=LVIF_TEXT
+    lvItem.pszText=buffer
+    lvItem.iItem=nIndex
+    lvItem.iSubItem=5
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_SETITEM,0,VarPtr(lvItem))
+End Sub 
+
+Sub HttpDownload()
+    Dim wsaData As WSADATA             'ソケットの初期化情報
+    Dim lpHost As *HOSTENT             'ホスト情報
+    Dim lpServ As *SERVENT             'サービス情報
+    Dim s As DWord                     'ソケット記述子
+    Dim sockaddress As SOCKADDR_IN     'アドレス情報
+
+    Dim NowDownNum As Long                  'ダウンロードナンバー
+    Dim StartTime As Long                   'ダウンロードを開始した時間（Windows起動からのタイマー）
+    Dim szServerName[255] As Byte           'サーバー名
+    Dim OnLine_FilePath[MAX_URL-1] As Byte  'オンライン上のファイルパス
+    Dim Save_FilePath[255] As Byte          '保存先のファイルパス
+
+    Dim i As Long, i2 As Long
+    Dim buffer[BUF_LEN] As Byte
+    Dim buf2[255] As Byte
+    Dim pTemp As BytePtr
+
+    Dim lvItem As LVITEM              'リストビューのアイテム設定時に使用する構造体
+
+
+    'NowDownNumにダウンロードナンバーを割り当て、CountDownNumには1を加算する
+    NowDownNum=CountDownNum
+    CountDownNum=CountDownNum+1
+
+
+    'ダウンロードの開始時間をセット
+    StartTime=GetTickCount()
+
+
+    '-----------
+    ' URLを解析
+    '-----------
+    If memcmp(szDownloadUrl,"http://",7)=0 Then
+        pTemp=szDownloadUrl+7
+    Else
+        pTemp=szDownloadUrl
+    End If
+
+    'サーバー名を取得
+    i=0
+    Do
+        If pTemp[i]=Asc("/") or pTemp[i]=0 Then
+            szServerName[i]=0
+            Exit Do
+        End If
+        szServerName[i]=pTemp[i]
+        i=i+1
+    Loop
+
+    'オンライン上のファイルパスを取得
+    lstrcpy(OnLine_FilePath,pTemp+i)
+
+    '保存先ファイル名を決定
+    i=lstrlen(pTemp)-1
+    Do
+        If pTemp[i]=Asc("/") Then
+            wsprintf(Save_FilePath,"%s\%s",szFolderPath,pTemp+i+1)
+
+            'リストビューにファイルを追加
+            lvItem.mask=LVIF_TEXT or LVIF_PARAM
+            lvItem.pszText=pTemp+i+1
+            lvItem.iItem=0
+            lvItem.iSubItem=0
+            lvItem.lParam=NowDownNum
+            SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTITEM,0,VarPtr(lvItem))
+
+            Exit Do
+        End If
+        i=i-1
+        If i<0 Then Exit Do
+    Loop
+
+
+
+    '--------------
+    ' ソケット接続
+    '--------------
+
+    'WinSock Ver1.1の初期化
+    WSAStartup(MAKEWORD(1,1),wsaData)
+
+    'サーバーを探す
+    lpHost=gethostbyname(szServerName)
+    If lpHost=0 Then
+        wsprintf(buffer,"%sが見つかりません",szServerName)
+        SetMsgText_To_ListView(buffer,NowDownNum)
+        Exit Function
+    End If
+
+    'ソケットをオープン
+    s=socket(AF_INET, SOCK_STREAM, 0)
+    If s=0 Then
+        SetMsgText_To_ListView("ソケットのオープンに失敗",NowDownNum)
+        Exit Function
+    End If
+
+    'HTTPのポート番号を取得
+    lpServ = getservbyname("http", "tcp")
+    If lpServ=0 Then
+        'デフォルトのポート番号を使用
+        sockaddress.sin_port=htons(80)
+    Else
+        sockaddress.sin_port=lpServ->s_port
+    End If
+
+    sockaddress.sin_family=AF_INET
+    sockaddress.sin_addr=GetDWord(GetDWord(lpHost->h_addr_list))
+
+    'サーバーに接続
+    If connect(s,sockaddress,Len(sockaddress)) Then
+        SetMsgText_To_ListView("サーバーへの接続に失敗",NowDownNum)
+        Exit Function
+    End If
+    SetMsgText_To_ListView("サーバー接続に成功",NowDownNum)
+
+    'ファイル要求を送信する
+    wsprintf(buffer,Ex"GET %s HTTP/1.1\r\n",OnLine_FilePath)
+    send(s, buffer, lstrlen(buffer), 0)
+
+    wsprintf(buffer,Ex"Host: %s\r\n",szServerName)
+    send(s, buffer, lstrlen(buffer), 0)
+
+    lstrcpy(buffer,Ex"Connection: close\r\n")
+    send(s, buffer, lstrlen(buffer), 0)
+
+    lstrcpy(buffer,Ex"\r\n")
+    send(s, buffer, lstrlen(buffer), 0)
+
+
+
+    '------------------
+    ' ダウンロード開始
+    '------------------
+    SetMsgText_To_ListView("ダウンロード中...",NowDownNum)
+
+    Dim dwAccessByte As DWord
+    Dim hFile As DWord
+    hFile=CreateFile(Save_FilePath, GENERIC_WRITE, 0, _
+                     ByVal 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)
+    If hFile=INVALID_HANDLE_VALUE Then
+        SetMsgText_To_ListView("書き込み先ファイルが使用中です",NowDownNum)
+        goto *Exit_WinSock
+    End If
+
+    Dim AllDownSize As Long
+    Dim NowDownByte As Long
+
+    'ヘッダを含む最初のデータブロックを受信する
+    i=recv(s, buffer, BUF_LEN, 0)
+    buffer[i]=0
+
+    'ヘッダ情報からファイルサイズを取得
+    AllDownSize=GetContentByteSize(buffer)
+
+    'ヘッダの取り除き作業
+    For i2=0 To i-1
+        If buffer[i2]=13 And buffer[i2+1]=10 And buffer[i2+2]=13 And buffer[i2+3]=10 Then
+            'リストビューの「サイズ」欄を設定
+            If AllDownSize=-1 Then
+                lstrcpy(buf2,"不明")
+            Else
+                wsprintf(buf2,"%d",AllDownSize)
+            End If
+            lvItem.mask=LVIF_TEXT
+            lvItem.pszText=buf2
+            lvItem.iItem=0
+            lvItem.iSubItem=2
+            SendDlgItemMessage(hMainWnd,ListView1,LVM_SETITEM,0,VarPtr(lvItem))
+
+            'ヘッダに続く本体データをファイルに書き込む
+            i2=i2+4
+            WriteFile(hFile,buffer+i2,i-i2,VarPtr(dwAccessByte),ByVal 0)
+
+            'リストビューの「現在のバイト数」を更新
+            NowDownByte=i-i2
+            SetNowDownByte_To_ListView(NowDownByte,AllDownSize,StartTime,NowDownNum)
+            Exit For
+        End If
+    Next
+
+    Do
+        If CancelDownNum=NowDownNum Then
+            'キャンセル指定が行われたとき
+            SetMsgText_To_ListView("キャンセルしました",NowDownNum)
+
+            'キャンセルナンバーを通常時の-1に戻す
+            CancelDownNum=-1
+
+            Exit Do
+        End If
+
+        'データブロックを受信
+        i=recv(s, buffer, BUF_LEN, 0)
+        If i=0 Then
+            'ダウンロードが完了したとき
+            SetMsgText_To_ListView("ダウンロード完了",NowDownNum)
+
+            Exit Do
+        End If
+        buffer[i]=0
+
+        'ファイルへの追加書き込み
+        WriteFile(hFile,buffer,i,VarPtr(dwAccessByte),ByVal 0)
+
+        'リストビューの「現在のバイト数」「進行率」を更新
+        NowDownByte=NowDownByte+i
+        SetNowDownByte_To_ListView(NowDownByte,AllDownSize,StartTime,NowDownNum)
+    Loop
+
+    'ファイル ハンドルを閉じる
+    CloseHandle(hFile)
+
+
+*Exit_WinSock
+    '--------------
+    '    後処理
+    '--------------
+
+    'ソケットへの接続を閉じる
+    shutdown(s,SD_BOTH)
+    closesocket(s)
+
+    'WinSockが使用したメモリを解放
+    WSACleanup()
+End Sub
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Function MainWndProc(hWnd As DWord, dwMsg As DWord, wParam As DWord, lParam As DWord) As DWord
+	' TODO: この位置にウィンドウメッセージを処理するためのコードを記述します。
+
+	' イベントプロシージャの呼び出しを行います。
+	MainWndProc=EventCall_MainWnd(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ここから下は、イベントプロシージャを記述するための領域になります。
+
+Sub MainWnd_Destroy()
+	Downloader_DestroyObjects()
+	PostQuitMessage(0)
+End Sub
+
+Sub MainWnd_Create(ByRef CreateStruct As CREATESTRUCT)
+    '行全体を選択するように設定
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_SETEXTENDEDLISTVIEWSTYLE,0,LVS_EX_FULLROWSELECT)
+
+
+    '----------------------------
+    ' リストビューのカラムを設定
+    '----------------------------
+    Dim lc As LVCOLUMN
+    lc.mask=LVCF_FMT or LVCF_WIDTH or LVCF_TEXT or LVCF_SUBITEM
+    lc.fmt=LVCFMT_LEFT
+
+    lc.cx=100
+    lc.pszText="ファイル名"
+    lc.iSubItem=0
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTCOLUMN,0,VarPtr(lc))
+
+    lc.cx=150
+    lc.pszText="状態"
+    lc.iSubItem=1
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTCOLUMN,1,VarPtr(lc))
+
+    lc.cx=90
+    lc.pszText="サイズ(byte)"
+    lc.iSubItem=2
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTCOLUMN,2,VarPtr(lc))
+
+    lc.cx=90
+    lc.pszText="現在のバイト数(byte)"
+    lc.iSubItem=3
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTCOLUMN,3,VarPtr(lc))
+
+    lc.cx=90
+    lc.pszText="進行率(%)"
+    lc.iSubItem=4
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTCOLUMN,4,VarPtr(lc))
+
+    lc.cx=90
+    lc.pszText="スピード(KB/s)"
+    lc.iSubItem=5
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_INSERTCOLUMN,5,VarPtr(lc))
+End Sub
+
+Sub MainWnd_Resize(SizeType As Long, cx As Integer, cy As Integer)
+    MoveWindow(GetDlgItem(hMainWnd,ListView1),0,0,cx,cy,0)
+End Sub
+
+Sub MainWnd_IDM_ADDITION_MenuClick()
+    DialogBox(hMainWnd,"DownDlg")
+End Sub 
+
+Sub MainWnd_IDM_CANCEL_MenuClick()
+    Dim lvItem As LVITEM
+    Dim nIndex As Long
+
+    nIndex=SendDlgItemMessage(hMainWnd,ListView1,LVM_GETNEXTITEM,-1,LVNI_ALL or LVNI_SELECTED)
+
+    lvItem.mask=LVIF_PARAM
+    lvItem.iItem=nIndex
+    lvItem.iSubItem=0
+    SendDlgItemMessage(hMainWnd,ListView1,LVM_GETITEM,0,VarPtr(lvItem))
+
+    'キャンセルするダウンロードナンバーを指定
+    CancelDownNum=lvItem.lParam
+End Sub 

@@ -1,0 +1,707 @@
+' dmusic.sbp - This module contains the API for the DirectMusic performance layer
+
+#include <directx9\dsound.sbp>
+#include <directx9\dmdls.sbp>
+#include <directx9\dmusicc.sbp>
+#include <directx9\dmplugin.sbp>
+
+
+TypeDef REFERENCE_TIME = Int64
+TypeDef MUSIC_TIME     = Long
+
+
+' For DMUS_PMSG dwFlags
+Enum DMUS_PMSGF_FLAGS
+	DMUS_PMSGF_REFTIME          = 1
+	DMUS_PMSGF_MUSICTIME        = 2
+	DMUS_PMSGF_TOOL_IMMEDIATE   = 4
+	DMUS_PMSGF_TOOL_QUEUE       = 8
+	DMUS_PMSGF_TOOL_ATTIME      = &H10
+	DMUS_PMSGF_TOOL_FLUSH       = &H20
+	DMUS_PMSGF_LOCKTOREFTIME    = &H40
+	DMUS_PMSGF_DX8              = &H80
+End Enum
+
+Enum DMUS_PMSGT_TYPES
+	DMUS_PMSGT_MIDI             = 0
+	DMUS_PMSGT_NOTE             = 1
+	DMUS_PMSGT_SYSEX            = 2
+	DMUS_PMSGT_NOTIFICATION     = 3
+	DMUS_PMSGT_TEMPO            = 4
+	DMUS_PMSGT_CURVE            = 5
+	DMUS_PMSGT_TIMESIG          = 6
+	DMUS_PMSGT_PATCH            = 7
+	DMUS_PMSGT_TRANSPOSE        = 8
+	DMUS_PMSGT_CHANNEL_PRIORITY = 9
+	DMUS_PMSGT_STOP             = 10
+	DMUS_PMSGT_DIRTY            = 11
+	DMUS_PMSGT_WAVE             = 12
+	DMUS_PMSGT_LYRIC            = 13
+	DMUS_PMSGT_SCRIPTLYRIC      = 14
+	DMUS_PMSGT_USER             = 255
+End Enum
+
+Const DMUS_PCHANNEL_BROADCAST_PERFORMANCE   = &HFFFFFFFF  'PMsg is sent on all PChannels of the performance.
+Const DMUS_PCHANNEL_BROADCAST_AUDIOPATH     = &HFFFFFFFE  'PMsg is sent on all PChannels of the audio path.
+Const DMUS_PCHANNEL_BROADCAST_SEGMENT       = &HFFFFFFFD  'PMsg is sent on all PChannels of the segment.
+Const DMUS_PCHANNEL_BROADCAST_GROUPS        = &HFFFFFFFC  'A duplicate PMsg is for each Channels Groups in the performance.
+
+Const DMUS_PATH_SEGMENT           = &H1000      'Get the segment itself (from a segment state.)
+Const DMUS_PATH_SEGMENT_TRACK     = &H1100      'Look in Track List of Segment.
+Const DMUS_PATH_SEGMENT_GRAPH     = &H1200      'Get the segment's tool graph.
+Const DMUS_PATH_SEGMENT_TOOL      = &H1300      'Look in Tool Graph of Segment.
+Const DMUS_PATH_AUDIOPATH         = &H2000      'Get the audiopath itself (from a segment state.)
+Const DMUS_PATH_AUDIOPATH_GRAPH   = &H2200      'Get the audiopath's tool graph.
+Const DMUS_PATH_AUDIOPATH_TOOL    = &H2300      'Look in Tool Graph of Audio Path.
+Const DMUS_PATH_PERFORMANCE       = &H3000      'Access the performance.
+Const DMUS_PATH_PERFORMANCE_GRAPH = &H3200      'Get the performance's tool graph.
+Const DMUS_PATH_PERFORMANCE_TOOL  = &H3300      'Look in Tool Graph of Performance.
+Const DMUS_PATH_PORT              = &H4000      'Access the synth.
+Const DMUS_PATH_BUFFER            = &H6000      'Look in DirectSoundBuffer.
+Const DMUS_PATH_BUFFER_DMO        = &H6100      'Access a DMO in the buffer.
+Const DMUS_PATH_MIXIN_BUFFER      = &H7000      'Look in a global mixin buffer. 
+Const DMUS_PATH_MIXIN_BUFFER_DMO  = &H7100      'Access a DMO in a global mixin buffer. 
+Const DMUS_PATH_PRIMARY_BUFFER    = &H8000      'Access the primary buffer. 
+
+Const DMUS_PCHANNEL_ALL           = &HFFFFFFFB      
+
+Type DMUS_PMSG
+	dwSize As DWord
+	rtTime As REFERENCE_TIME
+	mtTime As MUSIC_TIME
+	dwFlags As DWord
+	dwPChannel As DWord
+	dwVirtualTrackID As DWord
+	pTool As *IDirectMusicTool
+	pGraph As *IDirectMusicGraph
+	dwType As DWord
+	dwVoiceID As DWord
+	dwGroupID As DWord
+	punkUser As *IUnknown
+End Type
+
+Const DMUS_APATH_SHARED_STEREOPLUSREVERB = 1
+Const DMUS_APATH_DYNAMIC_3D              = 6
+Const DMUS_APATH_DYNAMIC_MONO            = 7
+Const DMUS_APATH_DYNAMIC_STEREO          = 8
+
+' For DMUS_AUDIOPARAMS dwFeatures
+Const DMUS_AUDIOF_3D         = &H1
+Const DMUS_AUDIOF_ENVIRON    = &H2
+Const DMUS_AUDIOF_EAX        = &H4
+Const DMUS_AUDIOF_DMOS       = &H8
+Const DMUS_AUDIOF_STREAMING  = &H10
+Const DMUS_AUDIOF_BUFFERS    = &H20
+Const DMUS_AUDIOF_ALL        = &H3F
+
+' For DMUS_AUDIOPARAMS dwValidData
+Const DMUS_AUDIOPARAMS_FEATURES      = &H00000001
+Const DMUS_AUDIOPARAMS_VOICES        = &H00000002
+Const DMUS_AUDIOPARAMS_SAMPLERATE    = &H00000004
+Const DMUS_AUDIOPARAMS_DEFAULTSYNTH  = &H00000008
+
+Type DMUS_AUDIOPARAMS
+	dwSize As DWord
+	fInitNow As Long
+	dwValidData As DWord
+	dwFeatures As DWord
+	dwVoices As DWord
+	dwSampleRate As DWord
+	clsidDefaultSynth As GUID
+End Type
+
+' DMUS_SEGF_FLAGS correspond to IDirectMusicPerformance::PlaySegment
+Enum DMUS_SEGF_FLAGS
+	DMUS_SEGF_REFTIME           = 1<<6    '&H40 Time parameter is in reference time
+	DMUS_SEGF_SECONDARY         = 1<<7    '&H80 Secondary segment
+	DMUS_SEGF_QUEUE             = 1<<8    '&H100 Queue at the end of the primary segment queue (primary only)
+	DMUS_SEGF_CONTROL           = 1<<9    '&H200 Play as a control track (secondary segments only)
+	DMUS_SEGF_AFTERPREPARETIME  = 1<<10   '&H400 Play after the prepare time (See IDirectMusicPerformance::GetPrepareTime)
+	DMUS_SEGF_GRID              = 1<<11   '&H800 Play on grid boundary
+	DMUS_SEGF_BEAT              = 1<<12   '&H1000 Play on beat boundary
+	DMUS_SEGF_MEASURE           = 1<<13   '&H2000 Play on measure boundary
+	DMUS_SEGF_DEFAULT           = 1<<14   '&H4000 Use segment's default boundary
+	DMUS_SEGF_NOINVALIDATE      = 1<<15   '&H8000 Play without invalidating the currently playing segment(s)
+	DMUS_SEGF_ALIGN             = 1<<16   '&H10000 Align segment with requested boundary, but switch at first valid point
+	DMUS_SEGF_VALID_START_BEAT  = 1<<17   '&H20000 In conjunction with DMUS_SEGF_ALIGN, allows the switch to occur on any beat.
+	DMUS_SEGF_VALID_START_GRID  = 1<<18   '&H40000 In conjunction with DMUS_SEGF_ALIGN, allows the switch to occur on any grid.
+	DMUS_SEGF_VALID_START_TICK  = 1<<19   '&H80000 In conjunction with DMUS_SEGF_ALIGN, allows the switch to occur any time.
+	DMUS_SEGF_AUTOTRANSITION    = 1<<20   '&H100000 Compose and play a transition segment, using the transition template.
+	DMUS_SEGF_AFTERQUEUETIME    = 1<<21   '&H200000 Make sure to play after the queue time. This is default for primary segments
+	DMUS_SEGF_AFTERLATENCYTIME  = 1<<22   '&H400000 Make sure to play after the latency time. This is true for all segments, so this is a nop
+	DMUS_SEGF_SEGMENTEND        = 1<<23   '&H800000 Play at the next end of segment.
+	DMUS_SEGF_MARKER            = 1<<24   '&H1000000 Play at next marker in the primary segment. If there are no markers, default to any other resolution requests.
+	DMUS_SEGF_TIMESIG_ALWAYS    = 1<<25   '&H2000000 Even if there is no primary segment, align start time with current time signature.
+	DMUS_SEGF_USE_AUDIOPATH     = 1<<26   '&H4000000 Uses the audio path that is embedded in the segment.
+	DMUS_SEGF_VALID_START_MEASURE = 1<<27 '&H8000000 In conjunction with DMUS_SEGF_ALIGN, allows the switch to occur on any bar.
+	DMUS_SEGF_INVALIDATE_PRI    = 1<<28   '&H10000000 invalidate only the current primary seg state
+End Enum
+
+Const DMUS_SEG_REPEAT_INFINITE = &HFFFFFFFF  'For IDirectMusicSegment::SetRepeat
+Const DMUS_SEG_ALLTRACKS       = &H80000000  'For IDirectMusicSegment::SetParam() and SetTrackConfig() - selects all tracks instead on nth index.
+Const DMUS_SEG_ANYTRACK        = &H80000000  'For IDirectMusicSegment::GetParam() - checks each track until it finds one that returns data (not DMUS_E_NOT_FOUND.)
+
+Enum DMUS_TIME_RESOLVE_FLAGS
+	DMUS_TIME_RESOLVE_AFTERPREPARETIME  = DMUS_SEGF_AFTERPREPARETIME
+	DMUS_TIME_RESOLVE_AFTERQUEUETIME    = DMUS_SEGF_AFTERQUEUETIME
+	DMUS_TIME_RESOLVE_AFTERLATENCYTIME  = DMUS_SEGF_AFTERLATENCYTIME
+	DMUS_TIME_RESOLVE_GRID              = DMUS_SEGF_GRID
+	DMUS_TIME_RESOLVE_BEAT              = DMUS_SEGF_BEAT
+	DMUS_TIME_RESOLVE_MEASURE           = DMUS_SEGF_MEASURE
+	DMUS_TIME_RESOLVE_MARKER            = DMUS_SEGF_MARKER
+	DMUS_TIME_RESOLVE_SEGMENTEND        = DMUS_SEGF_SEGMENTEND
+End Enum
+
+' The following flags are sent inside the DMUS_CHORD_KEY.dwFlags parameter
+Enum DMUS_CHORDKEYF_FLAGS
+	DMUS_CHORDKEYF_SILENT = 1     'is the chord silent?
+End Enum
+
+Const DMUS_MAXSUBCHORD = 8
+Type DMUS_SUBCHORD
+	dwChordPattern As DWord
+	dwScalePattern As DWord
+	dwInversionPoints As DWord
+	dwLevels As DWord
+	bChordRoot As Byte
+	bScaleRoot As Byte
+End Type
+Type DMUS_CHORD_KEY
+	wszName[16-1] As WCHAR
+	wMeasure As Word
+	bBeat As Byte
+	bSubChordCount As Byte
+	SubChordList[DMUS_MAXSUBCHORD-1] As DMUS_SUBCHORD
+	dwScale As DWord
+	bKey As Byte
+	bFlags As Byte
+End Type
+
+Type DMUS_NOTIFICATION_PMSG
+	dwSize As DWord
+	rtTime As REFERENCE_TIME
+	mtTime As MUSIC_TIME
+	dwFlags As DWord
+	dwPChannel As DWord
+	dwVirtualTrackID As DWord
+	pTool As *IDirectMusicTool
+	pGraph As *IDirectMusicGraph
+	dwType As DWord
+	dwVoiceID As DWord
+	dwGroupID As DWord
+	punkUser As *IUnknown
+
+	guidNotificationType As GUID
+	dwNotificationOption As DWord
+	dwField1 As DWord
+	dwField2 As DWord
+End Type
+
+Const DMUS_MAX_NAME     = 64
+Const DMUS_MAX_CATEGORY = 64
+Const DMUS_MAX_FILENAME = MAX_PATH
+
+Type DMUS_VERSION
+	dwVersionMS As DWord
+	dwVersionLS As DWord
+End Type
+
+Type DMUS_TIMESIGNATURE
+	mtTime As MUSIC_TIME
+	bBeatsPerMeasure As Byte
+	bBeat As Byte
+	wGridsPerBeat As Word
+End Type
+
+' For DMUS_OBJECTDESC dwValidData
+Const DMUS_OBJ_OBJECT   = 1 << 0    'Object GUID is valid.
+Const DMUS_OBJ_CLASS    = 1 << 1    'Class GUID is valid.
+Const DMUS_OBJ_NAME     = 1 << 2    'Name is valid.
+Const DMUS_OBJ_CATEGORY = 1 << 3    'Category is valid.
+Const DMUS_OBJ_FILENAME = 1 << 4    'File path is valid.
+Const DMUS_OBJ_FULLPATH = 1 << 5    'Path is full path.
+Const DMUS_OBJ_URL      = 1 << 6    'Path is URL.
+Const DMUS_OBJ_VERSION  = 1 << 7    'Version is valid.
+Const DMUS_OBJ_DATE     = 1 << 8    'Date is valid.
+Const DMUS_OBJ_LOADED   = 1 << 9    'Object is currently loaded in memory.
+Const DMUS_OBJ_MEMORY   = 1 << 10   'Object is pointed to by pbMemData.
+Const DMUS_OBJ_STREAM   = 1 << 11   'Object is stored in pStream.
+
+Type DMUS_OBJECTDESC
+	dwSize As DWord
+	dwValidData As DWord
+	guidObject As GUID
+	guidClass As GUID
+	ftDate As FILETIME
+	vVersion As DMUS_VERSION
+	wszName[DMUS_MAX_NAME-1] As WCHAR
+	wszCategory[DMUS_MAX_CATEGORY-1] As WCHAR
+	wszFileName[DMUS_MAX_FILENAME-1] As WCHAR
+	llMemLength As Int64
+	pbMemData As BytePtr
+	pStream As *IStream
+End Type
+
+Type DMUS_SCRIPT_ERRORINFO
+	dwSize As DWord
+	hr As DWord
+	ulLineNumber As DWord
+	ichCharPosition As Long
+	wszSourceFile[DMUS_MAX_FILENAME-1] As WCHAR
+	wszSourceComponent[DMUS_MAX_FILENAME-1] As WCHAR
+	wszDescription[DMUS_MAX_FILENAME-1] As WCHAR
+	wszSourceLineText[DMUS_MAX_FILENAME-1] As WCHAR
+End Type
+
+' Track configuration flags, used with IDirectMusicSegment8::SetTrackConfig()
+Const DMUS_TRACKCONFIG_OVERRIDE_ALL           = 1	    'This track should get parameters from this segment before controlling and primary tracks.
+Const DMUS_TRACKCONFIG_OVERRIDE_PRIMARY       = 2	    'This track should get parameters from this segment before the primary segment tracks.
+Const DMUS_TRACKCONFIG_FALLBACK               = 4  	    'This track should get parameters from this segment if the primary and controlling segments don't succeed.
+Const DMUS_TRACKCONFIG_CONTROL_ENABLED        = 8       'GetParam() enabled for this track.
+Const DMUS_TRACKCONFIG_PLAY_ENABLED           = &H10    'Play() enabled for this track.
+Const DMUS_TRACKCONFIG_NOTIFICATION_ENABLED	  = &H20    'Notifications enabled for this track.
+Const DMUS_TRACKCONFIG_PLAY_CLOCKTIME         = &H40    'This track plays in clock time, not music time.
+Const DMUS_TRACKCONFIG_PLAY_COMPOSE 	      = &H80    'This track should regenerate data each time it starts playing.
+Const DMUS_TRACKCONFIG_LOOP_COMPOSE           = &H100   'This track should regenerate data each time it repeats.
+Const DMUS_TRACKCONFIG_COMPOSING              = &H200   'This track is used to compose other tracks.
+Const DMUS_TRACKCONFIG_CONTROL_PLAY           = &H10000 'This track, when played in a controlling segment, overrides playback of primary segment tracks.
+Const DMUS_TRACKCONFIG_CONTROL_NOTIFICATION   = &H20000 'This track, when played in a controlling segment, overrides notification of primary segment tracks.
+' Additional track config flags for composing transitions
+Const DMUS_TRACKCONFIG_TRANS1_FROMSEGSTART    = &H400    'Get track info from start of From segment
+Const DMUS_TRACKCONFIG_TRANS1_FROMSEGCURRENT  = &H800    'Get track info from current place in From segment
+Const DMUS_TRACKCONFIG_TRANS1_TOSEGSTART      = &H1000   'Get track info from start of To segment
+Const DMUS_TRACKCONFIG_DEFAULT                = DMUS_TRACKCONFIG_CONTROL_ENABLED or DMUS_TRACKCONFIG_PLAY_ENABLED or DMUS_TRACKCONFIG_NOTIFICATION_ENABLED
+
+
+'-----------------
+' Interfaces
+'-----------------
+
+Class IDirectMusicBand
+	Inherits IUnknown
+Public
+	'IDirectMusicBand
+	Virtual Function CreateSegment(ppSegment As **IDirectMusicSegment) As DWord
+	Virtual Function Download(pPerformance As *IDirectMusicPerformance) As DWord
+	Virtual Function Unload(pPerformance As *IDirectMusicPerformance) As DWord
+End Class
+TypeDef IDirectMusicBand8 = IDirectMusicBand
+
+Class IDirectMusicObject
+	Inherits IUnknown
+Public
+	'IDirectMusicObject
+	Virtual Function GetDescriptor(pDesc As *DMUS_OBJECTDESC) As DWord
+	Virtual Function SetDescriptor(pDesc As *DMUS_OBJECTDESC) As DWord
+	Virtual Function ParseDescriptor(pStream As LPSTREAM, pDesc As *DMUS_OBJECTDESC) As DWord
+End Class
+TypeDef IDirectMusicObject8 = IDirectMusicObject
+
+Class IDirectMusicLoader
+	Inherits IUnknown
+Public
+	'IDirectMusicLoader
+	Virtual Function GetObject(pDesc As *DMUS_OBJECTDESC, ByRef riid As GUID, ppv As VoidPtr) As DWord
+	Virtual Function SetObject(pDesc As *DMUS_OBJECTDESC) As DWord
+	Virtual Function SetSearchDirectory(ByRef rguidClass As GUID, pwzPath As *WCHAR, fClear As Long) As DWord
+	Virtual Function ScanDirectory(ByRef rguidClass As GUID, pwzFileExtension As *WCHAR, pwzScanFileName As *WCHAR) As DWord
+	Virtual Function CacheObject(pObject As *IDirectMusicObject) As DWord
+	Virtual Function ReleaseObject(pObject As *IDirectMusicObject) As DWord
+	Virtual Function ClearCache(ByRef rguidClass As GUID) As DWord
+	Virtual Function EnableCache(ByRef rguidClass As GUID, fEnable As Long) As DWord
+	Virtual Function EnumObject(ByRef rguidClass As GUID, dwIndex As DWord, pDesc As *DMUS_OBJECTDESC) As DWord
+End Class
+
+Class IDirectMusicLoader8
+	Inherits IDirectMusicLoader
+Public
+	'IDirectMusicLoader8
+	Virtual Sub CollectGarbage()
+	Virtual Function ReleaseObjectByUnknown(pObject As *IUnknown) As DWord
+	Virtual Function LoadObjectFromFile(ByRef rguidClassID As GUID, ByRef iidInterfaceID As GUID, pwzFilePath As *WCHAR, ppObject As DWordPtr) As DWord
+End Class
+
+Class IDirectMusicGetLoader
+	Inherits IUnknown
+Public
+	'IDirectMusicGetLoader
+	Virtual Function GetLoader(ppLoader As **IDirectMusicLoader) As DWord
+End Class
+
+Class IDirectMusicSegment
+	Inherits IUnknown
+Public
+	'IDirectMusicSegment
+	Virtual Function GetLength(pmtLength As *MUSIC_TIME) As DWord
+	Virtual Function SetLength(mtLength As MUSIC_TIME) As DWord
+	Virtual Function GetRepeats(pdwRepeats As DWordPtr) As DWord
+	Virtual Function SetRepeats(dwRepeats As DWord) As DWord
+	Virtual Function GetDefaultResolution(pdwResolution As DWordPtr) As DWord
+	Virtual Function SetDefaultResolution(dwResolution As DWord) As DWord
+	Virtual Function GetTrack(ByRef rguidType As GUID, dwGroupBits As DWord, dwIndex As DWord, ppTrack As **IDirectMusicTrack) As DWord
+	Virtual Function GetTrackGroup(pTrack As *IDirectMusicTrack, pdwGroupBits As DWordPtr) As DWord
+	Virtual Function InsertTrack(pTrack As *IDirectMusicTrack, dwGroupBits As DWord) As DWord
+	Virtual Function RemoveTrack(pTrack As *IDirectMusicTrack) As DWord
+	Virtual Function InitPlay(ppSegState As **IDirectMusicSegmentState, pPerformance As *IDirectMusicPerformance, dwFlags As DWord) As DWord
+	Virtual Function GetGraph(ppGraph As **IDirectMusicGraph) As DWord
+	Virtual Function SetGraph(pGraph As *IDirectMusicGraph) As DWord
+	Virtual Function AddNotificationType(ByRef rguidNotificationType As GUID) As DWord
+	Virtual Function RemoveNotificationType(ByRef rguidNotificationType As GUID) As DWord
+	Virtual Function GetParam(ByRef rguidType As GUID, dwGroupBits As DWord, dwIndex As DWord, mtTime As MUSIC_TIME, pmtNext As *MUSIC_TIME, pParam As VoidPtr) As DWord 
+	Virtual Function SetParam(ByRef rguidType As GUID, dwGroupBits As DWord, dwIndex As DWord, mtTime As MUSIC_TIME, pParam As VoidPtr) As DWord
+	Virtual Function Clone(mtStart As MUSIC_TIME, mtEnd As MUSIC_TIME, ppSegment As **IDirectMusicSegment) As DWord
+	Virtual Function SetStartPoint(mtStart As MUSIC_TIME) As DWord
+	Virtual Function GetStartPoint(pmtStart As *MUSIC_TIME) As DWord
+	Virtual Function SetLoopPoints(mtStart As MUSIC_TIME, mtEnd As MUSIC_TIME) As DWord
+	Virtual Function GetLoopPoints(pmtStart As *MUSIC_TIME, pmtEnd As *MUSIC_TIME) As DWord
+	Virtual Function SetPChannelsUsed(dwNumPChannels As DWord, paPChannels As DWordPtr) As DWord
+End Class
+
+Class IDirectMusicSegment8
+	Inherits IDirectMusicSegment
+Public
+	'IDirectMusicSegment8
+	Virtual Function SetTrackConfig(ByRef rguidTrackClassID As GUID, dwGroupBits As DWord, dwIndex As DWord, dwFlagsOn As DWord, dwFlagsOff As DWord) As DWord
+	Virtual Function GetAudioPathConfig(ppAudioPathConfig As **IUnknown) As DWord
+	Virtual Function Compose(mtTime As MUSIC_TIME, pFromSegment As *IDirectMusicSegment, pToSegment As *IDirectMusicSegment, ppComposedSegment As **IDirectMusicSegment) As DWord
+	Virtual Function Download(pAudioPath As *IUnknown) As DWord
+	Virtual Function Unload(pAudioPath As *IUnknown) As DWord
+End Class
+
+Class IDirectMusicSegmentState
+	Inherits IUnknown
+Public
+	'IDirectMusicSegmentState
+	Virtual Function GetRepeats(pdwRepeats As DWordPtr) As DWord
+	Virtual Function GetSegment(ppSegment As **IDirectMusicSegment) As DWord
+	Virtual Function GetStartTime(pmtStart As *MUSIC_TIME) As DWord
+	Virtual Function GetSeek(pmtSeek As *MUSIC_TIME) As DWord
+	Virtual Function GetStartPoint(pmtStart As *MUSIC_TIME) As DWord
+End Class
+
+Class IDirectMusicSegmentState8
+	Inherits IDirectMusicSegmentState
+Public
+	'IDirectMusicSegmentState8
+	Virtual Function SetTrackConfig(ByRef rguidTrackClassID As GUID, dwGroupBits As DWord, dwIndex As DWord, dwFlagsOn As DWord, dwFlagsOff As DWord) As DWord
+	Virtual Function GetObjectInPath(dwPChannel As DWord, dwStage As DWord, dwBuffer As DWord, ByRef guidObject As GUID, dwIndex As DWord, ByRef iidInterface As GUID, ppObject As DWordPtr) As DWord
+End Class
+
+Class IDirectMusicAudioPath
+	Inherits IUnknown
+Public
+	'IDirectMusicAudioPath
+	Virtual Function GetObjectInPath(dwPChannel As DWord, dwStage As DWord, dwBuffer As DWord, ByRef guidObject As GUID, dwIndex As DWord, ByRef iidInterface As GUID, ppObject As DWordPtr) As DWord
+	Virtual Function Activate(fActivate As Long) As DWord
+	Virtual Function SetVolume(lVolume As Long, dwDuration As DWord) As DWord
+	Virtual Function ConvertPChannel(dwPChannelIn As DWord, pdwPChannelOut As DWordPtr) As DWord
+End Class
+TypeDef IDirectMusicAudioPath8 = IDirectMusicAudioPath
+
+Class IDirectMusicPerformance
+	Inherits IUnknown
+Public
+	'IDirectMusicPerformance
+	Virtual Function Init(ppDirectMusic As **IDirectMusic, pDirectSound As LPDIRECTSOUND, hWnd As HWND) As DWord
+	Virtual Function PlaySegment(pSegment As *IDirectMusicSegment, dwFlags As DWord, i64StartTime As REFERENCE_TIME, ppSegmentState As **IDirectMusicSegmentState) As DWord
+	Virtual Function Stop(pSegment As *IDirectMusicSegment, pSegmentState As *IDirectMusicSegmentState, mtTime As MUSIC_TIME, dwFlags As DWord) As DWord
+	Virtual Function GetSegmentState(ppSegmentState As **IDirectMusicSegmentState, mtTime As MUSIC_TIME) As DWord
+	Virtual Function SetPrepareTime(dwMilliSeconds As DWord) As DWord
+	Virtual Function GetPrepareTime(pdwMilliSeconds As DWordPtr) As DWord
+	Virtual Function SetBumperLength(dwMilliSeconds As DWord) As DWord
+	Virtual Function GetBumperLength(pdwMilliSeconds As DWordPtr) As DWord
+	Virtual Function SendPMsg(pPMSG As *DMUS_PMSG) As DWord
+	Virtual Function MusicToReferenceTime(mtTime As MUSIC_TIME, prtTime As *REFERENCE_TIME) As DWord
+	Virtual Function ReferenceToMusicTime(rtTime As REFERENCE_TIME, pmtTime As *MUSIC_TIME) As DWord
+	Virtual Function IsPlaying(pSegment As *IDirectMusicSegment, pSegState As *IDirectMusicSegmentState) As DWord
+	Virtual Function GetTime(prtNow As *REFERENCE_TIME, pmtNow As *MUSIC_TIME) As DWord
+	Virtual Function AllocPMsg(cb As DWord, ppPMSG As **DMUS_PMSG) As DWord
+	Virtual Function FreePMsg(pPMSG As *DMUS_PMSG) As DWord
+	Virtual Function GetGraph(ppGraph As **IDirectMusicGraph) As DWord
+	Virtual Function SetGraph(pGraph As *IDirectMusicGraph) As DWord
+	Virtual Function SetNotificationHandle(hNotification As HANDLE, rtMinimum As REFERENCE_TIME) As DWord
+	Virtual Function GetNotificationPMsg(ppNotificationPMsg As **DMUS_NOTIFICATION_PMSG) As DWord
+	Virtual Function AddNotificationType(ByRef rguidNotificationType As GUID) As DWord
+	Virtual Function RemoveNotificationType(ByRef rguidNotificationType As GUID) As DWord
+	Virtual Function AddPort(pPort As *IDirectMusicPort) As DWord
+	Virtual Function RemovePort(pPort As *IDirectMusicPort) As DWord
+	Virtual Function AssignPChannelBlock(dwBlockNum As DWord, pPort As *IDirectMusicPort, dwGroup As DWord) As DWord
+	Virtual Function AssignPChannel(dwPChannel As DWord, pPort As *IDirectMusicPort, dwGroup As DWord, dwMChannel As DWord) As DWord
+	Virtual Function PChannelInfo(dwPChannel As DWord, ppPort As **IDirectMusicPort, pdwGroup As DWordPtr, pdwMChannel As DWordPtr) As DWord
+	Virtual Function DownloadInstrument(pInst As *IDirectMusicInstrument, dwPChannel As DWord, ppDownInst As **IDirectMusicDownloadedInstrument, pNoteRanges As *DMUS_NOTERANGE, dwNumNoteRanges As DWord, ppPort As **IDirectMusicPort, pdwGroup As DWordPtr, pdwMChannel As DWordPtr) As DWord
+	Virtual Function Invalidate(mtTime As MUSIC_TIME, dwFlags As DWord) As DWord
+	Virtual Function GetParam(ByRef rguidType As GUID, dwGroupBits As DWord, dwIndex As DWord, mtTime As MUSIC_TIME, pmtNext As *MUSIC_TIME, pParam As VoidPtr) As DWord 
+	Virtual Function SetParam(ByRef rguidType As GUID, dwGroupBits As DWord, dwIndex As DWord, mtTime As MUSIC_TIME, pParam As VoidPtr) As DWord
+	Virtual Function GetGlobalParam(ByRef rguidType As GUID, pParam As VoidPtr, dwSize As DWord) As DWord
+	Virtual Function SetGlobalParam(ByRef rguidType As GUID, pParam As VoidPtr, dwSize As DWord) As DWord
+	Virtual Function GetLatencyTime(prtTime As *REFERENCE_TIME) As DWord
+	Virtual Function GetQueueTime(prtTime As *REFERENCE_TIME) As DWord
+	Virtual Function AdjustTime(rtAmount As REFERENCE_TIME) As DWord
+	Virtual Function CloseDown() As DWord
+	Virtual Function GetResolvedTime(rtTime As REFERENCE_TIME, prtResolved As *REFERENCE_TIME, dwTimeResolveFlags As DWord) As DWord
+	Virtual Function MIDIToMusic(bMIDIValue As Byte, pChord As *DMUS_CHORD_KEY, bPlayMode As Byte, bChordLevel As Byte, pwMusicValue As WordPtr) As DWord
+	Virtual Function MusicToMIDI(wMusicValue As Word, pChord As *DMUS_CHORD_KEY, bPlayMode As Byte, bChordLevel As Byte, pbMIDIValue As BytePtr) As DWord
+	Virtual Function TimeToRhythm(mtTime As MUSIC_TIME, pTimeSig As *DMUS_TIMESIGNATURE, pwMeasure As WordPtr, pbBeat As BytePtr, pbGrid As BytePtr, pnOffset As WordPtr) As DWord
+	Virtual Function RhythmToTime(wMeasure As Word, bBeat As Byte, bGrid As Byte, nOffset As Integer, pTimeSig As *DMUS_TIMESIGNATURE, pmtTime As *MUSIC_TIME) As DWord                                        
+End Class
+
+Class IDirectMusicPerformance8
+	Inherits IDirectMusicPerformance
+Public
+	'IDirectMusicPerformance8
+	Virtual Function InitAudio(ppDirectMusic As **IDirectMusic, ppDirectSound As **IDirectSound, hWnd As HWND, dwDefaultPathType As DWord, dwPChannelCount As DWord, dwFlags As DWord, pParams As *DMUS_AUDIOPARAMS) As DWord
+	Virtual Function PlaySegmentEx(pSource As *IUnknown, pwzSegmentName As *WCHAR, pTransition As *IUnknown, dwFlags As DWord, i64StartTime As Int64, ppSegmentState As **IDirectMusicSegmentState, pFrom As *IUnknown, pAudioPath As *IUnknown) As DWord
+	Virtual Function StopEx(pObjectToStop As *IUnknown, i64StopTime As Int64, dwFlags As DWord) As DWord
+	Virtual Function ClonePMsg(pSourcePMSG As *DMUS_PMSG, ppCopyPMSG As **DMUS_PMSG) As DWord
+	Virtual Function CreateAudioPath(pSourceConfig As *IUnknown, fActivate As Long, ppNewPath As **IDirectMusicAudioPath) As DWord
+	Virtual Function CreateStandardAudioPath(dwType As DWord, dwPChannelCount As DWord, fActivate As Long, ppNewPath As **IDirectMusicAudioPath) As DWord
+	Virtual Function SetDefaultAudioPath(pAudioPath As *IDirectMusicAudioPath) As DWord
+	Virtual Function GetDefaultAudioPath(ppAudioPath As **IDirectMusicAudioPath) As DWord
+	Virtual Function GetParamEx(ByRef rguidType As GUID, dwTrackID As DWord, dwGroupBits As DWord, dwIndex As DWord, mtTime As MUSIC_TIME, pmtNext As *MUSIC_TIME, pParam As VoidPtr) As DWord
+End Class
+
+Class IDirectMusicGraph
+	Inherits IUnknown
+Public
+	'IDirectMusicGraph
+	Virtual Function StampPMsg(pPMSG As *DMUS_PMSG) As DWord
+	Virtual Function InsertTool(pTool As *IDirectMusicTool, pdwPChannels As DWordPtr, cPChannels As DWord, lIndex As Long) As DWord
+	Virtual Function GetTool(dwIndex As DWord, ppTool As **IDirectMusicTool) As DWord
+	Virtual Function RemoveTool(pTool As *IDirectMusicTool) As DWord
+End Class
+
+Class IDirectMusicStyle
+	Inherits IUnknown
+Public
+	'IDirectMusicStyle
+	Virtual Function GetBand(pwszName As *WCHAR, ppBand As **IDirectMusicBand) As DWord
+	Virtual Function EnumBand(dwIndex As DWord, pwszName As *WCHAR) As DWord
+	Virtual Function GetDefaultBand(ppBand As **IDirectMusicBand) As DWord
+	Virtual Function EnumMotif(dwIndex As DWord, pwszName As *WCHAR) As DWord
+	Virtual Function GetMotif(pwszName As *WCHAR, ppSegment As **IDirectMusicSegment) As DWord
+	Virtual Function GetDefaultChordMap(ppChordMap As **IDirectMusicChordMap) As DWord
+	Virtual Function EnumChordMap(dwIndex As DWord, pwszName As *WCHAR) As DWord
+	Virtual Function GetChordMap(pwszName As *WCHAR, ppChordMap As **IDirectMusicChordMap) As DWord
+	Virtual Function GetTimeSignature(pTimeSig As *DMUS_TIMESIGNATURE) As DWord
+	Virtual Function GetEmbellishmentLength(dwType As DWord, dwLevel As DWord, pdwMin As DWordPtr, pdwMax As DWordPtr) As DWord
+	Virtual Function GetTempo(pTempo As DoublePtr) As DWord
+End Class
+
+Class IDirectMusicStyle8
+	Inherits IDirectMusicStyle
+Public
+	'IDirectMusicStyle8 
+	Virtual Function EnumPattern(dwIndex As DWord, dwPatternType As DWord, pwszName As *WCHAR) As DWord
+End Class
+
+Class IDirectMusicChordMap
+	Inherits IUnknown
+Public
+	'IDirectMusicChordMap
+	Virtual Function GetScale(pdwScale As DWordPtr) As DWord
+End Class
+TypeDef IDirectMusicChordMap8 = IDirectMusicChordMap
+
+Class IDirectMusicComposer
+	Inherits IUnknown
+Public
+	'IDirectMusicComposer
+	Virtual Function ComposeSegmentFromTemplate(pStyle As *IDirectMusicStyle, pTemplate As *IDirectMusicSegment, wActivity As Word, pChordMap As *IDirectMusicChordMap, ppSegment As **IDirectMusicSegment) As DWord
+	Virtual Function ComposeSegmentFromShape(pStyle As *IDirectMusicStyle, wNumMeasures As Word, wShape As Word, wActivity As Word, fIntro As Long, fEnd As Long, pChordMap As *IDirectMusicChordMap, ppSegment As **IDirectMusicSegment) As DWord
+	Virtual Function ComposeTransition(pFromSeg As *IDirectMusicSegment, pToSeg As *IDirectMusicSegment, mtTime As MUSIC_TIME, wCommand As Word, dwFlags As DWord, pChordMap As *IDirectMusicChordMap, ppTransSeg As **IDirectMusicSegment) As DWord
+	Virtual Function AutoTransition(pPerformance As *IDirectMusicPerformance, pToSeg As *IDirectMusicSegment, wCommand As Word, dwFlags As DWord, pChordMap As *IDirectMusicChordMap, ppTransSeg As **IDirectMusicSegment, ppToSegState As **IDirectMusicSegmentState, ppTransSegState As **IDirectMusicSegmentState) As DWord
+	Virtual Function ComposeTemplateFromShape(wNumMeasures As Word, wShape As Word, fIntro As Long, fEnd As Long, wEndLength As Word, ppTemplate As **IDirectMusicSegment) As DWord
+	Virtual Function ChangeChordMap(pSegment As *IDirectMusicSegment, fTrackScale As Long, pChordMap As *IDirectMusicChordMap) As DWord
+End Class
+TypeDef IDirectMusicComposer8 = IDirectMusicComposer
+
+
+'-----------------
+' CLSID and IID
+'-----------------
+
+' CLSID's
+Dim CLSID_DirectMusicPerformance = [&Hd2ac2881, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicSegment = [&Hd2ac2882, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicSegmentState = [&Hd2ac2883, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicGraph = [&Hd2ac2884, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicStyle = [&Hd2ac288a, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicChordMap = [&Hd2ac288f, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicComposer = [&Hd2ac2890, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicLoader = [&Hd2ac2892, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicBand = [&H79ba9e00, &Hb6ee, &H11d1, [&H86, &Hbe, &H0, &Hc0, &H4f, &Hbf, &H8f, &Hef]] As GUID
+
+' New CLSID's for DX8
+Dim CLSID_DirectMusicPatternTrack = [&Hd2ac2897, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim CLSID_DirectMusicScript = [&H810b5013, &He88d, &H11d2, [&H8b, &Hc1, &H0, &H60, &H8, &H93, &Hb1, &Hb6]] As GUID ' {810B5013-E88D-11d2-8BC1-00600893B1B6}
+Dim CLSID_DirectMusicContainer = [&H9301e380, &H1f22, &H11d3, [&H82, &H26, &Hd2, &Hfa, &H76, &H25, &H5d, &H47]] As GUID
+Dim CLSID_DirectSoundWave = [&H8a667154, &Hf9cb, &H11d2, [&Had, &H8a, &H0, &H60, &Hb0, &H57, &H5a, &Hbc]] As GUID
+Dim CLSID_DirectMusicAudioPathConfig = [&Hee0b9ca0, &Ha81e, &H11d3, [&H9b, &Hd1, &H0, &H80, &Hc7, &H15, &Ha, &H74]] As GUID
+
+' Special GUID for all object types. This is used by the loader.
+Dim GUID_DirectMusicAllTypes = [&Hd2ac2893, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Notification guids
+Dim GUID_NOTIFICATION_SEGMENT = [&Hd2ac2899, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_NOTIFICATION_PERFORMANCE = [&H81f75bc5, &H4e5d, &H11d2, [&Hbc, &Hc7, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+Dim GUID_NOTIFICATION_MEASUREANDBEAT = [&Hd2ac289a, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_NOTIFICATION_CHORD = [&Hd2ac289b, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_NOTIFICATION_COMMAND = [&Hd2ac289c, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_NOTIFICATION_RECOMPOSE = [&Hd348372b, &H945b, &H45ae, [&Ha5, &H22, &H45, &Hf, &H12, &H5b, &H84, &Ha5]] As GUID
+
+' Track param type guids
+' Use to get/set a DMUS_COMMAND_PARAM param in the Command track
+Dim GUID_CommandParam = [&Hd2ac289d, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get a DMUS_COMMAND_PARAM_2 param in the Command track
+Dim GUID_CommandParam2 = [&H28f97ef7, &H9538, &H11d2, [&H97, &Ha9, &H0, &Hc0, &H4f, &Ha3, &H6e, &H58]] As GUID
+
+' Use to get/set a DMUS_COMMAND_PARAM_2 param to be used as the command following all commands in
+' the Command track (this information can't be saved)
+Dim GUID_CommandParamNext = [&H472afe7a, &H281b, &H11d3, [&H81, &H7d, &H0, &Hc0, &H4f, &Ha3, &H6e, &H58]] As GUID
+
+' Use to get/set a DMUS_CHORD_PARAM param in the Chord track
+Dim GUID_ChordParam = [&Hd2ac289e, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get a DMUS_RHYTHM_PARAM param in the Chord track
+Dim GUID_RhythmParam = [&Hd2ac289f, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get/set an IDirectMusicStyle param in the Style track
+Dim GUID_IDirectMusicStyle = [&Hd2ac28a1, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get a DMUS_TIMESIGNATURE param in the Style and TimeSig tracks
+Dim GUID_TimeSignature = [&Hd2ac28a4, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get/set a DMUS_TEMPO_PARAM param in the Tempo track
+Dim GUID_TempoParam = [&Hd2ac28a5, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get the next valid point in a segment at which it may start
+Dim GUID_Valid_Start_Time = [&H7f6b1760, &H1fdb, &H11d3, [&H82, &H26, &H44, &H45, &H53, &H54, &H0, &H0]] As GUID
+
+' Use to get the next point in the currently playing primary segment at which a new segment may start
+Dim GUID_Play_Marker = [&Hd8761a41, &H801a, &H11d3, [&H9b, &Hd1, &Hda, &Hf7, &He1, &Hc3, &Hd8, &H34]] As GUID
+
+' Use to get (GetParam) or add (SetParam) bands in the Band track
+Dim GUID_BandParam = [&H2bb1938, &Hcb8b, &H11d2, [&H8b, &Hb9, &H0, &H60, &H8, &H93, &Hb1, &Hb6]] As GUID
+Type DMUS_BAND_PARAM
+	mtTimePhysical As MUSIC_TIME
+	pBand As *IDirectMusicBand
+End Type
+
+' Obsolete -- doesn't distinguish physical and logical time.  Use GUID_BandParam instead.
+Dim GUID_IDirectMusicBand = [&Hd2ac28ac, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get/set an IDirectMusicChordMap param in the ChordMap track
+Dim GUID_IDirectMusicChordMap = [&Hd2ac28ad, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Use to get/set a DMUS_MUTE_PARAM param in the Mute track
+Dim GUID_MuteParam = [&Hd2ac28af, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' These guids are used in IDirectMusicSegment::SetParam to tell the band track to perform various actions.
+'  Some of these guids (where noted) also apply to wave tracks.
+
+' Download bands/waves for the IDirectMusicSegment
+Dim GUID_Download = [&Hd2ac28a7, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Unload bands/waves for the IDirectMusicSegment
+Dim GUID_Unload = [&Hd2ac28a8, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Connect segment's bands to an IDirectMusicCollection
+Dim GUID_ConnectToDLSCollection = [&H1db1ae6b, &He92e, &H11d1, [&Ha8, &Hc5, &H0, &Hc0, &H4f, &Ha3, &H72, &H6e]] As GUID
+
+' Enable/disable autodownloading of bands/waves
+Dim GUID_Enable_Auto_Download = [&Hd2ac28a9, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_Disable_Auto_Download = [&Hd2ac28aa, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Clear all bands
+Dim GUID_Clear_All_Bands = [&Hd2ac28ab, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Set segment to manage all program changes, bank selects, etc. for simple playback of a standard MIDI file
+Dim GUID_StandardMIDIFile = [&H6621075, &He92e, &H11d1, [&Ha8, &Hc5, &H0, &Hc0, &H4f, &Ha3, &H72, &H6e]] As GUID
+
+' Disable/enable param guids. Use these in SetParam calls to disable or enable sending
+' * specific PMsg types.
+
+Dim GUID_DisableTimeSig = [&H45fc707b, &H1db4, &H11d2, [&Hbc, &Hac, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+Dim GUID_EnableTimeSig = [&H45fc707c, &H1db4, &H11d2, [&Hbc, &Hac, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+Dim GUID_DisableTempo = [&H45fc707d, &H1db4, &H11d2, [&Hbc, &Hac, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+Dim GUID_EnableTempo = [&H45fc707e, &H1db4, &H11d2, [&Hbc, &Hac, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+
+' Used in SetParam calls for pattern-based tracks.  A nonzero value seeds the random number
+' generator for variation selection; a value of zero reverts to the default behavior of 
+' getting the seed from the system clock.
+Dim GUID_SeedVariations = [&H65b76fa5, &Hff37, &H11d2, [&H81, &H4e, &H0, &Hc0, &H4f, &Ha3, &H6e, &H58]] As GUID
+
+' Used to get the variations currently in effect across PChannels
+Dim GUID_Variations = [&H11f72cce, &H26e6, &H4ecd, [&Haf, &H2e, &Hd6, &H68, &He6, &H67, &H7, &Hd8]] As GUID
+Type DMUS_VARIATIONS_PARAM
+	dwPChannelsUsed As DWord
+	padwPChannels As DWordPtr
+	padwVariations As DWordPtr
+End Type
+
+' Download bands/waves for the IDirectMusicSegment, passed an IDirectMusicAudioPath instead of an IDirectMusicPerformance
+Dim GUID_DownloadToAudioPath = [&H9f2c0341, &Hc5c4, &H11d3, [&H9b, &Hd1, &H44, &H45, &H53, &H54, &H0, &H0]] As GUID
+
+' Unload bands/waves for the IDirectMusicSegment, passed an IDirectMusicAudioPath instead of an IDirectMusicPerformance
+Dim GUID_UnloadFromAudioPath = [&H9f2c0342, &Hc5c4, &H11d3, [&H9b, &Hd1, &H44, &H45, &H53, &H54, &H0, &H0]] As GUID
+
+
+' Global data guids
+Dim GUID_PerfMasterTempo = [&Hd2ac28b0, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_PerfMasterVolume = [&Hd2ac28b1, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_PerfMasterGrooveLevel = [&Hd2ac28b2, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim GUID_PerfAutoDownload = [&Hfb09565b, &H3631, &H11d2, [&Hbc, &Hb8, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+
+' GUID for default GM/GS dls collection.
+Dim GUID_DefaultGMCollection = [&Hf17e8673, &Hc3b4, &H11d1, [&H87, &Hb, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' GUID to define default synth, placed in AudioPath configuration file.
+Dim GUID_Synth_Default = [&H26bb9432, &H45fe, &H48d3, [&Ha3, &H75, &H24, &H72, &Hc5, &He3, &He7, &H86]] As GUID
+
+' GUIDs to define default buffer configurations to place in AudioPath configuration file.
+Dim GUID_Buffer_Reverb = [&H186cc541, &Hdb29, &H11d3, [&H9b, &Hd1, &H0, &H80, &Hc7, &H15, &Ha, &H74]] As GUID
+Dim GUID_Buffer_EnvReverb = [&H186cc542, &Hdb29, &H11d3, [&H9b, &Hd1, &H0, &H80, &Hc7, &H15, &Ha, &H74]] As GUID
+Dim GUID_Buffer_Stereo = [&H186cc545, &Hdb29, &H11d3, [&H9b, &Hd1, &H0, &H80, &Hc7, &H15, &Ha, &H74]] As GUID
+Dim GUID_Buffer_3D_Dry = [&H186cc546, &Hdb29, &H11d3, [&H9b, &Hd1, &H0, &H80, &Hc7, &H15, &Ha, &H74]] As GUID
+Dim GUID_Buffer_Mono = [&H186cc547, &Hdb29, &H11d3, [&H9b, &Hd1, &H0, &H80, &Hc7, &H15, &Ha, &H74]] As GUID
+
+' IID's
+Dim IID_IDirectMusicLoader = [&H2ffaaca2, &H5dca, &H11d2, [&Haf, &Ha6, &H0, &Haa, &H0, &H24, &Hd8, &Hb6]] As GUID
+Dim IID_IDirectMusicGetLoader = [&H68a04844, &Hd13d, &H11d1, [&Haf, &Ha6, &H0, &Haa, &H0, &H24, &Hd8, &Hb6]] As GUID
+Dim IID_IDirectMusicObject = [&Hd2ac28b5, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicSegment = [&Hf96029a2, &H4282, &H11d2, [&H87, &H17, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicSegmentState = [&Ha3afdcc7, &Hd3ee, &H11d1, [&Hbc, &H8d, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+Dim IID_IDirectMusicPerformance = [&H7d43d03, &H6523, &H11d2, [&H87, &H1d, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicGraph = [&H2befc277, &H5497, &H11d2, [&Hbc, &Hcb, &H0, &Ha0, &Hc9, &H22, &He6, &Heb]] As GUID
+Dim IID_IDirectMusicStyle = [&Hd2ac28bd, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicChordMap = [&Hd2ac28be, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicComposer = [&Hd2ac28bf, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicBand = [&Hd2ac28c0, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Alternate interface IDs, available in DX7 release and after.
+Dim IID_IDirectMusicPerformance2 = [&H6fc2cae0, &Hbc78, &H11d2, [&Haf, &Ha6, &H0, &Haa, &H0, &H24, &Hd8, &Hb6]] As GUID
+Dim IID_IDirectMusicSegment2 = [&Hd38894d1, &Hc052, &H11d2, [&H87, &H2f, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+
+' Interface IDs for DX8
+' changed interfaces (GUID only)
+Dim IID_IDirectMusicLoader8 = [&H19e7c08c, &Ha44, &H4e6a, [&Ha1, &H16, &H59, &H5a, &H7c, &Hd5, &Hde, &H8c]] As GUID
+Dim IID_IDirectMusicPerformance8 = [&H679c4137, &Hc62e, &H4147, [&Hb2, &Hb4, &H9d, &H56, &H9a, &Hcb, &H25, &H4c]] As GUID
+Dim IID_IDirectMusicSegment8 = [&Hc6784488, &H41a3, &H418f, [&Haa, &H15, &Hb3, &H50, &H93, &Hba, &H42, &Hd4]] As GUID
+Dim IID_IDirectMusicSegmentState8 = [&Ha50e4730, &Hae4, &H48a7, [&H98, &H39, &Hbc, &H4, &Hbf, &He0, &H77, &H72]] As GUID
+Dim IID_IDirectMusicStyle8 = [&Hfd24ad8a, &Ha260, &H453d, [&Hbf, &H50, &H6f, &H93, &H84, &Hf7, &H9, &H85]] As GUID
+' new interfaces (GUID + alias)
+Dim IID_IDirectMusicPatternTrack = [&H51c22e10, &Hb49f, &H46fc, [&Hbe, &Hc2, &He6, &H28, &H8f, &Hb9, &Hed, &He6]] As GUID
+Dim IID_IDirectMusicScript = [&H2252373a, &H5814, &H489b, [&H82, &H9, &H31, &Hfe, &Hde, &Hba, &Hf1, &H37]] As GUID ' {2252373A-5814-489b-8209-31FEDEBAF137}
+Dim IID_IDirectMusicScript8 As GUID: IID_IDirectMusicScript8=IID_IDirectMusicScript
+Dim IID_IDirectMusicContainer = [&H9301e386, &H1f22, &H11d3, [&H82, &H26, &Hd2, &Hfa, &H76, &H25, &H5d, &H47]] As GUID
+Dim IID_IDirectMusicContainer8 As GUID: IID_IDirectMusicContainer8=IID_IDirectMusicContainer
+Dim IID_IDirectMusicAudioPath = [&Hc87631f5, &H23be, &H4986, [&H88, &H36, &H5, &H83, &H2f, &Hcc, &H48, &Hf9]] As GUID
+Dim IID_IDirectMusicAudioPath8 As GUID: IID_IDirectMusicAudioPath8=IID_IDirectMusicAudioPath
+' unchanged interfaces (alias only)
+Dim IID_IDirectMusicGetLoader8 As GUID: IID_IDirectMusicGetLoader8=IID_IDirectMusicGetLoader
+Dim IID_IDirectMusicChordMap8 As GUID: IID_IDirectMusicChordMap8=IID_IDirectMusicChordMap
+Dim IID_IDirectMusicGraph8 As GUID: IID_IDirectMusicGraph8=IID_IDirectMusicGraph
+Dim IID_IDirectMusicBand8 As GUID: IID_IDirectMusicBand8=IID_IDirectMusicBand
+Dim IID_IDirectMusicObject8 As GUID: IID_IDirectMusicObject8=IID_IDirectMusicObject
+Dim IID_IDirectMusicComposer8 As GUID: IID_IDirectMusicComposer8=IID_IDirectMusicComposer

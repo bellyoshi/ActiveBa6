@@ -1,0 +1,69 @@
+' dmplugin.sbp - This module contains the API for plugins for the DirectMusic performance layer
+
+
+Class IDirectMusicTool
+	Inherits IUnknown
+Public
+	'IDirectMusicTool
+	Virtual Function Init(pGraph As *IDirectMusicGraph) As DWord
+	Virtual Function GetMsgDeliveryType(pdwDeliveryType As DWordPtr) As DWord
+	Virtual Function GetMediaTypeArraySize(pdwNumElements As DWordPtr) As DWord
+	Virtual Function GetMediaTypes(padwMediaTypes As **DWord, dwNumElements As DWord) As DWord
+	Virtual Function ProcessPMsg(pPerf As *IDirectMusicPerformance, pPMSG As *DMUS_PMSG) As DWord
+	Virtual Function Flush(pPerf As *IDirectMusicPerformance, pPMSG As *DMUS_PMSG, rtTime As REFERENCE_TIME) As DWord
+End Class
+
+Class IDirectMusicTool8
+	Inherits IDirectMusicTool
+Public
+	'IDirectMusicTool8
+	Virtual Function Clone(ppTool As **IDirectMusicTool) As DWord
+End Class
+
+' The following flags are sent in the IDirectMusicTrack::Play() method inside the dwFlags parameter
+Enum DMUS_TRACKF_FLAGS
+	DMUS_TRACKF_SEEK            = 1       'set on a seek
+	DMUS_TRACKF_LOOP            = 2       'set on a loop (repeat)
+	DMUS_TRACKF_START           = 4       'set on first call to Play
+	DMUS_TRACKF_FLUSH           = 8       'set when this call is in response to a flush on the perfomance
+	DMUS_TRACKF_DIRTY           = &H10    'set when the track should consider any cached values from a previous call to GetParam to be invalidated
+    'The following flags are DX8 only.
+	DMUS_TRACKF_NOTIFY_OFF      = &H20    'tells track not to send notifications.
+	DMUS_TRACKF_PLAY_OFF        = &H40    'tells track not to play anything (but can still send notifications.)
+	DMUS_TRACKF_LOOPEND         = &H80    'set when the end of range is also a loop end.
+	DMUS_TRACKF_STOP            = &H100   'set when the end of range is also end of playing this segment.
+	DMUS_TRACKF_RECOMPOSE       = &H200   'set to indicate the track should compose.
+	DMUS_TRACKF_CLOCK           = &H400   'set when time parameters are in reference (clock) time. Only valid for PlayEx().
+End Enum
+
+' The following flags are sent in the IDirectMusicTrack8::GetParamEx() and SetParamEx() methods
+' inside the dwFlags parameter.
+Const DMUS_TRACK_PARAMF_CLOCK = &H01   'set when the time is measured is in reference (clock) time
+
+Class IDirectMusicTrack
+	Inherits IUnknown
+Public
+	'IDirectMusicTrack
+	Virtual Function Init(pSegment As *IDirectMusicSegment) As DWord
+	Virtual Function InitPlay(pSegmentState As *IDirectMusicSegmentState, pPerformance As *IDirectMusicPerformance, ppStateData As DWordPtr, dwVirtualTrackID As DWord, dwFlags As DWord) As DWord
+	Virtual Function EndPlay(pStateData As VoidPtr) As DWord
+	Virtual Function Play(pStateData As VoidPtr, mtStart As MUSIC_TIME, mtEnd As MUSIC_TIME, mtOffset As MUSIC_TIME, dwFlags As DWord, pPerf As *IDirectMusicPerformance, pSegSt As *IDirectMusicSegmentState, dwVirtualID As DWord) As DWord
+	Virtual Function GetParam(ByRef rguidType As GUID, mtTime As MUSIC_TIME, pmtNext As *MUSIC_TIME, pParam As VoidPtr) As DWord 
+	Virtual Function SetParam(ByRef rguidType As GUID, mtTime As MUSIC_TIME, pParam As VoidPtr) As DWord
+	Virtual Function IsParamSupported(ByRef rguidType As GUID) As DWord
+	Virtual Function AddNotificationType(ByRef rguidNotificationType As GUID) As DWord
+	Virtual Function RemoveNotificationType(ByRef rguidNotificationType As GUID) As DWord
+	Virtual Function Clone(mtStart As MUSIC_TIME, mtEnd As MUSIC_TIME, ppTrack As **IDirectMusicTrack) As DWord
+End Class
+
+Class IDirectMusicTrack8
+	Inherits IDirectMusicTrack
+Public
+	'IDirectMusicTrack8
+	Virtual Function PlayEx(pStateData As VoidPtr, rtStart As REFERENCE_TIME, rtEnd As REFERENCE_TIME, rtOffset As REFERENCE_TIME, dwFlags As DWord, pPerf As *IDirectMusicPerformance, pSegSt As *IDirectMusicSegmentState, dwVirtualID As DWord) As DWord
+	Virtual Function GetParamEx(ByRef rguidType As GUID, rtTime As REFERENCE_TIME, prtNext As *REFERENCE_TIME, pParam As VoidPtr, pStateData As VoidPtr, dwFlags As DWord) As DWord
+	Virtual Function SetParamEx(ByRef rguidType As GUID, rtTime As REFERENCE_TIME, pParam As VoidPtr, pStateData As VoidPtr, dwFlags As DWord) As DWord
+	Virtual Function Compose(pContext As *IUnknown, dwTrackGroup As DWord, ppResultTrack As **IDirectMusicTrack) As DWord
+	Virtual Function Join(pNewTrack As *IDirectMusicTrack, mtJoin As MUSIC_TIME, pContext As *IUnknown, dwTrackGroup As DWord, ppResultTrack As **IDirectMusicTrack) As DWord
+End Class
+

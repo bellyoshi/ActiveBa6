@@ -9,41 +9,32 @@ section .data
 section .text
     global _main
 
-_Add:
-    push ebp
-    mov ebp, esp
-    sub esp, 4
-    mov ebx, ebp
-    add ebx, 8
-    mov eax, [ebx]
-    push eax
-    mov ebx, ebp
-    add ebx, 12
-    mov eax, [ebx]
-    pop ecx
-    add eax, ecx
-    mov ebx, ebp
-    add ebx, -4
-    mov [ebx], eax
-    mov ebx, ebp
-    add ebx, -4
-    mov eax, [ebx]
-    mov esp, ebp
-    pop ebp
-    ret 8
-
 _main:
     push ebp
     mov ebp, esp
-    sub esp, 4
-    mov eax, 4
-    push eax
-    mov eax, 3
-    push eax
-    call _Add
+    sub esp, 8
+    mov eax, 0
     mov ebx, ebp
     add ebx, -4
     mov [ebx], eax
+    mov ebx, ebp
+    add ebx, -4
+    mov eax, ebx
+    mov ebx, ebp
+    add ebx, -8
+    mov [ebx], eax
+    mov eax, 7
+    push eax
+    mov eax, 0
+    push eax
+    mov ebx, ebp
+    add ebx, -8
+    mov eax, [ebx]
+    mov ebx, eax
+    pop eax
+    add ebx, eax
+    pop eax
+    mov [ebx], al
     mov ebx, ebp
     add ebx, -4
     mov eax, [ebx]

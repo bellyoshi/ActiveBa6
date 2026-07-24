@@ -1,14 +1,12 @@
 #console
 
-' abc - ABP Phase4 コンパイラ (.abp -> .asm)
+' abc - ABP Phase5 コンパイラ (.abp -> .asm)
 ' 使い方: abc <input.abp> [output.asm]
 '
-' Phase4:
-'   Dim a(N)/a[N] As Byte|Long
-'   Dim p As *Byte|*Long
-'   a(i) / a[i] / p[i]
-'   VarPtr(x)
-'   Const NAME = number
+' Phase5:
+'   Dim s As String / 文字列リテラル / + 連結
+'   Len / Left$ / Mid$ / Chr$ / Asc / StrPtr
+'   文字列 = <> 、条件 Or / And
 
 Const MAX_ARGS = 8
 Const MAX_LINE = 512
@@ -31,6 +29,7 @@ Dim gVarOff(31) As Long
 Dim gVarSize(31) As Long
 Dim gVarCount(31) As Long
 Dim gVarIsPtr(31) As Long
+Dim gVarIsStr(31) As Long
 Dim gNVars As Long
 Dim gFrameSize As Long
 Dim gLabelId As Long
@@ -62,9 +61,12 @@ Dim gSavedVarOff(31) As Long
 Dim gSavedVarSize(31) As Long
 Dim gSavedVarCount(31) As Long
 Dim gSavedVarIsPtr(31) As Long
+Dim gSavedVarIsStr(31) As Long
+Dim gUseStringRt As Long
+Dim gRtLines As String
 
 Sub USAGE()
-    Print "abc - Phase4 ABP compiler (.abp -> .asm)"
+    Print "abc - Phase5 ABP compiler (.abp -> .asm)"
     Print "usage: abc <input.abp> [output.asm]"
     End
 End Sub
@@ -96,6 +98,57 @@ Function IsIdentChar2(c As Long) As Long
     Else
         IsIdentChar2 = 0
     End If
+End Function
+
+Function IsIdentName(s As String) As Long
+    Dim t As String
+    Dim p As *Byte
+    Dim i As Long
+    Dim n As Long
+    t = Trim$(s)
+    n = Len(t)
+    IsIdentName = 0
+    If n = 0 Then Exit Function
+    p = StrPtr(t)
+    If IsIdentStart(p[0]) = 0 Then Exit Function
+    i = 1
+    While i < n
+        If IsIdentChar2(p[i]) = 0 Then Exit Function
+        i = i + 1
+    Wend
+    IsIdentName = 1
+End Function
+
+' openPos(0-based) の ( または [ に対応する閉じ位置。失敗は -1
+Function MatchClose(p As *Byte, n As Long, openPos As Long) As Long
+    Dim depth As Long
+    Dim i As Long
+    Dim openCh As Long
+    Dim closeCh As Long
+    MatchClose = -1
+    If openPos < 0 Or openPos >= n Then Exit Function
+    openCh = p[openPos]
+    If openCh = 40 Then
+        closeCh = 41
+    ElseIf openCh = &H5B Then
+        closeCh = &H5D
+    Else
+        Exit Function
+    End If
+    depth = 1
+    i = openPos + 1
+    While i < n
+        If p[i] = openCh Then
+            depth = depth + 1
+        ElseIf p[i] = closeCh Then
+            depth = depth - 1
+            If depth = 0 Then
+                MatchClose = i
+                Exit Function
+            End If
+        End If
+        i = i + 1
+    Wend
 End Function
 
 Function IsNumStr(s As String) As Long
@@ -212,14 +265,14 @@ Function TypeSizeOf(typeName As String) As Long
         TypeSizeOf = 1
     ElseIf t = "word" Then
         TypeSizeOf = 2
-    ElseIf t = "long" Or t = "dword" Or t = "handle" Then
+    ElseIf t = "long" Or t = "dword" Or t = "handle" Or t = "string" Then
         TypeSizeOf = 4
     Else
         TypeSizeOf = 0
     End If
 End Function
 
-Function AddVarEx(name As String, elemSize As Long, count As Long, isPtr As Long) As Long
+Function AddVarEx(name As String, elemSize As Long, count As Long, isPtr As Long, isStr As Long) As Long
     Dim idx As Long
     Dim bytes As Long
     idx = FindVar(name)
@@ -233,7 +286,7 @@ Function AddVarEx(name As String, elemSize As Long, count As Long, isPtr As Long
         AddVarEx = -1
         Exit Function
     End If
-    If isPtr <> 0 Then
+    If isPtr <> 0 Or isStr <> 0 Then
         bytes = 4
     Else
         bytes = elemSize * count
@@ -250,12 +303,13 @@ Function AddVarEx(name As String, elemSize As Long, count As Long, isPtr As Long
     gVarSize(idx) = elemSize
     gVarCount(idx) = count
     gVarIsPtr(idx) = isPtr
+    gVarIsStr(idx) = isStr
     gNVars = gNVars + 1
     AddVarEx = idx
 End Function
 
 Function AddVar(name As String) As Long
-    AddVar = AddVarEx(name, 4, 1, 0)
+    AddVar = AddVarEx(name, 4, 1, 0, 0)
 End Function
 
 ' ebx = 変数のベースアドレス
@@ -267,7 +321,7 @@ End Sub
 ' 変数を eax へロード
 Sub EmitLoadVar(idx As Long)
     EmitAddrVar(idx)
-    If gVarIsPtr(idx) <> 0 Or gVarSize(idx) = 4 Then
+    If gVarIsPtr(idx) <> 0 Or gVarIsStr(idx) <> 0 Or gVarSize(idx) = 4 Then
         EmitAsm("mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
     ElseIf gVarSize(idx) = 1 Then
         EmitAsm("movzx eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
@@ -277,10 +331,9 @@ Sub EmitLoadVar(idx As Long)
     End If
 End Sub
 
-' eax を変数へストア
 Sub EmitStoreVar(idx As Long)
     EmitAddrVar(idx)
-    If gVarIsPtr(idx) <> 0 Or gVarSize(idx) = 4 Then
+    If gVarIsPtr(idx) <> 0 Or gVarIsStr(idx) <> 0 Or gVarSize(idx) = 4 Then
         EmitAsm("mov " + Chr$(&H5B) + "ebx" + Chr$(&H5D) + ", eax")
     ElseIf gVarSize(idx) = 1 Then
         EmitAsm("mov " + Chr$(&H5B) + "ebx" + Chr$(&H5D) + ", al")
@@ -416,6 +469,378 @@ Function FindOp1(expr As String, ch As String) As Long
     Wend
 End Function
 
+' 文字列リテラル（"..." または '...'）
+Function IsStringLit(s As String) As Long
+    Dim t As String
+    Dim n As Long
+    Dim p As *Byte
+    t = Trim$(s)
+    n = Len(t)
+    If n < 2 Then
+        IsStringLit = 0
+        Exit Function
+    End If
+    p = StrPtr(t)
+    If (p[0] = 34 And p[n - 1] = 34) Or (p[0] = Asc("'") And p[n - 1] = Asc("'")) Then
+        IsStringLit = 1
+    Else
+        IsStringLit = 0
+    End If
+End Function
+
+Function AddStringLit$(s As String) As String
+    Dim t As String
+    Dim label As String
+    Dim lit As String
+    Dim dq As String
+    t = Trim$(s)
+    label = "str_" + Trim$(Str$(gStrCount))
+    lit = Mid$(t, 2, Len(t) - 2)
+    dq = Chr$(34)
+    gDataLines = gDataLines + "    " + label + " db " + dq + lit + dq + ", 0" + Chr$(13) + Chr$(10)
+    gStrCount = gStrCount + 1
+    AddStringLit$ = label
+End Function
+
+' 深さ0の単語演算子（右端優先）
+Function FindOpWord(expr As String, word As String) As Long
+    Dim e As String
+    Dim w As String
+    Dim n As Long
+    Dim m As Long
+    Dim i As Long
+    Dim depth As Long
+    Dim inQ As Long
+    Dim c As Long
+    Dim beforeOk As Long
+    Dim afterOk As Long
+    e = Lower$(expr)
+    w = Lower$(word)
+    n = Len(e)
+    m = Len(w)
+    FindOpWord = 0
+    depth = 0
+    inQ = 0
+    i = n - m + 1
+    While i >= 1
+        c = Asc(Mid$(e, i, 1))
+        If inQ <> 0 Then
+            If c = 34 Then inQ = 0
+        ElseIf c = 34 Then
+            inQ = 1
+        ElseIf c = Asc(")") Or c = &H5D Then
+            depth = depth + 1
+        ElseIf c = Asc("(") Or c = &H5B Then
+            depth = depth - 1
+        ElseIf depth = 0 Then
+            If Mid$(e, i, m) = w Then
+                beforeOk = 1
+                afterOk = 1
+                If i > 1 Then
+                    c = Asc(Mid$(e, i - 1, 1))
+                    If IsIdentChar2(c) <> 0 Then beforeOk = 0
+                End If
+                If i + m <= n Then
+                    c = Asc(Mid$(e, i + m, 1))
+                    If IsIdentChar2(c) <> 0 Then afterOk = 0
+                End If
+                If beforeOk <> 0 And afterOk <> 0 Then
+                    FindOpWord = i
+                    Exit Function
+                End If
+            End If
+        End If
+        i = i - 1
+    Wend
+End Function
+
+Function IsStringExpr(expr As String) As Long
+    Dim e As String
+    Dim n As Long
+    Dim p As *Byte
+    Dim pos As Long
+    Dim idx As Long
+    e = Trim$(expr)
+    IsStringExpr = 0
+    If IsStringLit(e) <> 0 Then
+        IsStringExpr = 1
+        Exit Function
+    End If
+    n = Len(e)
+    If n >= 2 Then
+        p = StrPtr(e)
+        If p[0] = 40 And p[n - 1] = 41 Then
+            IsStringExpr = IsStringExpr(Mid$(e, 2, n - 2))
+            Exit Function
+        End If
+    End If
+    pos = FindOp1(e, "+")
+    If pos > 0 Then
+        If IsStringExpr(Left$(e, pos - 1)) <> 0 Or IsStringExpr(Mid$(e, pos + 1, Len(e) - pos)) <> 0 Then
+            IsStringExpr = 1
+            Exit Function
+        End If
+    End If
+    If Lower$(Left$(e, 5)) = "chr$(" Or Lower$(Left$(e, 6)) = "left$(" Or Lower$(Left$(e, 5)) = "mid$(" Then
+        IsStringExpr = 1
+        Exit Function
+    End If
+    idx = FindVar(e)
+    If idx >= 0 Then
+        IsStringExpr = gVarIsStr(idx)
+    End If
+End Function
+
+Sub RtLine(line As String)
+    gRtLines = gRtLines + line + Chr$(13) + Chr$(10)
+End Sub
+
+Sub EnsureStringRt()
+    If gUseStringRt <> 0 Then Exit Sub
+    gUseStringRt = 1
+    gDataLines = gDataLines + "    str_empty db 0" + Chr$(13) + Chr$(10)
+
+    RtLine("_rt_Len:")
+    RtLine("    push ebp")
+    RtLine("    mov ebp, esp")
+    RtLine("    mov ebx, ebp")
+    RtLine("    add ebx, 8")
+    RtLine("    mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp eax, 0")
+    RtLine("    je rt_len_zero")
+    RtLine("    push eax")
+    RtLine("    call _lstrlenA@4")
+    RtLine("    jmp rt_len_done")
+    RtLine("rt_len_zero:")
+    RtLine("    mov eax, 0")
+    RtLine("rt_len_done:")
+    RtLine("    mov esp, ebp")
+    RtLine("    pop ebp")
+    RtLine("    ret 4")
+
+    RtLine("_rt_Asc:")
+    RtLine("    push ebp")
+    RtLine("    mov ebp, esp")
+    RtLine("    mov ebx, ebp")
+    RtLine("    add ebx, 8")
+    RtLine("    mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp eax, 0")
+    RtLine("    je rt_asc_zero")
+    RtLine("    mov ebx, eax")
+    RtLine("    movzx eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    jmp rt_asc_done")
+    RtLine("rt_asc_zero:")
+    RtLine("    mov eax, 0")
+    RtLine("rt_asc_done:")
+    RtLine("    mov esp, ebp")
+    RtLine("    pop ebp")
+    RtLine("    ret 4")
+
+    RtLine("_rt_Chr:")
+    RtLine("    push ebp")
+    RtLine("    mov ebp, esp")
+    RtLine("    push ebx")
+    RtLine("    push esi")
+    RtLine("    push edi")
+    RtLine("    mov ebx, ebp")
+    RtLine("    add ebx, 8")
+    RtLine("    mov esi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    call _GetProcessHeap@0")
+    RtLine("    push 2")
+    RtLine("    push 0")
+    RtLine("    push eax")
+    RtLine("    call _HeapAlloc@12")
+    RtLine("    mov edi, eax")
+    RtLine("    mov ebx, eax")
+    RtLine("    mov eax, esi")
+    RtLine("    mov " + Chr$(&H5B) + "ebx" + Chr$(&H5D) + ", al")
+    RtLine("    add ebx, 1")
+    RtLine("    mov eax, 0")
+    RtLine("    mov " + Chr$(&H5B) + "ebx" + Chr$(&H5D) + ", al")
+    RtLine("    mov eax, edi")
+    RtLine("    pop edi")
+    RtLine("    pop esi")
+    RtLine("    pop ebx")
+    RtLine("    mov esp, ebp")
+    RtLine("    pop ebp")
+    RtLine("    ret 4")
+
+    RtLine("_rt_Cat:")
+    RtLine("    push ebp")
+    RtLine("    mov ebp, esp")
+    RtLine("    push ebx")
+    RtLine("    push esi")
+    RtLine("    push edi")
+    RtLine("    mov ebx, ebp")
+    RtLine("    add ebx, 8")
+    RtLine("    mov edi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp edi, 0")
+    RtLine("    jne rt_cat_a_ok")
+    RtLine("    push str_empty")
+    RtLine("    pop edi")
+    RtLine("rt_cat_a_ok:")
+    RtLine("    add ebx, 4")
+    RtLine("    mov esi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp esi, 0")
+    RtLine("    jne rt_cat_b_ok")
+    RtLine("    push str_empty")
+    RtLine("    pop esi")
+    RtLine("rt_cat_b_ok:")
+    RtLine("    push edi")
+    RtLine("    call _lstrlenA@4")
+    RtLine("    mov ebx, eax")
+    RtLine("    push esi")
+    RtLine("    call _lstrlenA@4")
+    RtLine("    add eax, ebx")
+    RtLine("    add eax, 1")
+    RtLine("    mov ebx, eax")
+    RtLine("    push eax")
+    RtLine("    call _GetProcessHeap@0")
+    RtLine("    push ebx")
+    RtLine("    push 0")
+    RtLine("    push eax")
+    RtLine("    call _HeapAlloc@12")
+    RtLine("    mov ebx, eax")
+    RtLine("    push edi")
+    RtLine("    push ebx")
+    RtLine("    call _lstrcpyA@8")
+    RtLine("    push esi")
+    RtLine("    push ebx")
+    RtLine("    call _lstrcatA@8")
+    RtLine("    mov eax, ebx")
+    RtLine("    pop edi")
+    RtLine("    pop esi")
+    RtLine("    pop ebx")
+    RtLine("    mov esp, ebp")
+    RtLine("    pop ebp")
+    RtLine("    ret 8")
+
+    RtLine("_rt_Left:")
+    RtLine("    push ebp")
+    RtLine("    mov ebp, esp")
+    RtLine("    push ebx")
+    RtLine("    push esi")
+    RtLine("    push edi")
+    RtLine("    mov ebx, ebp")
+    RtLine("    add ebx, 8")
+    RtLine("    mov edi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp edi, 0")
+    RtLine("    jne rt_left_s_ok")
+    RtLine("    push str_empty")
+    RtLine("    pop edi")
+    RtLine("rt_left_s_ok:")
+    RtLine("    add ebx, 4")
+    RtLine("    mov esi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp esi, 0")
+    RtLine("    jge rt_left_n_ok")
+    RtLine("    mov esi, 0")
+    RtLine("rt_left_n_ok:")
+    RtLine("    push edi")
+    RtLine("    call _lstrlenA@4")
+    RtLine("    cmp esi, eax")
+    RtLine("    jle rt_left_count_ok")
+    RtLine("    mov esi, eax")
+    RtLine("rt_left_count_ok:")
+    RtLine("    mov eax, esi")
+    RtLine("    add eax, 1")
+    RtLine("    push eax")
+    RtLine("    call _GetProcessHeap@0")
+    RtLine("    push esi")
+    RtLine("    push 0")
+    RtLine("    push eax")
+    RtLine("    call _HeapAlloc@12")
+    RtLine("    mov ebx, eax")
+    RtLine("    mov edx, eax")
+    RtLine("rt_left_loop:")
+    RtLine("    cmp esi, 0")
+    RtLine("    je rt_left_end")
+    RtLine("    movzx eax, " + Chr$(&H5B) + "edi" + Chr$(&H5D))
+    RtLine("    mov " + Chr$(&H5B) + "edx" + Chr$(&H5D) + ", al")
+    RtLine("    add edi, 1")
+    RtLine("    add edx, 1")
+    RtLine("    sub esi, 1")
+    RtLine("    jmp rt_left_loop")
+    RtLine("rt_left_end:")
+    RtLine("    mov eax, 0")
+    RtLine("    mov " + Chr$(&H5B) + "edx" + Chr$(&H5D) + ", al")
+    RtLine("    mov eax, ebx")
+    RtLine("    pop edi")
+    RtLine("    pop esi")
+    RtLine("    pop ebx")
+    RtLine("    mov esp, ebp")
+    RtLine("    pop ebp")
+    RtLine("    ret 8")
+
+    RtLine("_rt_Mid:")
+    RtLine("    push ebp")
+    RtLine("    mov ebp, esp")
+    RtLine("    push ebx")
+    RtLine("    push esi")
+    RtLine("    push edi")
+    RtLine("    mov ebx, ebp")
+    RtLine("    add ebx, 8")
+    RtLine("    mov edi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    cmp edi, 0")
+    RtLine("    jne rt_mid_s_ok")
+    RtLine("    push str_empty")
+    RtLine("    pop edi")
+    RtLine("rt_mid_s_ok:")
+    RtLine("    add ebx, 4")
+    RtLine("    mov esi, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    sub esi, 1")
+    RtLine("    cmp esi, 0")
+    RtLine("    jge rt_mid_start_ok")
+    RtLine("    mov esi, 0")
+    RtLine("rt_mid_start_ok:")
+    RtLine("    add ebx, 4")
+    RtLine("    mov edx, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+    RtLine("    push edi")
+    RtLine("    call _lstrlenA@4")
+    RtLine("    sub eax, esi")
+    RtLine("    cmp eax, 0")
+    RtLine("    jge rt_mid_rem_ok")
+    RtLine("    mov eax, 0")
+    RtLine("rt_mid_rem_ok:")
+    RtLine("    cmp edx, 0")
+    RtLine("    jl rt_mid_count_ok")
+    RtLine("    cmp edx, eax")
+    RtLine("    jle rt_mid_use_len")
+    RtLine("rt_mid_count_ok:")
+    RtLine("    mov edx, eax")
+    RtLine("rt_mid_use_len:")
+    RtLine("    add edi, esi")
+    RtLine("    mov esi, edx")
+    RtLine("    mov eax, esi")
+    RtLine("    add eax, 1")
+    RtLine("    push eax")
+    RtLine("    call _GetProcessHeap@0")
+    RtLine("    push esi")
+    RtLine("    push 0")
+    RtLine("    push eax")
+    RtLine("    call _HeapAlloc@12")
+    RtLine("    mov ebx, eax")
+    RtLine("    mov edx, eax")
+    RtLine("rt_mid_loop:")
+    RtLine("    cmp esi, 0")
+    RtLine("    je rt_mid_end")
+    RtLine("    movzx eax, " + Chr$(&H5B) + "edi" + Chr$(&H5D))
+    RtLine("    mov " + Chr$(&H5B) + "edx" + Chr$(&H5D) + ", al")
+    RtLine("    add edi, 1")
+    RtLine("    add edx, 1")
+    RtLine("    sub esi, 1")
+    RtLine("    jmp rt_mid_loop")
+    RtLine("rt_mid_end:")
+    RtLine("    mov eax, 0")
+    RtLine("    mov " + Chr$(&H5B) + "edx" + Chr$(&H5D) + ", al")
+    RtLine("    mov eax, ebx")
+    RtLine("    pop edi")
+    RtLine("    pop esi")
+    RtLine("    pop ebx")
+    RtLine("    mov esp, ebp")
+    RtLine("    pop ebp")
+    RtLine("    ret 12")
+End Sub
+
 ' 算術式 → eax
 Function GenArith(expr As String) As Long
     Dim e As String
@@ -432,6 +857,9 @@ Function GenArith(expr As String) As Long
     Dim p As *Byte
     Dim c As Long
     Dim ci As Long
+    Dim arg0 As String
+    Dim arg1 As String
+    Dim arg2 As String
 
     GenArith = 0
     e = Trim$(expr)
@@ -442,11 +870,107 @@ Function GenArith(expr As String) As Long
     n = Len(e)
     p = StrPtr(e)
 
+    If IsStringLit(e) <> 0 Then
+        callName = AddStringLit$(e)
+        EmitAsm("push " + callName)
+        EmitAsm("pop eax")
+        GenArith = 1
+        Exit Function
+    End If
+
+    ' 文字列組み込み関数（汎用関数呼び出しより先に処理）
+    If n >= 3 Then
+        lp = 0
+        i = 0
+        While i < n
+            If p[i] = 40 Then
+                lp = i + 1
+                Exit While
+            End If
+            i = i + 1
+        Wend
+        If lp > 1 Then
+            i = MatchClose(p, n, lp - 1)
+            If i = n - 1 Then
+                callName = Lower$(Trim$(Left$(e, lp - 1)))
+                argsText = Trim$(Mid$(e, lp + 1, i - lp))
+                If callName = "len" Or callName = "asc" Or callName = "strptr" Or callName = "chr$" Or callName = "left$" Or callName = "mid$" Then
+                    If SplitArgs(argsText) = 0 Then Exit Function
+                    savedN = gNArgs
+                    For i = 0 To savedN - 1
+                        gAsmArgs(i) = gArgs(i)
+                    Next
+                    arg0 = ""
+                    arg1 = ""
+                    arg2 = ""
+                    If savedN > 0 Then arg0 = gAsmArgs(0)
+                    If savedN > 1 Then arg1 = gAsmArgs(1)
+                    If savedN > 2 Then arg2 = gAsmArgs(2)
+                    If callName = "len" Or callName = "asc" Or callName = "strptr" Or callName = "chr$" Then
+                        If savedN <> 1 Then
+                            Print callName + " needs 1 argument"
+                            Exit Function
+                        End If
+                        If GenArith(arg0) = 0 Then Exit Function
+                        If callName = "strptr" Then
+                            GenArith = 1
+                            Exit Function
+                        End If
+                        EnsureStringRt()
+                        EmitAsm("push eax")
+                        If callName = "len" Then
+                            EmitAsm("call _rt_Len")
+                        ElseIf callName = "asc" Then
+                            EmitAsm("call _rt_Asc")
+                        Else
+                            EmitAsm("call _rt_Chr")
+                        End If
+                        GenArith = 1
+                        Exit Function
+                    ElseIf callName = "left$" Then
+                        If savedN <> 2 Then
+                            Print "Left$ needs 2 arguments"
+                            Exit Function
+                        End If
+                        EnsureStringRt()
+                        If GenArith(arg1) = 0 Then Exit Function
+                        EmitAsm("push eax")
+                        If GenArith(arg0) = 0 Then Exit Function
+                        EmitAsm("push eax")
+                        EmitAsm("call _rt_Left")
+                        GenArith = 1
+                        Exit Function
+                    Else
+                        If savedN <> 2 And savedN <> 3 Then
+                            Print "Mid$ needs 2 or 3 arguments"
+                            Exit Function
+                        End If
+                        EnsureStringRt()
+                        If savedN = 3 Then
+                            If GenArith(arg2) = 0 Then Exit Function
+                        Else
+                            EmitAsm("mov eax, -1")
+                        End If
+                        EmitAsm("push eax")
+                        If GenArith(arg1) = 0 Then Exit Function
+                        EmitAsm("push eax")
+                        If GenArith(arg0) = 0 Then Exit Function
+                        EmitAsm("push eax")
+                        EmitAsm("call _rt_Mid")
+                        GenArith = 1
+                        Exit Function
+                    End If
+                End If
+            End If
+        End If
+    End If
+
     ' VarPtr(x) / VarPtr(a(i))
     If n > 7 Then
         If Lower$(Left$(e, 7)) = "varptr(" Then
-            If p[n - 1] = 41 Then
-                argsText = Trim$(Mid$(e, 8, n - 8))
+            i = MatchClose(p, n, 6)
+            If i = n - 1 Then
+                argsText = Trim$(Mid$(e, 8, i - 7))
                 lp = 0
                 i = 0
                 While i < Len(argsText)
@@ -464,7 +988,15 @@ Function GenArith(expr As String) As Long
                         Print "VarPtr undeclared: " + callName
                         Exit Function
                     End If
-                    argsText = Mid$(argsText, lp + 1, Len(argsText) - lp - 1)
+                    ' 対応閉じ括弧までを添字とする
+                    p = StrPtr(argsText)
+                    n = Len(argsText)
+                    i = MatchClose(p, n, lp - 1)
+                    If i < 0 Then
+                        Print "VarPtr bad index: " + argsText
+                        Exit Function
+                    End If
+                    argsText = Mid$(argsText, lp + 1, i - lp)
                     If GenArith(argsText) = 0 Then Exit Function
                     EmitScaleAddBase(idx)
                     EmitAsm("mov eax, ebx")
@@ -483,7 +1015,7 @@ Function GenArith(expr As String) As Long
         End If
     End If
 
-    ' 配列 / ポインタ添字 a(i) a[i] p[i]（関数呼び出しより先）
+    ' 配列 / ポインタ添字 a(i) a[i] p[i]（式全体が name[...] のときだけ）
     lp = 0
     i = 0
     While i < n
@@ -494,43 +1026,47 @@ Function GenArith(expr As String) As Long
         i = i + 1
     Wend
     If lp > 1 Then
-        If (p[lp - 1] = 40 And p[n - 1] = 41) Or (p[lp - 1] = &H5B And p[n - 1] = &H5D) Then
+        i = MatchClose(p, n, lp - 1)
+        If i = n - 1 Then
             callName = Trim$(Left$(e, lp - 1))
-            idx = FindVar(callName)
-            If idx >= 0 Then
-                argsText = Mid$(e, lp + 1, n - lp - 1)
-                If GenArith(argsText) = 0 Then Exit Function
-                EmitScaleAddBase(idx)
-                If gVarSize(idx) = 1 Then
-                    EmitAsm("movzx eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
-                Else
-                    EmitAsm("mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+            If IsIdentName(callName) <> 0 Then
+                idx = FindVar(callName)
+                If idx >= 0 Then
+                    argsText = Mid$(e, lp + 1, i - lp)
+                    If GenArith(argsText) = 0 Then Exit Function
+                    EmitScaleAddBase(idx)
+                    If gVarSize(idx) = 1 Then
+                        EmitAsm("movzx eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+                    Else
+                        EmitAsm("mov eax, " + Chr$(&H5B) + "ebx" + Chr$(&H5D))
+                    End If
+                    GenArith = 1
+                    Exit Function
                 End If
-                GenArith = 1
-                Exit Function
             End If
         End If
     End If
 
-    ' 関数呼び出しを最優先（"("=40 ")"=41）
+    ' 関数呼び出し（識別子名のみ。対応する ) が式末尾）
     If n >= 3 Then
-        If p[n - 1] = 41 Then
-            lp = 0
-            i = 0
-            While i < n
-                If p[i] = 40 Then
-                    lp = i + 1
-                    Exit While
-                End If
-                i = i + 1
-            Wend
-            If lp > 1 Then
+        lp = 0
+        i = 0
+        While i < n
+            If p[i] = 40 Then
+                lp = i + 1
+                Exit While
+            End If
+            i = i + 1
+        Wend
+        If lp > 1 Then
+            i = MatchClose(p, n, lp - 1)
+            If i = n - 1 Then
                 callName = Trim$(Left$(e, lp - 1))
-                idx = FindVar(callName)
-                If callName <> "" Then
+                If IsIdentName(callName) <> 0 Then
+                    idx = FindVar(callName)
                     If idx < 0 Then
                         If IsNumStr(callName) = 0 Then
-                            argsText = Trim$(Mid$(e, lp + 1, n - lp - 1))
+                            argsText = Trim$(Mid$(e, lp + 1, i - lp))
                             savedN = 0
                             If argsText <> "" Then
                                 If SplitArgs(argsText) = 0 Then Exit Function
@@ -559,6 +1095,16 @@ Function GenArith(expr As String) As Long
     If pos > 0 Then
         left = Trim$(Left$(e, pos - 1))
         right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
+        If IsStringExpr(left) <> 0 Or IsStringExpr(right) <> 0 Then
+            EnsureStringRt()
+            If GenArith(right) = 0 Then Exit Function
+            EmitAsm("push eax")
+            If GenArith(left) = 0 Then Exit Function
+            EmitAsm("push eax")
+            EmitAsm("call _rt_Cat")
+            GenArith = 1
+            Exit Function
+        End If
         If GenArith(left) = 0 Then Exit Function
         EmitAsm("push eax")
         If GenArith(right) = 0 Then Exit Function
@@ -635,25 +1181,63 @@ Function GenArith(expr As String) As Long
     Print "unknown expression: " + e
 End Function
 
-Function GenCond(expr As String, ByRef falseJcc As String) As Long
+Function GenCond(expr As String, falseLab As String) As Long
     Dim e As String
     Dim pos As Long
     Dim left As String
     Dim right As String
+    Dim rightLab As String
+    Dim doneLab As String
+    Dim isStr As Long
 
     GenCond = 0
     e = Trim$(expr)
+
+    pos = FindOpWord(e, "or")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 2, Len(e) - pos - 1))
+        rightLab = NewLabel$()
+        doneLab = NewLabel$()
+        If GenCond(left, rightLab) = 0 Then Exit Function
+        EmitAsm("jmp " + doneLab)
+        EmitLabel(rightLab)
+        If GenCond(right, falseLab) = 0 Then Exit Function
+        EmitLabel(doneLab)
+        GenCond = 1
+        Exit Function
+    End If
+
+    pos = FindOpWord(e, "and")
+    If pos > 0 Then
+        left = Trim$(Left$(e, pos - 1))
+        right = Trim$(Mid$(e, pos + 3, Len(e) - pos - 2))
+        If GenCond(left, falseLab) = 0 Then Exit Function
+        GenCond = GenCond(right, falseLab)
+        Exit Function
+    End If
 
     pos = FindOp2(e, "<>")
     If pos > 0 Then
         left = Trim$(Left$(e, pos - 1))
         right = Trim$(Mid$(e, pos + 2, Len(e) - pos - 1))
-        If GenArith(left) = 0 Then Exit Function
-        EmitAsm("push eax")
-        If GenArith(right) = 0 Then Exit Function
-        EmitAsm("pop ecx")
-        EmitAsm("cmp ecx, eax")
-        falseJcc = "je"
+        isStr = IsStringExpr(left) Or IsStringExpr(right)
+        If isStr <> 0 Then
+            EnsureStringRt()
+            If GenArith(right) = 0 Then Exit Function
+            EmitAsm("push eax")
+            If GenArith(left) = 0 Then Exit Function
+            EmitAsm("push eax")
+            EmitAsm("call _lstrcmpA@8")
+            EmitAsm("cmp eax, 0")
+        Else
+            If GenArith(left) = 0 Then Exit Function
+            EmitAsm("push eax")
+            If GenArith(right) = 0 Then Exit Function
+            EmitAsm("pop ecx")
+            EmitAsm("cmp ecx, eax")
+        End If
+        EmitAsm("je " + falseLab)
         GenCond = 1
         Exit Function
     End If
@@ -667,7 +1251,7 @@ Function GenCond(expr As String, ByRef falseJcc As String) As Long
         If GenArith(right) = 0 Then Exit Function
         EmitAsm("pop ecx")
         EmitAsm("cmp ecx, eax")
-        falseJcc = "jg"
+        EmitAsm("jg " + falseLab)
         GenCond = 1
         Exit Function
     End If
@@ -681,7 +1265,7 @@ Function GenCond(expr As String, ByRef falseJcc As String) As Long
         If GenArith(right) = 0 Then Exit Function
         EmitAsm("pop ecx")
         EmitAsm("cmp ecx, eax")
-        falseJcc = "jl"
+        EmitAsm("jl " + falseLab)
         GenCond = 1
         Exit Function
     End If
@@ -690,12 +1274,23 @@ Function GenCond(expr As String, ByRef falseJcc As String) As Long
     If pos > 0 Then
         left = Trim$(Left$(e, pos - 1))
         right = Trim$(Mid$(e, pos + 1, Len(e) - pos))
-        If GenArith(left) = 0 Then Exit Function
-        EmitAsm("push eax")
-        If GenArith(right) = 0 Then Exit Function
-        EmitAsm("pop ecx")
-        EmitAsm("cmp ecx, eax")
-        falseJcc = "jne"
+        isStr = IsStringExpr(left) Or IsStringExpr(right)
+        If isStr <> 0 Then
+            EnsureStringRt()
+            If GenArith(right) = 0 Then Exit Function
+            EmitAsm("push eax")
+            If GenArith(left) = 0 Then Exit Function
+            EmitAsm("push eax")
+            EmitAsm("call _lstrcmpA@8")
+            EmitAsm("cmp eax, 0")
+        Else
+            If GenArith(left) = 0 Then Exit Function
+            EmitAsm("push eax")
+            If GenArith(right) = 0 Then Exit Function
+            EmitAsm("pop ecx")
+            EmitAsm("cmp ecx, eax")
+        End If
+        EmitAsm("jne " + falseLab)
         GenCond = 1
         Exit Function
     End If
@@ -709,7 +1304,7 @@ Function GenCond(expr As String, ByRef falseJcc As String) As Long
         If GenArith(right) = 0 Then Exit Function
         EmitAsm("pop ecx")
         EmitAsm("cmp ecx, eax")
-        falseJcc = "jge"
+        EmitAsm("jge " + falseLab)
         GenCond = 1
         Exit Function
     End If
@@ -723,7 +1318,7 @@ Function GenCond(expr As String, ByRef falseJcc As String) As Long
         If GenArith(right) = 0 Then Exit Function
         EmitAsm("pop ecx")
         EmitAsm("cmp ecx, eax")
-        falseJcc = "jle"
+        EmitAsm("jle " + falseLab)
         GenCond = 1
         Exit Function
     End If
@@ -731,7 +1326,7 @@ Function GenCond(expr As String, ByRef falseJcc As String) As Long
     ' 値の真偽
     If GenArith(e) = 0 Then Exit Function
     EmitAsm("cmp eax, 0")
-    falseJcc = "je"
+    EmitAsm("je " + falseLab)
     GenCond = 1
 End Function
 
@@ -1016,22 +1611,6 @@ Function SplitArgs(argsText As String) As Long
     SplitArgs = 1
 End Function
 
-Function IsStringLit(s As String) As Long
-    Dim n As Long
-    Dim p As *Byte
-    n = Len(s)
-    If n < 2 Then
-        IsStringLit = 0
-        Exit Function
-    End If
-    p = StrPtr(s)
-    If (p[0] = 34 And p[n - 1] = 34) Or (p[0] = Asc("'") And p[n - 1] = Asc("'")) Then
-        IsStringLit = 1
-    Else
-        IsStringLit = 0
-    End If
-End Function
-
 ' NULL / MB_OK -> 0、文字列 -> str_N、それ以外はそのまま
 Function ArgToAsm$(arg As String) As String
     Dim t As String
@@ -1040,12 +1619,8 @@ Function ArgToAsm$(arg As String) As String
     Dim dq As String
 
     t = Trim$(arg)
-    dq = Chr$(34)
     If IsStringLit(t) <> 0 Then
-        label = "str_" + Str$(gStrCount)
-        lit = Mid$(t, 2, Len(t) - 2)
-        gDataLines = gDataLines + "    " + label + " db " + dq + lit + dq + ", 0" + Chr$(13) + Chr$(10)
-        gStrCount = gStrCount + 1
+        label = AddStringLit$(t)
         ArgToAsm$ = label
     ElseIf t = "NULL" Or t = "MB_OK" Then
         ArgToAsm$ = "0"
@@ -1190,6 +1765,7 @@ Function CompileDim(lineStr As String) As Long
     Dim count As Long
     Dim elemSize As Long
     Dim isPtr As Long
+    Dim isStr As Long
     Dim namePart As String
     Dim idxPart As String
     Dim p As *Byte
@@ -1250,7 +1826,21 @@ Function CompileDim(lineStr As String) As Long
         Print "duplicate Dim: " + name
         Exit Function
     End If
-    If AddVarEx(name, elemSize, count, isPtr) < 0 Then Exit Function
+    isStr = 0
+    If Lower$(typeName) = "string" Then
+        isStr = 1
+    End If
+    If isStr <> 0 And count <> 1 Then
+        Print "String array not supported: " + lineStr
+        Exit Function
+    End If
+    If AddVarEx(name, elemSize, count, isPtr, isStr) < 0 Then Exit Function
+    If isStr <> 0 Then
+        EnsureStringRt()
+        EmitAsm("push str_empty")
+        EmitAsm("pop eax")
+        EmitStoreVar(FindVar(name))
+    End If
     CompileDim = 1
 End Function
 
@@ -1300,9 +1890,10 @@ Function CompileAssign(lineStr As String) As Long
         i = i + 1
     Wend
     If lb > 1 Then
-        If (p[lb - 1] = 40 And p[n - 1] = 41) Or (p[lb - 1] = &H5B And p[n - 1] = &H5D) Then
+        i = MatchClose(p, n, lb - 1)
+        If i = n - 1 Then
             name = Trim$(Left$(lhs, lb - 1))
-            idxExpr = Mid$(lhs, lb + 1, n - lb - 1)
+            idxExpr = Mid$(lhs, lb + 1, i - lb)
             idx = FindVar(name)
             If idx < 0 Then
                 Print "undeclared variable: " + name
@@ -1335,7 +1926,6 @@ End Function
 
 Function CompileIfThen(lineStr As String) As Long
     Dim e As String
-    Dim falseJcc As String
     Dim labElse As String
     Dim labEnd As String
     Dim pos As Long
@@ -1357,8 +1947,7 @@ Function CompileIfThen(lineStr As String) As Long
     gIfElse(gIfSp) = labElse
     gIfEnd(gIfSp) = labEnd
     gIfSp = gIfSp + 1
-    If GenCond(e, falseJcc) = 0 Then Exit Function
-    EmitAsm(falseJcc + " " + labElse)
+    If GenCond(e, labElse) = 0 Then Exit Function
     CompileIfThen = 1
 End Function
 
@@ -1398,7 +1987,6 @@ End Function
 
 Function CompileWhile(lineStr As String) As Long
     Dim e As String
-    Dim falseJcc As String
     Dim labTop As String
     Dim labEnd As String
     CompileWhile = 0
@@ -1418,8 +2006,7 @@ Function CompileWhile(lineStr As String) As Long
     gLoopEnd(gLoopSp) = labEnd
     gLoopSp = gLoopSp + 1
     EmitLabel(labTop)
-    If GenCond(e, falseJcc) = 0 Then Exit Function
-    EmitAsm(falseJcc + " " + labEnd)
+    If GenCond(e, labEnd) = 0 Then Exit Function
     CompileWhile = 1
 End Function
 
@@ -1570,6 +2157,7 @@ Sub SaveMainScope()
             gSavedVarSize(i) = gVarSize(i)
             gSavedVarCount(i) = gVarCount(i)
             gSavedVarIsPtr(i) = gVarIsPtr(i)
+            gSavedVarIsStr(i) = gVarIsStr(i)
         Next
     End If
 End Sub
@@ -1586,11 +2174,12 @@ Sub RestoreMainScope()
             gVarSize(i) = gSavedVarSize(i)
             gVarCount(i) = gSavedVarCount(i)
             gVarIsPtr(i) = gSavedVarIsPtr(i)
+            gVarIsStr(i) = gSavedVarIsStr(i)
         Next
     End If
 End Sub
 
-Function AddArgVar(name As String, off As Long) As Long
+Function AddArgVar(name As String, off As Long, isStr As Long) As Long
     Dim idx As Long
     If gNVars >= MAX_VARS Then
         Print "too many variables"
@@ -1603,6 +2192,7 @@ Function AddArgVar(name As String, off As Long) As Long
     gVarSize(idx) = 4
     gVarCount(idx) = 1
     gVarIsPtr(idx) = 0
+    gVarIsStr(idx) = isStr
     gNVars = gNVars + 1
     AddArgVar = idx
 End Function
@@ -1619,6 +2209,8 @@ Function CompileProcHeader(lineStr As String, isFunc As Long) As Long
     Dim pos As Long
     Dim argOff As Long
     Dim i As Long
+    Dim argIsStr As Long
+    Dim argType As String
 
     CompileProcHeader = 0
     If gInProc <> 0 Then
@@ -1686,10 +2278,13 @@ Function CompileProcHeader(lineStr As String, isFunc As Long) As Long
                 arg = Trim$(Mid$(arg, 7, Len(arg) - 6))
             End If
             pos = InStr(1, Lower$(arg), " as ")
+            argIsStr = 0
             If pos > 0 Then
+                argType = Trim$(Mid$(arg, pos + 4, Len(arg) - pos - 3))
+                If Lower$(argType) = "string" Then argIsStr = 1
                 arg = Trim$(Left$(arg, pos - 1))
             End If
-            If AddArgVar(arg, argOff) < 0 Then Exit Function
+            If AddArgVar(arg, argOff, argIsStr) < 0 Then Exit Function
             argOff = argOff + 4
             gProcArgBytes = gProcArgBytes + 4
         Next
@@ -1827,6 +2422,8 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     gStrCount = 0
     gUseMsgBox = 0
     gEmittedExit = 0
+    gUseStringRt = 0
+    gRtLines = ""
     gNVars = 0
     gFrameSize = 0
     gNConsts = 0
@@ -1998,11 +2595,19 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     End If
 
     outAsm = "bits 32" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
-    outAsm = outAsm + "; generated by abc (Phase3)" + Chr$(13) + Chr$(10)
+    outAsm = outAsm + "; generated by abc (Phase5)" + Chr$(13) + Chr$(10)
     If gUseMsgBox <> 0 Then
         outAsm = outAsm + "extern _MessageBoxA@16" + Chr$(13) + Chr$(10)
     End If
     outAsm = outAsm + "extern _ExitProcess@4" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
+    If gUseStringRt <> 0 Then
+        outAsm = outAsm + "extern _lstrlenA@4" + Chr$(13) + Chr$(10)
+        outAsm = outAsm + "extern _lstrcpyA@8" + Chr$(13) + Chr$(10)
+        outAsm = outAsm + "extern _lstrcatA@8" + Chr$(13) + Chr$(10)
+        outAsm = outAsm + "extern _lstrcmpA@8" + Chr$(13) + Chr$(10)
+        outAsm = outAsm + "extern _GetProcessHeap@0" + Chr$(13) + Chr$(10)
+        outAsm = outAsm + "extern _HeapAlloc@12" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
+    End If
     outAsm = outAsm + "section .data" + Chr$(13) + Chr$(10)
     If gDataLines <> "" Then
         outAsm = outAsm + gDataLines
@@ -2014,6 +2619,9 @@ Function CompileBuffer$(src As *Byte, srcSize As Long) As String
     outAsm = outAsm + "    global _main" + Chr$(13) + Chr$(10) + Chr$(13) + Chr$(10)
     If gProcLines <> "" Then
         outAsm = outAsm + gProcLines
+    End If
+    If gRtLines <> "" Then
+        outAsm = outAsm + gRtLines + Chr$(13) + Chr$(10)
     End If
     outAsm = outAsm + "_main:" + Chr$(13) + Chr$(10)
     outAsm = outAsm + gTextLines

@@ -1,0 +1,1201 @@
+' d3d9types.sbp
+
+
+Const D3DCOLOR_ARGB(a,r,g,b) = ((a and &HFF)<<24) or ((r and &HFF)<<16) or ((g and &HFF)<<8) or (b and &HFF)
+Const D3DCOLOR_RGBA(r,g,b,a) = D3DCOLOR_ARGB(a,r,g,b)
+Const D3DCOLOR_XRGB(r,g,b) = D3DCOLOR_ARGB(&HFF,r,g,b)
+
+Const D3DCOLOR_COLORVALUE(r,g,b,a) = D3DCOLOR_RGBA(r*255,g*255,b*255,a*255)
+
+
+Type D3DVECTOR
+	x As Single
+	y As Single
+	z As Single
+End Type
+
+Type D3DCOLORVALUE
+	r As Single
+	g As Single
+	b As Single
+	a As Single
+End Type
+
+Type D3DRECT
+	x1 As Long
+	y1 As Long
+	x2 As Long
+	y2 As Long
+End Type
+
+Type D3DMATRIX
+    m[3,3] As Single
+End Type
+
+Type D3DVIEWPORT9
+	X As DWord
+	Y As DWord
+	Width As DWord
+	Height As DWord
+	MinZ As Single
+	MaxZ As Single
+End Type
+
+' Max number of user clipping planes, supported in D3D.
+Const D3DMAXUSERCLIPPLANES = 32
+
+' These bits could be ORed together to use with D3DRS_CLIPPLANEENABLE
+Const D3DCLIPPLANE0 = 1 << 0
+Const D3DCLIPPLANE1 = 1 << 1
+Const D3DCLIPPLANE2 = 1 << 2
+Const D3DCLIPPLANE3 = 1 << 3
+Const D3DCLIPPLANE4 = 1 << 4
+Const D3DCLIPPLANE5 = 1 << 5
+
+Const D3DCS_LEFT   = &H00000001
+Const D3DCS_RIGHT  = &H00000002
+Const D3DCS_TOP    = &H00000004
+Const D3DCS_BOTTOM = &H00000008
+Const D3DCS_FRONT  = &H00000010
+Const D3DCS_BACK   = &H00000020
+Const D3DCS_PLANE0 = &H00000040
+Const D3DCS_PLANE1 = &H00000080
+Const D3DCS_PLANE2 = &H00000100
+Const D3DCS_PLANE3 = &H00000200
+Const D3DCS_PLANE4 = &H00000400
+Const D3DCS_PLANE5 = &H00000800
+Const D3DCS_ALL    = D3DCS_LEFT or D3DCS_RIGHT or D3DCS_TOP or D3DCS_BOTTOM or D3DCS_FRONT or D3DCS_BACK or D3DCS_PLANE0 or D3DCS_PLANE1 or D3DCS_PLANE2 or D3DCS_PLANE3 or D3DCS_PLANE4 or D3DCS_PLANE5
+Type D3DCLIPSTATUS9
+	ClipUnion As DWord
+	ClipIntersection As DWord
+End Type
+
+Type D3DMATERIAL9
+	Diffuse As D3DCOLORVALUE
+	Ambient As D3DCOLORVALUE
+	Specular As D3DCOLORVALUE
+	Emissive As D3DCOLORVALUE
+	Power As Single
+End Type
+
+Enum D3DLIGHTTYPE
+    D3DLIGHT_POINT          = 1
+    D3DLIGHT_SPOT           = 2
+    D3DLIGHT_DIRECTIONAL    = 3
+    D3DLIGHT_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+Type D3DLIGHT9
+	Type_ As D3DLIGHTTYPE
+	Diffuse As D3DCOLORVALUE
+	Specular As D3DCOLORVALUE
+	Ambient As D3DCOLORVALUE
+	Position As D3DVECTOR
+	Direction As D3DVECTOR
+	Range As Single
+	Falloff As Single
+	Attenuation0 As Single
+	Attenuation1 As Single
+	Attenuation2 As Single
+	Theta As Single
+	Phi As Single
+End Type
+
+
+' Options for clearing
+Const D3DCLEAR_TARGET  = &H00000001l  'Clear target surface
+Const D3DCLEAR_ZBUFFER = &H00000002l  'Clear target z buffer
+Const D3DCLEAR_STENCIL = &H00000004l  'Clear stencil planes
+
+
+' The following defines the rendering states
+Enum D3DSHADEMODE
+	D3DSHADE_FLAT        = 1
+	D3DSHADE_GOURAUD     = 2
+	D3DSHADE_PHONG       = 3
+	D3DSHADE_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DFILLMODE
+	D3DFILL_POINT       = 1
+	D3DFILL_WIREFRAME   = 2
+	D3DFILL_SOLID       = 3
+	D3DFILL_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DBLEND
+    D3DBLEND_ZERO               = 1
+    D3DBLEND_ONE                = 2
+    D3DBLEND_SRCCOLOR           = 3
+    D3DBLEND_INVSRCCOLOR        = 4
+    D3DBLEND_SRCALPHA           = 5
+    D3DBLEND_INVSRCALPHA        = 6
+    D3DBLEND_DESTALPHA          = 7
+    D3DBLEND_INVDESTALPHA       = 8
+    D3DBLEND_DESTCOLOR          = 9
+    D3DBLEND_INVDESTCOLOR       = 10
+    D3DBLEND_SRCALPHASAT        = 11
+    D3DBLEND_BOTHSRCALPHA       = 12
+    D3DBLEND_BOTHINVSRCALPHA    = 13
+    D3DBLEND_BLENDFACTOR        = 14   'Only supported if D3DPBLENDCAPS_BLENDFACTOR is on
+    D3DBLEND_INVBLENDFACTOR     = 15   'Only supported if D3DPBLENDCAPS_BLENDFACTOR is on
+
+    D3DBLEND_FORCE_DWORD        = &H7FFFFFFF
+End Enum
+
+Enum D3DBLENDOP
+    D3DBLENDOP_ADD              = 1
+    D3DBLENDOP_SUBTRACT         = 2
+    D3DBLENDOP_REVSUBTRACT      = 3
+    D3DBLENDOP_MIN              = 4
+    D3DBLENDOP_MAX              = 5
+    D3DBLENDOP_FORCE_DWORD      = &H7FFFFFFF
+End Enum
+
+Enum D3DTEXTUREADDRESS
+    D3DTADDRESS_WRAP            = 1
+    D3DTADDRESS_MIRROR          = 2
+    D3DTADDRESS_CLAMP           = 3
+    D3DTADDRESS_BORDER          = 4
+    D3DTADDRESS_MIRRORONCE      = 5
+    D3DTADDRESS_FORCE_DWORD     = &H7FFFFFFF
+End Enum
+
+Enum D3DCULL
+    D3DCULL_NONE                = 1
+    D3DCULL_CW                  = 2
+    D3DCULL_CCW                 = 3
+    D3DCULL_FORCE_DWORD         = &H7FFFFFFF
+End Enum
+
+Enum D3DCMPFUNC
+    D3DCMP_NEVER                = 1
+    D3DCMP_LESS                 = 2
+    D3DCMP_EQUAL                = 3
+    D3DCMP_LESSEQUAL            = 4
+    D3DCMP_GREATER              = 5
+    D3DCMP_NOTEQUAL             = 6
+    D3DCMP_GREATEREQUAL         = 7
+    D3DCMP_ALWAYS               = 8
+    D3DCMP_FORCE_DWORD          = &H7FFFFFFF
+End Enum
+
+Enum D3DSTENCILOP
+    D3DSTENCILOP_KEEP           = 1
+    D3DSTENCILOP_ZERO           = 2
+    D3DSTENCILOP_REPLACE        = 3
+    D3DSTENCILOP_INCRSAT        = 4
+    D3DSTENCILOP_DECRSAT        = 5
+    D3DSTENCILOP_INVERT         = 6
+    D3DSTENCILOP_INCR           = 7
+    D3DSTENCILOP_DECR           = 8
+    D3DSTENCILOP_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+Enum D3DFOGMODE
+    D3DFOG_NONE                 = 0
+    D3DFOG_EXP                  = 1
+    D3DFOG_EXP2                 = 2
+    D3DFOG_LINEAR               = 3
+    D3DFOG_FORCE_DWORD          = &H7FFFFFFF
+End Enum
+
+Enum D3DZBUFFERTYPE
+    D3DZB_FALSE                 = 0
+    D3DZB_TRUE                  = 1   'Z buffering
+    D3DZB_USEW                  = 2   'W buffering
+    D3DZB_FORCE_DWORD           = &H7FFFFFFF
+End Enum
+
+' Primitives supported by draw-primitive API
+Enum D3DPRIMITIVETYPE
+    D3DPT_POINTLIST             = 1
+    D3DPT_LINELIST              = 2
+    D3DPT_LINESTRIP             = 3
+    D3DPT_TRIANGLELIST          = 4
+    D3DPT_TRIANGLESTRIP         = 5
+    D3DPT_TRIANGLEFAN           = 6
+    D3DPT_FORCE_DWORD           = &H7FFFFFFF
+End Enum
+
+
+Const D3DTS_WORLDMATRIX(index) = index + 256
+Enum D3DTRANSFORMSTATETYPE
+    D3DTS_VIEW          = 2
+    D3DTS_PROJECTION    = 3
+    D3DTS_TEXTURE0      = 16
+    D3DTS_TEXTURE1      = 17
+    D3DTS_TEXTURE2      = 18
+    D3DTS_TEXTURE3      = 19
+    D3DTS_TEXTURE4      = 20
+    D3DTS_TEXTURE5      = 21
+    D3DTS_TEXTURE6      = 22
+    D3DTS_TEXTURE7      = 23
+	D3DTS_WORLD         = D3DTS_WORLDMATRIX(0)
+	D3DTS_WORLD1        = D3DTS_WORLDMATRIX(1)
+	D3DTS_WORLD2        = D3DTS_WORLDMATRIX(2)
+	D3DTS_WORLD3        = D3DTS_WORLDMATRIX(3)
+    D3DTS_FORCE_DWORD   = &H7FFFFFFF
+End Enum
+
+Enum D3DRENDERSTATETYPE
+    D3DRS_ZENABLE                   = 7    'D3DZBUFFERTYPE (or TRUE/FALSE for legacy)
+    D3DRS_FILLMODE                  = 8    'D3DFILLMODE
+    D3DRS_SHADEMODE                 = 9    'D3DSHADEMODE
+    D3DRS_ZWRITEENABLE              = 14   'TRUE to enable z writes
+    D3DRS_ALPHATESTENABLE           = 15   'TRUE to enable alpha tests
+    D3DRS_LASTPIXEL                 = 16   'TRUE for last-pixel on lines
+    D3DRS_SRCBLEND                  = 19   'D3DBLEND
+    D3DRS_DESTBLEND                 = 20   'D3DBLEND
+    D3DRS_CULLMODE                  = 22   'D3DCULL
+    D3DRS_ZFUNC                     = 23   'D3DCMPFUNC
+    D3DRS_ALPHAREF                  = 24   'D3DFIXED
+    D3DRS_ALPHAFUNC                 = 25   'D3DCMPFUNC
+    D3DRS_DITHERENABLE              = 26   'TRUE to enable dithering
+    D3DRS_ALPHABLENDENABLE          = 27   'TRUE to enable alpha blending
+    D3DRS_FOGENABLE                 = 28   'TRUE to enable fog blending
+    D3DRS_SPECULARENABLE            = 29   'TRUE to enable specular
+    D3DRS_FOGCOLOR                  = 34   'D3DCOLOR
+    D3DRS_FOGTABLEMODE              = 35   'D3DFOGMODE
+    D3DRS_FOGSTART                  = 36   'Fog start (for both vertex and pixel fog)
+    D3DRS_FOGEND                    = 37   'Fog end     
+    D3DRS_FOGDENSITY                = 38   'Fog density 
+    D3DRS_RANGEFOGENABLE            = 48   'Enables range-based fog
+    D3DRS_STENCILENABLE             = 52   'BOOL enable/disable stenciling
+    D3DRS_STENCILFAIL               = 53   'D3DSTENCILOP to do if stencil test fails
+    D3DRS_STENCILZFAIL              = 54   'D3DSTENCILOP to do if stencil test passes and Z test fails
+    D3DRS_STENCILPASS               = 55   'D3DSTENCILOP to do if both stencil and Z tests pass
+    D3DRS_STENCILFUNC               = 56   'D3DCMPFUNC fn.  Stencil Test passes if ((ref & mask) stencilfn (stencil & mask)) is true
+    D3DRS_STENCILREF                = 57   'Reference value used in stencil test
+    D3DRS_STENCILMASK               = 58   'Mask value used in stencil test
+    D3DRS_STENCILWRITEMASK          = 59   'Write mask applied to values written to stencil buffer
+    D3DRS_TEXTUREFACTOR             = 60   'D3DCOLOR used for multi-texture blend
+    D3DRS_WRAP0                     = 128  'wrap for 1st texture coord. set
+    D3DRS_WRAP1                     = 129  'wrap for 2nd texture coord. set
+    D3DRS_WRAP2                     = 130  'wrap for 3rd texture coord. set
+    D3DRS_WRAP3                     = 131  'wrap for 4th texture coord. set
+    D3DRS_WRAP4                     = 132  'wrap for 5th texture coord. set
+    D3DRS_WRAP5                     = 133  'wrap for 6th texture coord. set
+    D3DRS_WRAP6                     = 134  'wrap for 7th texture coord. set
+    D3DRS_WRAP7                     = 135  'wrap for 8th texture coord. set
+    D3DRS_CLIPPING                  = 136
+    D3DRS_LIGHTING                  = 137
+    D3DRS_AMBIENT                   = 139
+    D3DRS_FOGVERTEXMODE             = 140
+    D3DRS_COLORVERTEX               = 141
+    D3DRS_LOCALVIEWER               = 142
+    D3DRS_NORMALIZENORMALS          = 143
+    D3DRS_DIFFUSEMATERIALSOURCE     = 145
+    D3DRS_SPECULARMATERIALSOURCE    = 146
+    D3DRS_AMBIENTMATERIALSOURCE     = 147
+    D3DRS_EMISSIVEMATERIALSOURCE    = 148
+    D3DRS_VERTEXBLEND               = 151
+    D3DRS_CLIPPLANEENABLE           = 152
+    D3DRS_POINTSIZE                 = 154  'float point size
+    D3DRS_POINTSIZE_MIN             = 155  'float point size min threshold
+    D3DRS_POINTSPRITEENABLE         = 156  'BOOL point texture coord control
+    D3DRS_POINTSCALEENABLE          = 157  'BOOL point size scale enable
+    D3DRS_POINTSCALE_A              = 158  'float point attenuation A value
+    D3DRS_POINTSCALE_B              = 159  'float point attenuation B value
+    D3DRS_POINTSCALE_C              = 160  'float point attenuation C value
+    D3DRS_MULTISAMPLEANTIALIAS      = 161  ' BOOL - set to do FSAA with multisample buffer
+    D3DRS_MULTISAMPLEMASK           = 162  ' DWORD - per-sample enable/disable
+    D3DRS_PATCHEDGESTYLE            = 163  ' Sets whether patch edges will use float style tessellation
+    D3DRS_DEBUGMONITORTOKEN         = 165  ' DEBUG ONLY - token to debug monitor
+    D3DRS_POINTSIZE_MAX             = 166  'float point size max threshold
+    D3DRS_INDEXEDVERTEXBLENDENABLE  = 167
+    D3DRS_COLORWRITEENABLE          = 168  ' per-channel write enable
+    D3DRS_TWEENFACTOR               = 170  ' float tween factor
+    D3DRS_BLENDOP                   = 171  ' D3DBLENDOP setting
+    D3DRS_POSITIONDEGREE            = 172  ' NPatch position interpolation degree. D3DDEGREE_LINEAR or D3DDEGREE_CUBIC (default)
+    D3DRS_NORMALDEGREE              = 173  ' NPatch normal interpolation degree. D3DDEGREE_LINEAR (default) or D3DDEGREE_QUADRATIC
+    D3DRS_SCISSORTESTENABLE         = 174
+    D3DRS_SLOPESCALEDEPTHBIAS       = 175
+    D3DRS_ANTIALIASEDLINEENABLE     = 176
+    D3DRS_MINTESSELLATIONLEVEL      = 178
+    D3DRS_MAXTESSELLATIONLEVEL      = 179
+    D3DRS_ADAPTIVETESS_X            = 180
+    D3DRS_ADAPTIVETESS_Y            = 181
+    D3DRS_ADAPTIVETESS_Z            = 182
+    D3DRS_ADAPTIVETESS_W            = 183
+    D3DRS_ENABLEADAPTIVETESSELLATION = 184
+    D3DRS_TWOSIDEDSTENCILMODE       = 185   'BOOL enable/disable 2 sided stenciling
+    D3DRS_CCW_STENCILFAIL           = 186   'D3DSTENCILOP to do if ccw stencil test fails
+    D3DRS_CCW_STENCILZFAIL          = 187   'D3DSTENCILOP to do if ccw stencil test passes and Z test fails
+    D3DRS_CCW_STENCILPASS           = 188   'D3DSTENCILOP to do if both ccw stencil and Z tests pass
+    D3DRS_CCW_STENCILFUNC           = 189   'D3DCMPFUNC fn.  ccw Stencil Test passes if ((ref & mask) stencilfn (stencil & mask)) is true
+    D3DRS_COLORWRITEENABLE1         = 190   'Additional ColorWriteEnables for the devices that support D3DPMISCCAPS_INDEPENDENTWRITEMASKS
+    D3DRS_COLORWRITEENABLE2         = 191   'Additional ColorWriteEnables for the devices that support D3DPMISCCAPS_INDEPENDENTWRITEMASKS
+    D3DRS_COLORWRITEENABLE3         = 192   'Additional ColorWriteEnables for the devices that support D3DPMISCCAPS_INDEPENDENTWRITEMASKS
+    D3DRS_BLENDFACTOR               = 193   'D3DCOLOR used for a constant blend factor during alpha blending for devices that support D3DPBLENDCAPS_BLENDFACTOR
+    D3DRS_SRGBWRITEENABLE           = 194   'Enable rendertarget writes to be DE-linearized to SRGB (for formats that expose D3DUSAGE_QUERY_SRGBWRITE)
+    D3DRS_DEPTHBIAS                 = 195
+    D3DRS_WRAP8                     = 198   'Additional wrap states for vs_3_0+ attributes with D3DDECLUSAGE_TEXCOORD
+    D3DRS_WRAP9                     = 199
+    D3DRS_WRAP10                    = 200
+    D3DRS_WRAP11                    = 201
+    D3DRS_WRAP12                    = 202
+    D3DRS_WRAP13                    = 203
+    D3DRS_WRAP14                    = 204
+    D3DRS_WRAP15                    = 205
+    D3DRS_SEPARATEALPHABLENDENABLE  = 206  'TRUE to enable a separate blending function for the alpha channel
+    D3DRS_SRCBLENDALPHA             = 207  'SRC blend factor for the alpha channel when D3DRS_SEPARATEDESTALPHAENABLE is TRUE
+    D3DRS_DESTBLENDALPHA            = 208  'DST blend factor for the alpha channel when D3DRS_SEPARATEDESTALPHAENABLE is TRUE
+    D3DRS_BLENDOPALPHA              = 209  'Blending operation for the alpha channel when D3DRS_SEPARATEDESTALPHAENABLE is TRUE
+    D3DRS_FORCE_DWORD               = &H7FFFFFFF
+End Enum
+
+' Values for material source
+Enum D3DMATERIALCOLORSOURCE
+    D3DMCS_MATERIAL         = 0            'Color from material is used
+    D3DMCS_COLOR1           = 1            'Diffuse vertex color is used
+    D3DMCS_COLOR2           = 2            'Specular vertex color is used
+    D3DMCS_FORCE_DWORD      = &H7FFFFFFF
+End Enum
+
+' Bias to apply to the texture coordinate set to apply a wrap to.
+Const D3DRENDERSTATE_WRAPBIAS = 128
+
+' Flags to construct the WRAP render states
+Const D3DWRAP_U = &H00000001
+Const D3DWRAP_V = &H00000002
+Const D3DWRAP_W = &H00000004
+
+' Flags to construct the WRAP render states for 1D thru 4D texture coordinates
+Const D3DWRAPCOORD_0 = &H00000001   'same as D3DWRAP_U
+Const D3DWRAPCOORD_1 = &H00000002   'same as D3DWRAP_V
+Const D3DWRAPCOORD_2 = &H00000004   'same as D3DWRAP_W
+Const D3DWRAPCOORD_3 = &H00000008
+
+' Flags to construct D3DRS_COLORWRITEENABLE
+Const D3DCOLORWRITEENABLE_RED   = 1<<0
+Const D3DCOLORWRITEENABLE_GREEN = 1<<1
+Const D3DCOLORWRITEENABLE_BLUE  = 1<<2
+Const D3DCOLORWRITEENABLE_ALPHA = 1<<3
+
+
+' State enumerants for per-stage processing of fixed function pixel processing
+' Two of these affect fixed function vertex processing as well: TEXTURETRANSFORMFLAGS and TEXCOORDINDEX.
+Enum D3DTEXTURESTAGESTATETYPE
+    D3DTSS_COLOROP        =  1          'D3DTEXTUREOP - per-stage blending controls for color channels
+    D3DTSS_COLORARG1      =  2          'D3DTA_* (texture arg)
+    D3DTSS_COLORARG2      =  3          'D3DTA_* (texture arg)
+    D3DTSS_ALPHAOP        =  4          'D3DTEXTUREOP - per-stage blending controls for alpha channel
+    D3DTSS_ALPHAARG1      =  5          'D3DTA_* (texture arg)
+    D3DTSS_ALPHAARG2      =  6          'D3DTA_* (texture arg)
+    D3DTSS_BUMPENVMAT00   =  7          'float (bump mapping matrix)
+    D3DTSS_BUMPENVMAT01   =  8          'float (bump mapping matrix)
+    D3DTSS_BUMPENVMAT10   =  9          'float (bump mapping matrix)
+    D3DTSS_BUMPENVMAT11   = 10          'float (bump mapping matrix)
+    D3DTSS_TEXCOORDINDEX  = 11          'identifies which set of texture coordinates index this texture
+    D3DTSS_BUMPENVLSCALE  = 22          'float scale for bump map luminance
+    D3DTSS_BUMPENVLOFFSET = 23          'float offset for bump map luminance
+    D3DTSS_TEXTURETRANSFORMFLAGS = 24   'D3DTEXTURETRANSFORMFLAGS controls texture transform
+    D3DTSS_COLORARG0      = 26          'D3DTA_* third arg for triadic ops
+    D3DTSS_ALPHAARG0      = 27          'D3DTA_* third arg for triadic ops
+    D3DTSS_RESULTARG      = 28          'D3DTA_* arg for result (CURRENT or TEMP)
+    D3DTSS_CONSTANT       = 32          'Per-stage constant D3DTA_CONSTANT
+
+    D3DTSS_FORCE_DWORD   = &H7FFFFFFF
+End Enum
+
+
+' State enumerants for per-sampler texture processing.
+Enum D3DSAMPLERSTATETYPE
+    D3DSAMP_ADDRESSU       = 1    'D3DTEXTUREADDRESS for U coordinate
+    D3DSAMP_ADDRESSV       = 2    'D3DTEXTUREADDRESS for V coordinate
+    D3DSAMP_ADDRESSW       = 3    'D3DTEXTUREADDRESS for W coordinate
+    D3DSAMP_BORDERCOLOR    = 4    'D3DCOLOR
+    D3DSAMP_MAGFILTER      = 5    'D3DTEXTUREFILTER filter to use for magnification
+    D3DSAMP_MINFILTER      = 6    'D3DTEXTUREFILTER filter to use for minification
+    D3DSAMP_MIPFILTER      = 7    'D3DTEXTUREFILTER filter to use between mipmaps during minification
+    D3DSAMP_MIPMAPLODBIAS  = 8    'float Mipmap LOD bias
+    D3DSAMP_MAXMIPLEVEL    = 9    'DWORD 0..(n-1) LOD index of largest map to use (0 == largest)
+    D3DSAMP_MAXANISOTROPY  = 10   'DWORD maximum anisotropy
+    D3DSAMP_SRGBTEXTURE    = 11   'Default = 0 (which means Gamma 1.0,
+                                  ' no correction required.) else correct for
+                                  ' Gamma = 2.2
+    D3DSAMP_ELEMENTINDEX   = 12   'When multi-element texture is assigned to sampler, this
+                                  ' indicates which element index to use.  Default = 0.
+    D3DSAMP_DMAPOFFSET     = 13   'Offset in vertices in the pre-sampled displacement map.
+                                  ' Only valid for D3DDMAPSAMPLER sampler
+
+    D3DSAMP_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+' Special sampler which is used in the tesselator
+Const D3DDMAPSAMPLER = 256
+
+' Samplers used in vertex shaders
+Const D3DVERTEXTEXTURESAMPLER0 = D3DDMAPSAMPLER+1
+Const D3DVERTEXTEXTURESAMPLER1 = D3DDMAPSAMPLER+2
+Const D3DVERTEXTEXTURESAMPLER2 = D3DDMAPSAMPLER+3
+Const D3DVERTEXTEXTURESAMPLER3 = D3DDMAPSAMPLER+4
+
+' Values, used with D3DTSS_TEXCOORDINDEX, to specify that the vertex data(position
+' and normal in the camera space) should be taken as texture coordinates
+' Low 16 bits are used to specify texture coordinate index, to take the WRAP mode from
+Const D3DTSS_TCI_PASSTHRU                    = &H00000000
+Const D3DTSS_TCI_CAMERASPACENORMAL           = &H00010000
+Const D3DTSS_TCI_CAMERASPACEPOSITION         = &H00020000
+Const D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR = &H00030000
+Const D3DTSS_TCI_SPHEREMAP                   = &H00040000
+
+
+' Enumerations for COLOROP and ALPHAOP texture blending operations set in
+' texture processing stage controls in D3DTSS.
+Enum D3DTEXTUREOP
+    'Control
+    D3DTOP_DISABLE              = 1      'disables stage
+    D3DTOP_SELECTARG1           = 2      'the default
+    D3DTOP_SELECTARG2           = 3
+
+    'Modulate
+    D3DTOP_MODULATE             = 4      'multiply args together
+    D3DTOP_MODULATE2X           = 5      'multiply and  1 bit
+    D3DTOP_MODULATE4X           = 6      'multiply and  2 bits
+
+    'Add
+    D3DTOP_ADD                  =  7   'add arguments together
+    D3DTOP_ADDSIGNED            =  8   'add with -0.5 bias
+    D3DTOP_ADDSIGNED2X          =  9   'as above but left  1 bit
+    D3DTOP_SUBTRACT             = 10   'Arg1 - Arg2, with no saturation
+    D3DTOP_ADDSMOOTH            = 11   'add 2 args, subtract product
+                                        'Arg1 + Arg2 - Arg1*Arg2
+                                        '= Arg1 + (1-Arg1)*Arg2
+
+    'Linear alpha blend: Arg1*(Alpha) + Arg2*(1-Alpha)
+    D3DTOP_BLENDDIFFUSEALPHA    = 12 'iterated alpha
+    D3DTOP_BLENDTEXTUREALPHA    = 13 'texture alpha
+    D3DTOP_BLENDFACTORALPHA     = 14 'alpha from D3DRS_TEXTUREFACTOR
+
+    'Linear alpha blend with pre-multiplied arg1 input: Arg1 + Arg2*(1-Alpha)
+    D3DTOP_BLENDTEXTUREALPHAPM  = 15 'texture alpha
+    D3DTOP_BLENDCURRENTALPHA    = 16 'by alpha of current color
+
+    'Specular mapping
+    D3DTOP_PREMODULATE            = 17     'modulate with next texture before use
+    D3DTOP_MODULATEALPHA_ADDCOLOR = 18     'Arg1.RGB + Arg1.A*Arg2.RGB
+                                            'COLOROP only
+    D3DTOP_MODULATECOLOR_ADDALPHA = 19     'Arg1.RGB*Arg2.RGB + Arg1.A
+                                            'COLOROP only
+    D3DTOP_MODULATEINVALPHA_ADDCOLOR = 20  '(1-Arg1.A)*Arg2.RGB + Arg1.RGB
+                                            'COLOROP only
+    D3DTOP_MODULATEINVCOLOR_ADDALPHA = 21  '(1-Arg1.RGB)*Arg2.RGB + Arg1.A
+                                            'COLOROP only
+
+    'Bump mapping
+    D3DTOP_BUMPENVMAP           = 22 'per pixel env map perturbation
+    D3DTOP_BUMPENVMAPLUMINANCE  = 23 'with luminance channel
+
+    'This can do either diffuse or specular bump mapping with correct input.
+    'Performs the function (Arg1.R*Arg2.R + Arg1.G*Arg2.G + Arg1.B*Arg2.B)
+    'where each component has been scaled and offset to make it signed.
+    'The result is replicated into all four (including alpha) channels.
+    'This is a valid COLOROP only.
+    D3DTOP_DOTPRODUCT3          = 24
+
+    'Triadic ops
+    D3DTOP_MULTIPLYADD          = 25 'Arg0 + Arg1*Arg2
+    D3DTOP_LERP                 = 26 '(Arg0)*Arg1 + (1-Arg0)*Arg2
+
+    D3DTOP_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+
+' Values for COLORARG0,1,2, ALPHAARG0,1,2, and RESULTARG texture blending
+' operations set in texture processing stage controls in D3DRENDERSTATE.
+Const D3DTA_SELECTMASK     = &H0000000f  'mask for arg selector
+Const D3DTA_DIFFUSE        = &H00000000  'select diffuse color (read only)
+Const D3DTA_CURRENT        = &H00000001  'select stage destination register (read/write)
+Const D3DTA_TEXTURE        = &H00000002  'select texture color (read only)
+Const D3DTA_TFACTOR        = &H00000003  'select D3DRS_TEXTUREFACTOR (read only)
+Const D3DTA_SPECULAR       = &H00000004  'select specular color (read only)
+Const D3DTA_TEMP           = &H00000005  'select temporary register color (read/write)
+Const D3DTA_CONSTANT       = &H00000006  'select texture stage constant
+Const D3DTA_COMPLEMENT     = &H00000010  'take 1.0 - x (read modifier)
+Const D3DTA_ALPHAREPLICATE = &H00000020  'replicate alpha to color components (read modifier)
+
+
+' Values for D3DSAMP_***FILTER texture stage states
+Enum D3DTEXTUREFILTERTYPE
+    D3DTEXF_NONE            = 0    ' filtering disabled (valid for mip filter only)
+    D3DTEXF_POINT           = 1    ' nearest
+    D3DTEXF_LINEAR          = 2    ' linear interpolation
+    D3DTEXF_ANISOTROPIC     = 3    ' anisotropic
+    D3DTEXF_PYRAMIDALQUAD   = 6    ' 4-sample tent
+    D3DTEXF_GAUSSIANQUAD    = 7    ' 4-sample gaussian
+    D3DTEXF_FORCE_DWORD     = &H7FFFFFFF   ' force 32-bit size enum
+End Enum
+
+' Bits for Flags in ProcessVertices call
+Const D3DPV_DONOTCOPYDATA = 1<<0
+
+
+'Flexible vertex format bits
+Const D3DFVF_RESERVED0        = &H001
+Const D3DFVF_POSITION_MASK    = &H400E
+Const D3DFVF_XYZ              = &H002
+Const D3DFVF_XYZRHW           = &H004
+Const D3DFVF_XYZB1            = &H006
+Const D3DFVF_XYZB2            = &H008
+Const D3DFVF_XYZB3            = &H00a
+Const D3DFVF_XYZB4            = &H00c
+Const D3DFVF_XYZB5            = &H00e
+Const D3DFVF_XYZW             = &H4002
+
+Const D3DFVF_NORMAL           = &H010
+Const D3DFVF_PSIZE            = &H020
+Const D3DFVF_DIFFUSE          = &H040
+Const D3DFVF_SPECULAR         = &H080
+
+Const D3DFVF_TEXCOUNT_MASK    = &Hf00
+Const D3DFVF_TEXCOUNT_SHIFT   = &H8
+Const D3DFVF_TEX0             = &H000
+Const D3DFVF_TEX1             = &H100
+Const D3DFVF_TEX2             = &H200
+Const D3DFVF_TEX3             = &H300
+Const D3DFVF_TEX4             = &H400
+Const D3DFVF_TEX5             = &H500
+Const D3DFVF_TEX6             = &H600
+Const D3DFVF_TEX7             = &H700
+Const D3DFVF_TEX8             = &H800
+
+Const D3DFVF_LASTBETA_UBYTE4   = &H1000
+Const D3DFVF_LASTBETA_D3DCOLOR = &H8000
+
+Const D3DFVF_RESERVED2         = &H6000  '2 reserved bits
+
+
+' Vertex element semantics
+Enum D3DDECLUSAGE
+    D3DDECLUSAGE_POSITION     = 0
+    D3DDECLUSAGE_BLENDWEIGHT  = 1
+    D3DDECLUSAGE_BLENDINDICES = 2
+    D3DDECLUSAGE_NORMAL       = 3
+    D3DDECLUSAGE_PSIZE        = 4
+    D3DDECLUSAGE_TEXCOORD     = 5
+    D3DDECLUSAGE_TANGENT      = 6
+    D3DDECLUSAGE_BINORMAL     = 7
+    D3DDECLUSAGE_TESSFACTOR   = 8
+    D3DDECLUSAGE_POSITIONT    = 9
+    D3DDECLUSAGE_COLOR        = 10
+    D3DDECLUSAGE_FOG          = 11
+    D3DDECLUSAGE_DEPTH        = 12
+    D3DDECLUSAGE_SAMPLE       = 13
+End Enum
+
+Enum D3DDECLMETHOD
+    D3DDECLMETHOD_DEFAULT          = 0
+    D3DDECLMETHOD_PARTIALU         = 1
+    D3DDECLMETHOD_PARTIALV         = 2
+    D3DDECLMETHOD_CROSSUV          = 3   'Normal
+    D3DDECLMETHOD_UV               = 4
+    D3DDECLMETHOD_LOOKUP           = 5   'Lookup a displacement map
+    D3DDECLMETHOD_LOOKUPPRESAMPLED = 6   'Lookup a pre-sampled displacement map
+End Enum
+
+' Declarations for _Type fields
+Enum D3DDECLTYPE
+    D3DDECLTYPE_FLOAT1    =  0  '1D float expanded to (value, 0., 0., 1.)
+    D3DDECLTYPE_FLOAT2    =  1  '2D float expanded to (value, value, 0., 1.)
+    D3DDECLTYPE_FLOAT3    =  2  '3D float expanded to (value, value, value, 1.)
+    D3DDECLTYPE_FLOAT4    =  3  '4D float
+    D3DDECLTYPE_D3DCOLOR  =  4  '4D packed unsigned bytes mapped to 0. to 1. range
+                                'Input is in D3DCOLOR format (ARGB) expanded to (R, G, B, A)
+    D3DDECLTYPE_UBYTE4    =  5  '4D unsigned byte
+    D3DDECLTYPE_SHORT2    =  6  '2D signed short expanded to (value, value, 0., 1.)
+    D3DDECLTYPE_SHORT4    =  7  '4D signed short
+
+'The following types are valid only with vertex shaders >= 2.0
+    D3DDECLTYPE_UBYTE4N   =  8  'Each of 4 bytes is normalized by dividing to 255.0
+    D3DDECLTYPE_SHORT2N   =  9  '2D signed short normalized (v[0]/32767.0,v[1]/32767.0,0,1)
+    D3DDECLTYPE_SHORT4N   = 10  '4D signed short normalized (v[0]/32767.0,v[1]/32767.0,v[2]/32767.0,v[3]/32767.0)
+    D3DDECLTYPE_USHORT2N  = 11  '2D unsigned short normalized (v[0]/65535.0,v[1]/65535.0,0,1)
+    D3DDECLTYPE_USHORT4N  = 12  '4D unsigned short normalized (v[0]/65535.0,v[1]/65535.0,v[2]/65535.0,v[3]/65535.0)
+    D3DDECLTYPE_UDEC3     = 13  '3D unsigned 10 10 10 format expanded to (value, value, value, 1)
+    D3DDECLTYPE_DEC3N     = 14  '3D signed 10 10 10 format normalized and expanded to (v[0]/511.0, v[1]/511.0, v[2]/511.0, 1)
+    D3DDECLTYPE_FLOAT16_2 = 15  'Two 16-bit floating point values, expanded to (value, value, 0, 1)
+    D3DDECLTYPE_FLOAT16_4 = 16  'Four 16-bit floating point values
+    D3DDECLTYPE_UNUSED    = 17  'When the type field in a decl is unused.
+End Enum
+
+Type D3DVERTEXELEMENT9
+	Stream As Word
+	Offset As Word
+	byType As Byte
+	Method As Byte
+	Usage As Byte
+	UsageIndex As Byte
+End Type
+
+' Maximum supported number of texture coordinate sets
+Const D3DDP_MAXTEXCOORD = 8
+
+
+' Values for IDirect3DDevice9::SetStreamSourceFreq's Setting parameter
+Const D3DSTREAMSOURCE_INDEXEDDATA  = 1<<30
+Const D3DSTREAMSOURCE_INSTANCEDATA = 2<<30
+
+Const D3DSP_TEXTURETYPE_SHIFT = 27
+Enum D3DSAMPLER_TEXTURE_TYPE
+    D3DSTT_UNKNOWN = 0<<D3DSP_TEXTURETYPE_SHIFT   'uninitialized value
+    D3DSTT_2D      = 2<<D3DSP_TEXTURETYPE_SHIFT   'dcl_2d s# (for declaring a 2-D texture)
+    D3DSTT_CUBE    = 3<<D3DSP_TEXTURETYPE_SHIFT   'dcl_cube s# (for declaring a cube texture)
+    D3DSTT_VOLUME  = 4<<D3DSP_TEXTURETYPE_SHIFT   'dcl_volume s# (for declaring a volume texture)
+    D3DSTT_FORCE_DWORD  = &H7FFFFFFF
+End Enum
+
+
+' pixel shader version token
+Const D3DPS_VERSION(_Major,_Minor) = &HFFFF0000 or (_Major<<8) or _Minor
+
+' vertex shader version token
+Const D3DVS_VERSION(_Major,_Minor) = &HFFFE0000 or (_Major<<8) or _Minor
+
+
+
+' High order surfaces
+Enum D3DBASISTYPE
+   D3DBASIS_BEZIER      = 0
+   D3DBASIS_BSPLINE     = 1
+   D3DBASIS_CATMULL_ROM = 2   ' In D3D8 this used to be D3DBASIS_INTERPOLATE
+   D3DBASIS_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DDEGREETYPE
+   D3DDEGREE_LINEAR      = 1
+   D3DDEGREE_QUADRATIC   = 2
+   D3DDEGREE_CUBIC       = 3
+   D3DDEGREE_QUINTIC     = 5
+   D3DDEGREE_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DPATCHEDGESTYLE
+   D3DPATCHEDGE_DISCRETE    = 0
+   D3DPATCHEDGE_CONTINUOUS  = 1
+   D3DPATCHEDGE_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DSTATEBLOCKTYPE
+    D3DSBT_ALL           = 1   'capture all state
+    D3DSBT_PIXELSTATE    = 2   'capture pixel state
+    D3DSBT_VERTEXSTATE   = 3   'capture vertex state
+    D3DSBT_FORCE_DWORD   = &H7FFFFFFF
+End Enum
+
+' The D3DVERTEXBLENDFLAGS type is used with D3DRS_VERTEXBLEND state.
+Enum D3DVERTEXBLENDFLAGS
+    D3DVBF_DISABLE  = 0     'Disable vertex blending
+    D3DVBF_1WEIGHTS = 1     '2 matrix blending
+    D3DVBF_2WEIGHTS = 2     '3 matrix blending
+    D3DVBF_3WEIGHTS = 3     '4 matrix blending
+    D3DVBF_TWEENING = 255   'blending using D3DRS_TWEENFACTOR
+    D3DVBF_0WEIGHTS = 256   'one matrix is used with weight 1.0
+    D3DVBF_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DTEXTURETRANSFORMFLAGS
+    D3DTTFF_DISABLE         = 0    'texture coordinates are passed directly
+    D3DTTFF_COUNT1          = 1    'rasterizer should expect 1-D texture coords
+    D3DTTFF_COUNT2          = 2    'rasterizer should expect 2-D texture coords
+    D3DTTFF_COUNT3          = 3    'rasterizer should expect 3-D texture coords
+    D3DTTFF_COUNT4          = 4    'rasterizer should expect 4-D texture coords
+    D3DTTFF_PROJECTED       = 256  'texcoords to be divided by COUNTth element
+    D3DTTFF_FORCE_DWORD     = &H7FFFFFFF
+End Enum
+
+' Macros to set texture coordinate format bits in the FVF id
+Const D3DFVF_TEXTUREFORMAT2 = 0   'Two floating point values
+Const D3DFVF_TEXTUREFORMAT1 = 3   'One floating point value
+Const D3DFVF_TEXTUREFORMAT3 = 1   'Three floating point values
+Const D3DFVF_TEXTUREFORMAT4 = 2   'Four floating point values
+
+Const D3DFVF_TEXCOORDSIZE3(CoordIndex) = D3DFVF_TEXTUREFORMAT3 << (CoordIndex*2 + 16)
+Const D3DFVF_TEXCOORDSIZE2(CoordIndex) = D3DFVF_TEXTUREFORMAT2
+Const D3DFVF_TEXCOORDSIZE4(CoordIndex) = D3DFVF_TEXTUREFORMAT4 << (CoordIndex*2 + 16)
+Const D3DFVF_TEXCOORDSIZE1(CoordIndex) = D3DFVF_TEXTUREFORMAT1 << (CoordIndex*2 + 16)
+
+
+' Direct3D9 Device types
+Enum D3DDEVTYPE
+    D3DDEVTYPE_HAL         = 1
+    D3DDEVTYPE_REF         = 2
+    D3DDEVTYPE_SW          = 3
+
+    D3DDEVTYPE_NULLREF     = 4
+
+    D3DDEVTYPE_FORCE_DWORD  = &H7FFFFFFF
+End Enum
+
+
+' Multi-Sample buffer types
+Enum D3DMULTISAMPLE_TYPE
+    D3DMULTISAMPLE_NONE            =  0
+    D3DMULTISAMPLE_NONMASKABLE     =  1
+    D3DMULTISAMPLE_2_SAMPLES       =  2
+    D3DMULTISAMPLE_3_SAMPLES       =  3
+    D3DMULTISAMPLE_4_SAMPLES       =  4
+    D3DMULTISAMPLE_5_SAMPLES       =  5
+    D3DMULTISAMPLE_6_SAMPLES       =  6
+    D3DMULTISAMPLE_7_SAMPLES       =  7
+    D3DMULTISAMPLE_8_SAMPLES       =  8
+    D3DMULTISAMPLE_9_SAMPLES       =  9
+    D3DMULTISAMPLE_10_SAMPLES      = 10
+    D3DMULTISAMPLE_11_SAMPLES      = 11
+    D3DMULTISAMPLE_12_SAMPLES      = 12
+    D3DMULTISAMPLE_13_SAMPLES      = 13
+    D3DMULTISAMPLE_14_SAMPLES      = 14
+    D3DMULTISAMPLE_15_SAMPLES      = 15
+    D3DMULTISAMPLE_16_SAMPLES      = 16
+
+    D3DMULTISAMPLE_FORCE_DWORD     = &H7FFFFFFF
+End Enum
+
+Enum D3DFORMAT
+    D3DFMT_UNKNOWN              =  0
+
+    D3DFMT_R8G8B8               = 20
+    D3DFMT_A8R8G8B8             = 21
+    D3DFMT_X8R8G8B8             = 22
+    D3DFMT_R5G6B5               = 23
+    D3DFMT_X1R5G5B5             = 24
+    D3DFMT_A1R5G5B5             = 25
+    D3DFMT_A4R4G4B4             = 26
+    D3DFMT_R3G3B2               = 27
+    D3DFMT_A8                   = 28
+    D3DFMT_A8R3G3B2             = 29
+    D3DFMT_X4R4G4B4             = 30
+    D3DFMT_A2B10G10R10          = 31
+    D3DFMT_A8B8G8R8             = 32
+    D3DFMT_X8B8G8R8             = 33
+    D3DFMT_G16R16               = 34
+    D3DFMT_A2R10G10B10          = 35
+    D3DFMT_A16B16G16R16         = 36
+
+    D3DFMT_A8P8                 = 40
+    D3DFMT_P8                   = 41
+
+    D3DFMT_L8                   = 50
+    D3DFMT_A8L8                 = 51
+    D3DFMT_A4L4                 = 52
+
+    D3DFMT_V8U8                 = 60
+    D3DFMT_L6V5U5               = 61
+    D3DFMT_X8L8V8U8             = 62
+    D3DFMT_Q8W8V8U8             = 63
+    D3DFMT_V16U16               = 64
+    D3DFMT_A2W10V10U10          = 67
+
+    D3DFMT_UYVY                 = &H59565955 'MAKEFOURCC('U', 'Y', 'V', 'Y'),
+    D3DFMT_R8G8_B8G8            = &H47424752 'MAKEFOURCC('R', 'G', 'B', 'G'),
+    D3DFMT_YUY2                 = &H32595559 'MAKEFOURCC('Y', 'U', 'Y', '2'),
+    D3DFMT_G8R8_G8B8            = &H42475247 'MAKEFOURCC('G', 'R', 'G', 'B'),
+    D3DFMT_DXT1                 = &H31545844 'MAKEFOURCC('D', 'X', 'T', '1'),
+    D3DFMT_DXT2                 = &H32545844 'MAKEFOURCC('D', 'X', 'T', '2'),
+    D3DFMT_DXT3                 = &H33545844 'MAKEFOURCC('D', 'X', 'T', '3'),
+    D3DFMT_DXT4                 = &H34545844 'MAKEFOURCC('D', 'X', 'T', '4'),
+    D3DFMT_DXT5                 = &H35545844 'MAKEFOURCC('D', 'X', 'T', '5'),
+
+    D3DFMT_D16_LOCKABLE         = 70
+    D3DFMT_D32                  = 71
+    D3DFMT_D15S1                = 73
+    D3DFMT_D24S8                = 75
+    D3DFMT_D24X8                = 77
+    D3DFMT_D24X4S4              = 79
+    D3DFMT_D16                  = 80
+
+    D3DFMT_D32F_LOCKABLE        = 82
+    D3DFMT_D24FS8               = 83
+
+
+    D3DFMT_L16                  = 81
+
+    D3DFMT_VERTEXDATA           =100
+    D3DFMT_INDEX16              =101
+    D3DFMT_INDEX32              =102
+
+    D3DFMT_Q16W16V16U16         =110
+
+    D3DFMT_MULTI2_ARGB8         = &H3154454D 'MAKEFOURCC('M','E','T','1')
+
+    ' Floating point surface formats
+
+    ' s10e5 formats (16-bits per channel)
+    D3DFMT_R16F                 = 111
+    D3DFMT_G16R16F              = 112
+    D3DFMT_A16B16G16R16F        = 113
+
+    ' IEEE s23e8 formats (32-bits per channel)
+    D3DFMT_R32F                 = 114
+    D3DFMT_G32R32F              = 115
+    D3DFMT_A32B32G32R32F        = 116
+
+    D3DFMT_CxV8U8               = 117
+
+
+    D3DFMT_FORCE_DWORD          = &H7FFFFFFF
+End Enum
+
+Type D3DDISPLAYMODE
+	Width As DWord
+	Height As DWord
+	RefreshRate As DWord
+	Format As D3DFORMAT
+End Type
+
+' Creation Parameters
+Type D3DDEVICE_CREATION_PARAMETERS
+	AdapterOrdinal As DWord
+	DeviceType As DWord
+	hFocusWindow As DWord
+	BehaviorFlags As DWord
+End Type
+
+' SwapEffects
+Enum D3DSWAPEFFECT
+    D3DSWAPEFFECT_DISCARD           = 1
+    D3DSWAPEFFECT_FLIP              = 2
+    D3DSWAPEFFECT_COPY              = 3
+
+    D3DSWAPEFFECT_FORCE_DWORD       = &H7FFFFFFF
+End Enum
+
+' Pool types
+Enum D3DPOOL
+    D3DPOOL_DEFAULT                 = 0
+    D3DPOOL_MANAGED                 = 1
+    D3DPOOL_SYSTEMMEM               = 2
+    D3DPOOL_SCRATCH                 = 3
+
+    D3DPOOL_FORCE_DWORD             = &H7FFFFFFF
+End Enum
+
+'RefreshRate pre-defines
+Const D3DPRESENT_RATE_DEFAULT = &H00000000
+
+' Resize Optional Parameters
+Type D3DPRESENT_PARAMETERS
+	BackBufferWidth As DWord
+	BackBufferHeight As DWord
+	BackBufferFormat As D3DFORMAT
+	BackBufferCount As DWord
+
+	MultiSampleType As D3DMULTISAMPLE_TYPE
+	MultiSampleQuality As DWord
+
+	SwapEffect As D3DSWAPEFFECT
+	hDeviceWindow As HWND
+	Windowed As Long
+	EnableAutoDepthStencil As Long
+	AutoDepthStencilFormat As D3DFORMAT
+	Flags As DWord
+
+	'FullScreen_RefreshRateInHz must be zero for Windowed mode
+	FullScreen_RefreshRateInHz As DWord
+	PresentationInterval As DWord
+End Type
+
+' Values for D3DPRESENT_PARAMETERS.Flags
+Const D3DPRESENTFLAG_LOCKABLE_BACKBUFFER  = &H00000001
+Const D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL = &H00000002
+Const D3DPRESENTFLAG_DEVICECLIP           = &H00000004
+Const D3DPRESENTFLAG_VIDEO                = &H00000010
+
+' Gamma Ramp: Same as DX7
+Type D3DGAMMARAMP
+	red[255] As Word
+	green[255] As Word
+	blue[255] As Word
+End Type
+
+' Back buffer types
+Enum D3DBACKBUFFER_TYPE
+    D3DBACKBUFFER_TYPE_MONO         = 0
+    D3DBACKBUFFER_TYPE_LEFT         = 1
+    D3DBACKBUFFER_TYPE_RIGHT        = 2
+
+    D3DBACKBUFFER_TYPE_FORCE_DWORD  = &H7FFFFFFF
+End Enum
+
+Enum D3DRESOURCETYPE
+    D3DRTYPE_SURFACE                =  1
+    D3DRTYPE_VOLUME                 =  2
+    D3DRTYPE_TEXTURE                =  3
+    D3DRTYPE_VOLUMETEXTURE          =  4
+    D3DRTYPE_CUBETEXTURE            =  5
+    D3DRTYPE_VERTEXBUFFER           =  6
+    D3DRTYPE_INDEXBUFFER            =  7
+
+    D3DRTYPE_FORCE_DWORD            = &H7FFFFFFF
+End Enum
+
+' Usages
+Const D3DUSAGE_RENDERTARGET = &H00000001
+Const D3DUSAGE_DEPTHSTENCIL = &H00000002
+Const D3DUSAGE_DYNAMIC      = &H00000200
+
+' When passed to CheckDeviceFormat, D3DUSAGE_AUTOGENMIPMAP may return
+' D3DOK_NOAUTOGEN if the device doesn't support autogeneration for that format.
+' D3DOK_NOAUTOGEN is a success code, not a failure code... the SUCCEEDED and FAILED macros
+' will return true and false respectively for this code.
+Const D3DUSAGE_AUTOGENMIPMAP = &H00000400
+Const D3DUSAGE_DMAP          = &H00004000
+
+' The following usages are valid only for querying CheckDeviceFormat
+Const D3DUSAGE_QUERY_LEGACYBUMPMAP            = &H00008000
+Const D3DUSAGE_QUERY_SRGBREAD                 = &H00010000
+Const D3DUSAGE_QUERY_FILTER                   = &H00020000
+Const D3DUSAGE_QUERY_SRGBWRITE                = &H00040000
+Const D3DUSAGE_QUERY_POSTPIXELSHADER_BLENDING = &H00080000
+Const D3DUSAGE_QUERY_VERTEXTEXTURE            = &H00100000
+Const D3DUSAGE_QUERY_WRAPANDMIP	              = &H00200000
+
+' Usages for Vertex/Index buffers
+Const D3DUSAGE_WRITEONLY          = &H00000008
+Const D3DUSAGE_SOFTWAREPROCESSING = &H00000010
+Const D3DUSAGE_DONOTCLIP          = &H00000020
+Const D3DUSAGE_POINTS             = &H00000040
+Const D3DUSAGE_RTPATCHES          = &H00000080
+Const D3DUSAGE_NPATCHES           = &H00000100
+
+
+
+' CubeMap Face identifiers
+Enum D3DCUBEMAP_FACES
+    D3DCUBEMAP_FACE_POSITIVE_X     = 0
+    D3DCUBEMAP_FACE_NEGATIVE_X     = 1
+    D3DCUBEMAP_FACE_POSITIVE_Y     = 2
+    D3DCUBEMAP_FACE_NEGATIVE_Y     = 3
+    D3DCUBEMAP_FACE_POSITIVE_Z     = 4
+    D3DCUBEMAP_FACE_NEGATIVE_Z     = 5
+
+    D3DCUBEMAP_FACE_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+' Lock flags
+Const D3DLOCK_READONLY        = &H00000010
+Const D3DLOCK_DISCARD         = &H00002000
+Const D3DLOCK_NOOVERWRITE     = &H00001000
+Const D3DLOCK_NOSYSLOCK       = &H00000800
+Const D3DLOCK_DONOTWAIT       = &H00004000                  
+Const D3DLOCK_NO_DIRTY_UPDATE = &H00008000
+
+
+
+' Vertex Buffer Description
+Type D3DVERTEXBUFFER_DESC
+	Format As D3DFORMAT
+	SourceType As D3DRESOURCETYPE
+	Usage As DWord
+	Pool As D3DPOOL
+	Size As DWord
+
+	FVF As DWord
+End Type
+
+' Index Buffer Description
+Type D3DINDEXBUFFER_DESC
+	Format As D3DFORMAT
+	SourceType As D3DRESOURCETYPE
+	Usage As DWord
+	Pool As D3DPOOL
+	Size As DWord
+End Type
+
+
+' Surface Description
+Type D3DSURFACE_DESC
+	Format As D3DFORMAT
+	SourceType As D3DRESOURCETYPE
+	Usage As DWord
+	Pool As D3DPOOL
+	MultiSampleType As D3DMULTISAMPLE_TYPE
+	MultiSampleQuality As DWord
+	Width As DWord
+	Height As DWord
+End Type
+
+
+Type D3DVOLUME_DESC
+	Format As D3DFORMAT
+	SourceType As D3DRESOURCETYPE
+	Usage As DWord
+	Pool As D3DPOOL
+	Width As DWord
+	Height As DWord
+	Depth As DWord
+End Type
+
+' Structure for LockRect
+Type D3DLOCKED_RECT
+	Pitch As Long
+	pBits As VoidPtr
+End Type
+
+'Structures for LockBox
+Type D3DBOX
+	Left As DWord
+	Top As DWord
+	Right As DWord
+	Bottom As DWord
+	Front As DWord
+	Back As DWord
+End Type
+
+Type D3DLOCKED_BOX
+	RowPitch As Long
+	SlicePitch As Long
+	pBits As VoidPtr
+End Type
+
+' Structures for LockRange
+Type D3DRANGE
+	Offset As DWord
+	Size As DWord
+End Type
+
+' Structures for high order primitives
+Type D3DRECTPATCH_INFO
+	StartVertexOffsetWidth As DWord
+	StartVertexOffsetHeight As DWord
+	Width As DWord
+	Height As DWord
+	Stride As DWord
+	Basis As D3DBASISTYPE
+	Degree As D3DDEGREETYPE
+End Type
+Type D3DTRIPATCH_INFO
+	StartVertexOffset As DWord
+	NumVertices As DWord
+	Basis As D3DBASISTYPE
+	Degree As D3DDEGREETYPE
+End Type
+
+
+' Adapter Identifier
+Const MAX_DEVICE_IDENTIFIER_STRING = 512
+Type D3DADAPTER_IDENTIFIER9
+	Driver[MAX_DEVICE_IDENTIFIER_STRING-1] As Byte
+	Description[MAX_DEVICE_IDENTIFIER_STRING-1] As Byte
+	DeviceName[31] As Byte
+
+	DriverVersionLowPart As DWord
+	DriverVersionHighPart As DWord
+
+	VendorId As DWord
+	DeviceId As DWord
+	SubSysId As DWord
+	Revision As DWord
+
+	DeviceIdentifier As GUID
+
+	WHQLLevel As DWord
+End Type
+
+' Raster Status structure returned by GetRasterStatus
+Type D3DRASTER_STATUS
+	InVBlank As Long
+	ScanLine As DWord
+End Type
+
+
+Enum D3DDEBUGMONITORTOKENS
+    D3DDMT_ENABLE            = 0   'enable debug monitor
+    D3DDMT_DISABLE           = 1   'disable debug monitor
+    D3DDMT_FORCE_DWORD       = &H7FFFFFFF
+End Enum
+
+
+'Async feedback
+Enum D3DQUERYTYPE
+    D3DQUERYTYPE_VCACHE                 = 4     'D3DISSUE_END
+    D3DQUERYTYPE_RESOURCEMANAGER        = 5     'D3DISSUE_END
+    D3DQUERYTYPE_VERTEXSTATS            = 6     'D3DISSUE_END
+    D3DQUERYTYPE_EVENT                  = 8     'D3DISSUE_END
+    D3DQUERYTYPE_OCCLUSION              = 9     'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_TIMESTAMP              = 10    'D3DISSUE_END
+    D3DQUERYTYPE_TIMESTAMPDISJOINT      = 11    'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_TIMESTAMPFREQ          = 12    'D3DISSUE_END
+    D3DQUERYTYPE_PIPELINETIMINGS        = 13    'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_INTERFACETIMINGS       = 14    'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_VERTEXTIMINGS          = 15    'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_PIXELTIMINGS           = 16    'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_BANDWIDTHTIMINGS       = 17    'D3DISSUE_BEGIN, D3DISSUE_END
+    D3DQUERYTYPE_CACHEUTILIZATION       = 18    'D3DISSUE_BEGIN, D3DISSUE_END
+End Enum
+
+' Flags field for Issue
+Const D3DISSUE_END   = 1<<0   'Tells the runtime to issue the end of a query, changing it's state to "non-signaled".
+Const D3DISSUE_BEGIN = 1<<1   'Tells the runtime to issue the beginng of a query.
+
+' Flags field for GetData
+Const D3DGETDATA_FLUSH = 1<<0   'Tells the runtime to flush if the query is outstanding.
+
+
+Type D3DRESOURCESTATS
+'Data collected since last Present()
+	bThrashing As Long             'indicates if thrashing
+	ApproxBytesDownloaded As DWord 'Approximate number of bytes downloaded by resource manager
+	NumEvicts As DWord             'number of objects evicted
+	NumVidCreates As DWord         'number of objects created in video memory
+	LastPri As DWord               'priority of last object evicted
+	NumUsed As DWord               'number of objects set to the device
+	NumUsedInVidMem As DWord       'number of objects set to the device, which are already in video memory
+'Persistent data
+	WorkingSet As DWord            'number of objects in video memory
+	WorkingSetBytes As DWord       'number of bytes in video memory
+	TotalManaged As DWord          'total number of managed objects
+	TotalBytes As DWord            'total number of bytes of managed objects
+End Type
+
+Const D3DRTYPECOUNT = 8
+
+Type D3DDEVINFO_RESOURCEMANAGER
+	stats[D3DRTYPECOUNT-1] As D3DRESOURCESTATS
+End Type
+
+Type D3DDEVINFO_D3DVERTEXSTATS
+	NumRenderedTriangles As DWord        'total number of triangles that are not clipped in this frame
+	NumExtraClippingTriangles As DWord   'Number of new triangles generated by clipping
+End Type
+
+Type D3DDEVINFO_VCACHE
+	Pattern As DWord
+	OptMethod As DWord
+	CacheSize As DWord
+	MagicNumber As DWord
+End Type
+
+Type D3DDEVINFO_D3D9PIPELINETIMINGS
+	VertexProcessingTimePercent As Single
+	PixelProcessingTimePercent As Single
+	OtherGPUProcessingTimePercent As Single
+	GPUIdleTimePercent As Single
+End Type
+
+Type D3DDEVINFO_D3D9INTERFACETIMINGS
+	WaitingForGPUToUseApplicationResourceTimePercent As Single
+	WaitingForGPUToAcceptMoreCommandsTimePercent As Single
+	WaitingForGPUToStayWithinLatencyTimePercent As Single
+	WaitingForGPUExclusiveResourceTimePercent As Single
+	WaitingForGPUOtherTimePercent As Single
+End Type
+
+Type D3DDEVINFO_D3D9STAGETIMINGS
+	MemoryProcessingPercent As Single
+	ComputationProcessingPercent As Single
+End Type
+
+Type D3DDEVINFO_D3D9BANDWIDTHTIMINGS
+	MaxBandwidthUtilized As Single
+	FrontEndUploadMemoryUtilizedPercent As Single
+	VertexRateUtilizedPercent As Single
+	TriangleSetupRateUtilizedPercent As Single
+	FillRateUtilizedPercent As Single
+End Type
+
+Type D3DDEVINFO_D3D9CACHEUTILIZATION
+	TextureCacheHitRate As Single
+	PostTransformVertexCacheHitRate As Single
+End Type

@@ -1,0 +1,13 @@
+case4
+
+menu,MainMenu
+rad,DownDlg
+rad,MainWnd
+text,"DownDlg.sbp",0,0,372,372
+text,"Downloader.abp",0,0,0,0
+text,"MainWnd.sbp",0,195,5824,5824
+
+0
+1
+0
+0,0,0,1,1

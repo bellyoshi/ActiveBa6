@@ -1,0 +1,24 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=Downloader
+
+#PLATFORM=32
+
+#USEWINDOW=2
+
+#OPTION=&H0100000a
+
+#OUTPUT_RELEASE=.\Downloader.exe
+
+#OUTPUT_DEBUG=.\Downloader_debug.exe
+
+#RESOURCE=0
+
+#SOURCE
+Downloader.abp
+MainWnd.sbp
+DownDlg.sbp

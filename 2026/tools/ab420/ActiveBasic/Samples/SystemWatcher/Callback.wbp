@@ -1,0 +1,160 @@
+'このファイルはウィンドウ定義ファイル（*.wnd）をもとに生成されています
+
+Dim _RadSys_InitCtrls As INITCOMMONCONTROLSEX
+_RadSys_InitCtrls.dwSize=Len(_RadSys_InitCtrls)
+_RadSys_InitCtrls.dwICC=ICC_WIN95_CLASSES
+InitCommonControlsEx(_RadSys_InitCtrls)
+
+Const ProgressBar_Physical=1000
+Const Static1=1001
+Const Static2=1002
+Const ProgressBar_Virtual=1003
+Const GroupBox1=1004
+Const Static3=1005
+Const Static4=1006
+Const Static_OSName=1007
+Const Static_OSBuildNum=1008
+Const Static5=1009
+Const Static_OSNote=1010
+Const Static6=1011
+Const Static_TotalPhysical=1012
+Const Static7=1013
+Const Static_TotalVirtual=1014
+Const GroupBox2=1015
+Const Static8=1016
+Const Static9=1017
+Const Static10=1018
+Const Static_UsedPhysical=1019
+Const GroupBox3=1020
+Const Static11=1021
+Const Static12=1022
+Const Static13=1023
+Const Static_UsedVirtual=1024
+Const Static_RatePhysical=1025
+Const Static_RateVirtual=1026
+
+Dim hMainWnd As HWND
+Dim hFont_MainWnd As HFONT
+hFont_MainWnd=CreateFont(-12,0,0,0,400,0,0,0,128,3,2,1,32,"ＭＳ Ｐゴシック")
+Dim h3DFaceBrush As HBRUSH
+h3DFaceBrush=CreateSolidBrush(GetSysColor(COLOR_3DFACE))
+
+
+Sub SystemWatcher_DestroyObjects()
+	DeleteObject(hFont_MainWnd)
+	DeleteObject(h3DFaceBrush)
+End Sub
+
+Function EventCall_MainWnd(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Select Case message
+		Case WM_DESTROY
+			MainWnd_Destroy()
+		Case WM_CREATE
+			hMainWnd=hWnd
+			CreateWindowEx(&H00020000,"msctls_progress32","",&H50000001,120,126,182,21,hWnd,ProgressBar_Physical As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,ProgressBar_Physical),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","使用率",&H50000000,24,131,39,12,hWnd,Static1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static1),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","使用率",&H50000000,24,253,49,12,hWnd,Static2 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static2),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00020000,"msctls_progress32","",&H50000001,120,249,182,21,hWnd,ProgressBar_Virtual As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,ProgressBar_Virtual),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","システム",&H50000007,9,10,309,88,hWnd,GroupBox1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,GroupBox1),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","OS",&H50000000,24,34,17,12,hWnd,Static3 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static3),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","ビルド番号",&H50000000,24,54,54,12,hWnd,Static4 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static4),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","OperationSystemName",&H50000000,94,34,206,12,hWnd,Static_OSName As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_OSName),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","BuildNumber",&H50000000,94,54,72,12,hWnd,Static_OSBuildNum As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_OSBuildNum),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","備考",&H50000000,24,74,50,12,hWnd,Static5 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static5),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","note",&H50000000,94,74,212,12,hWnd,Static_OSNote As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_OSNote),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","合計",&H50000000,24,180,55,12,hWnd,Static6 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static6),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","**KB",&H50000000,94,180,106,12,hWnd,Static_TotalPhysical As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_TotalPhysical),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","合計",&H50000000,24,302,54,12,hWnd,Static7 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static7),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","**KB",&H50000000,94,302,106,12,hWnd,Static_TotalVirtual As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_TotalVirtual),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","物理メモリ",&H50000007,9,107,309,113,hWnd,GroupBox2 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,GroupBox2),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","0%",&H50000000,117,149,15,12,hWnd,Static8 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static8),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","100%",&H50000000,288,149,25,12,hWnd,Static9 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static9),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","使用中",&H50000000,24,200,50,12,hWnd,Static10 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static10),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","**KB",&H50000000,94,200,106,12,hWnd,Static_UsedPhysical As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_UsedPhysical),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","仮想メモリ",&H50000007,9,231,309,112,hWnd,GroupBox3 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,GroupBox3),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","0%",&H50000000,117,272,15,12,hWnd,Static11 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static11),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","100%",&H50000000,288,272,25,12,hWnd,Static12 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static12),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","使用中",&H50000000,24,322,50,12,hWnd,Static13 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static13),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","**KB",&H50000000,94,322,106,12,hWnd,Static_UsedVirtual As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_UsedVirtual),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","**%",&H50000000,94,131,24,12,hWnd,Static_RatePhysical As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_RatePhysical),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","**%",&H50000000,94,253,24,12,hWnd,Static_RateVirtual As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_RateVirtual),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			MainWnd_Create(ByVal (lParam As VoidPtr))
+		Case WM_TIMER
+			MainWnd_Timer(wParam As DWord)
+		Case WM_CLOSE
+			Dim cancel=0 As Integer
+			If cancel=0 Then DestroyWindow(hWnd)
+		Case Else
+			EventCall_MainWnd=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	EventCall_MainWnd=0
+End Function
+
+Function DefaultCallProc(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	DefaultCallProc=DefWindowProc(hWnd,message,wParam,lParam)
+End Function
+
+Dim _RadSys_dlgwcl As WNDCLASSEX
+FillMemory(VarPtr(_RadSys_dlgwcl),Len(_RadSys_dlgwcl),0)
+_RadSys_dlgwcl.cbSize=Len(_RadSys_dlgwcl)
+_RadSys_dlgwcl.hInstance=GetModuleHandle(0)
+_RadSys_dlgwcl.style=CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+_RadSys_dlgwcl.hIcon=LoadIcon(NULL,MAKEINTRESOURCE(IDI_APPLICATION))
+_RadSys_dlgwcl.hIconSm=LoadIcon(NULL,MAKEINTRESOURCE(IDI_WINLOGO))
+_RadSys_dlgwcl.hCursor=LoadCursor(NULL,MAKEINTRESOURCE(IDC_ARROW))
+_RadSys_dlgwcl.lpszClassName="NORMALDLG"
+_RadSys_dlgwcl.hbrBackground=h3DFaceBrush
+_RadSys_dlgwcl.lpfnWndProc=AddressOf(DefaultCallProc)
+RegisterClassEx(_RadSys_dlgwcl)
+
+Function DialogBox(hOwnerWnd As HWND, TemplateName As LPSTR) As LONG_PTR
+	Else
+		Exit Function
+	End If
+	EnableWindow(hOwnerWnd,0)
+
+	Dim msg As MSG, iResult As Long
+	Do
+		iResult=GetMessage(msg,0,0,0)
+		If iResult=0 or iResult=-1 Then Exit Do
+		TranslateMessage(msg)
+		DispatchMessage(msg)
+	Loop
+	DialogBox=msg.wParam
+End Function
+Sub EndDialog(hWnd As HWND, lResult As Long)
+	EnableWindow(GetWindow(hWnd,GW_OWNER),1)
+	DestroyWindow(hWnd)
+	PostMessage(0,WM_QUIT,lResult,0)
+End Sub
+
+Function CreateDialog(hOwnerWnd As HWND, TemplateName As LPSTR) As HWND
+End Function

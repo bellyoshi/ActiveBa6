@@ -1,0 +1,535 @@
+'このファイルには、DirectMusicをCOMインターフェイスレベルで扱うための関数が定義されています。
+
+
+'-------------------------------------------------
+' DirectMusicに必要なヘッダファイルをインクルード
+'-------------------------------------------------
+#include <directx9\dmusic.sbp>
+
+
+Dim dx_lpDMPerformance As *IDirectMusicPerformance8	'パフォーマンス
+Dim dx_lpDMLoader As *IDirectMusicLoader8			'ローダー
+
+'DirectMusicを初期化する関数
+Function dx_InitDMusic() As Long
+	Dim hr As DWord
+
+	'パフォーマンスの生成
+	hr = CoCreateInstance(CLSID_DirectMusicPerformance, NULL, CLSCTX_INPROC,
+		IID_IDirectMusicPerformance8, VarPtr(dx_lpDMPerformance))
+	If hr Then
+		dx_InitDMusic=0
+		Exit Function
+	End If
+
+	'パフォーマンスの初期化
+	hr = dx_lpDMPerformance->InitAudio(NULL, NULL, hMainWnd,
+		DMUS_APATH_SHARED_STEREOPLUSREVERB, 64, DMUS_AUDIOF_ALL, NULL)
+	If hr Then
+		dx_InitDMusic=0
+		Exit Function
+	End If
+
+	'ローダーの生成
+	hr = CoCreateInstance(CLSID_DirectMusicLoader, NULL,
+		CLSCTX_INPROC, IID_IDirectMusicLoader8, VarPtr(dx_lpDMLoader))
+	If hr Then
+		dx_InitDMusic=0
+		Exit Function
+	End If
+
+	dx_InitDMusic=1
+End Function
+
+' DirectMusicを終了するための関数
+Sub dx_QuitDMusic()
+	If dx_lpDMLoader Then		dx_lpDMLoader->Release()
+	If dx_lpDMPerformance Then
+		'すべてのサウンドを停止
+		dx_lpDMPerformance->Stop(NULL, NULL, 0, 0)
+
+		'パフォーマンスオブジェクトを閉じる
+		dx_lpDMPerformance->CloseDown()
+
+		'解放
+		dx_lpDMPerformance->Release()
+	End If
+End Sub
+
+
+'------------------------
+' サウンド再生用のクラス
+'------------------------
+
+'エフェクト フラグ
+Enum EFFECT_FLAGS
+	NO_EFFECT                   = 0   'エフェクト無し
+	EFFECT_STANDARD_CHORUS      = 1   'コーラス
+	EFFECT_STANDARD_COMPRESSOR  = 2   'コンプレッサー
+	EFFECT_STANDARD_DISTORTION  = 3   'ディストーション
+	EFFECT_STANDARD_ECHO        = 4   'エコー
+	EFFECT_STANDARD_FLANGER     = 5   'フランジ
+	EFFECT_STANDARD_GARGLE      = 6   'ガーグル
+	EFFECT_STANDARD_I3DL2REVERB = 7   'Interactive 3D Level 2 リバーブ
+	EFFECT_STANDARD_PARAMEQ     = 8   'パラメトリック イコライザ
+	EFFECT_WAVES_REVERB         = 9   'Waves リバーブ
+End Enum
+
+Class CAudio
+Protected
+	lpDMSegment As *IDirectMusicSegment8        'セグメント
+	lpDMAudioPath As *IDirectMusicAudioPath8    'オーディオパス
+	lpDSBuffer As LPDIRECTSOUNDBUFFER8          'サウンドバッファ
+
+	dwFlags As DWord
+	dwLength As DWord							'サウンド長（ミリ秒）
+
+	Function LoadAndSetting(pszFileName As *Char)
+		Dim hr As DWord
+
+		Release()
+
+		'サウンドの長さをdwLengthへ格納（ミリ秒単位）
+		Dim mop As MCI_OPEN_PARMS
+		Dim msep As MCI_SET_PARMS
+		Dim msp As MCI_STATUS_PARMS
+		mop.dwCallback=hMainWnd
+		mop.lpstrElementName=pszFileName
+		msep.dwTimeFormat=MCI_FORMAT_MILLISECONDS
+		mciSendCommand(0,MCI_OPEN,MCI_OPEN_ELEMENT,mop)
+		mciSendCommand(mop.wDeviceID,MCI_SET,MCI_SET_TIME_FORMAT,msep)
+		msp.dwItem=MCI_STATUS_LENGTH
+		mciSendCommand(mop.wDeviceID,MCI_STATUS,MCI_STATUS_ITEM,msp)
+		dwLength=msp.dwReturn
+		mciSendCommand(mop.wDeviceID,MCI_CLOSE,MCI_WAIT,ByVal VarPtr(hr))
+
+		'Unicodeに変換
+		Dim wstrFileName[MAX_PATH-1] As WCHAR
+		MultiByteToWideChar(CP_ACP, 0, pszFileName, -1, wstrFileName, MAX_PATH)
+
+		hr = dx_lpDMLoader->LoadObjectFromFile(CLSID_DirectMusicSegment,
+			IID_IDirectMusicSegment8, wstrFileName, VarPtr(lpDMSegment))
+		If hr Then
+			LoadAndSetting=0
+			Exit Function
+		End If
+
+		'バンドのダウンロード
+		hr = lpDMSegment->Download(dx_lpDMPerformance)
+		If hr Then
+			LoadAndSetting=0
+			Exit Function
+		End If
+
+		LoadAndSetting=1
+	End Function
+
+Private
+	Sub Release()
+		If lpDMSegment Then
+			Stop()
+
+			lpDMSegment->Unload(dx_lpDMPerformance)
+
+			If lpDSBuffer Then lpDSBuffer->Release()
+			If lpDMAudioPath Then lpDMAudioPath->Release()
+			lpDMSegment->Release()
+		End If
+	End Sub
+
+Public
+	'コンストラクタ
+	Sub CAudio()
+		lpDMSegment=0
+		lpDMAudioPath=0
+		lpDSBuffer=0
+		dwFlags=0
+	End Sub
+
+	'デストラクタ
+	Sub ~CAudio()
+		Release()
+	End Sub
+
+	'ファイルパスを指定
+	Function Load(pszFileName As *Char) As Long
+		Dim hr As DWord
+
+		hr=LoadAndSetting(pszFileName)
+		If hr=FALSE Then
+			Load=FALSE
+			Exit Function
+		End If
+
+		'オーディオパスの生成
+		hr = dx_lpDMPerformance->CreateStandardAudioPath(DMUS_APATH_DYNAMIC_STEREO, 64, FALSE, VarPtr(lpDMAudioPath))
+		If hr Then
+			Load=0
+			Exit Function
+		End If
+
+		'サウンドバッファの取得
+		hr = lpDMAudioPath->GetObjectInPath(DMUS_PCHANNEL_ALL, DMUS_PATH_BUFFER, 0,
+     	   GUID_NULL, 0, IID_IDirectSoundBuffer8, VarPtr(lpDSBuffer))
+		If hr Then
+			Load=0
+			Exit Function
+		End If
+
+		' オーディオパスのアクティブ化
+		lpDMAudioPath->Activate(TRUE)
+
+		Load=1
+	End Function
+
+	'再生
+	Function Play() As Long
+		Dim hr As DWord
+
+		'セグメントの再生
+		hr = dx_lpDMPerformance->PlaySegmentEx(lpDMSegment,
+			NULL,
+			NULL,
+			dwFlags,
+			0,
+			NULL,
+			NULL,
+			lpDMAudioPath)
+		If hr Then
+			Play=FALSE
+			Exit Function
+		End If
+
+		Play=TRUE
+	End Function
+
+	'停止
+	Function Stop() As Long
+		Dim hr As Long
+
+		'セグメントの停止
+		hr=dx_lpDMPerformance->StopEx(lpDMSegment, 0, 0)
+
+		If hr=S_OK Then Stop=TRUE Else Stop=FALSE
+	End Function
+
+	'長さを取得
+	Function GetLength() As DWord
+		GetLength=dwLength
+	End Function
+
+	'プライマリセグメントにセット
+	Sub SetPrimary()
+		dwFlags=0
+	End Sub
+
+	'セカンダリセグメントにセット
+	Sub SetSecondary()
+		dwFlags=DMUS_SEGF_SECONDARY
+	End Sub
+
+	Function SetEffect(EffectFlag As EFFECT_FLAGS) As Long
+		Dim hr As DWord
+
+		If EffectFlag=NO_EFFECT Then
+			lpDSBuffer->SetFX(0, NULL, NULL)
+
+			SetEffect=1
+			Exit Function
+		End If
+
+		'エフェクトの設定
+		Dim effect As DSEFFECTDESC
+		effect.dwSize        = SizeOf(DSEFFECTDESC)
+		effect.dwFlags       = 0
+		Select Case EffectFlag
+			Case EFFECT_STANDARD_CHORUS
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_CHORUS
+			Case EFFECT_STANDARD_COMPRESSOR
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_COMPRESSOR
+			Case EFFECT_STANDARD_DISTORTION
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_DISTORTION
+			Case EFFECT_STANDARD_ECHO
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_ECHO
+			Case EFFECT_STANDARD_FLANGER
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_FLANGER
+			Case EFFECT_STANDARD_GARGLE
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_GARGLE
+			Case EFFECT_STANDARD_I3DL2REVERB
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_I3DL2REVERB
+			Case EFFECT_STANDARD_PARAMEQ
+				effect.guidDSFXClass = GUID_DSFX_STANDARD_PARAMEQ
+			Case EFFECT_WAVES_REVERB
+				effect.guidDSFXClass = GUID_DSFX_WAVES_REVERB
+		End Select
+		effect.dwReserved1   = 0
+		effect.dwReserved2   = 0
+		lpDSBuffer->SetFX(1, VarPtr(effect), NULL)
+
+		SetEffect=1
+	End Function
+
+	'リピート回数を設定
+	Function SetRepeats(dwRepeats As DWord) As Long
+		If lpDMSegment->SetRepeats(dwRepeats)=S_OK Then
+			SetRepeats=TRUE
+		Else
+			SetRepeats=FALSE
+		End If
+	End Function
+
+	'シーク
+	Sub Seek(dwSeekTime As DWord) As Long
+	End Sub
+
+	'プレイ中であるかどうかを調べる
+	Function IsPlaying() As Long
+		If dx_lpDMPerformance->IsPlaying(lpDMSegment,NULL)=S_OK Then
+			IsPlaying=TRUE
+		Else
+			IsPlaying=FALSE
+		End If
+	End Function
+
+End Class
+
+'3D空間内音源
+Class CAudio3D
+	Inherits CAudio
+
+	lpDS3DBuffer As LPDIRECTSOUND3DBUFFER8     '3D空間内の音源
+
+Public
+	Sub CAudio3D()
+		CAudio()
+
+		lpDS3DBuffer=0
+	End Sub
+	Sub ~CAudio3D()
+		If lpDS3DBuffer Then lpDS3DBuffer->Release()
+	End Sub
+
+	'ファイルパスを指定
+	Function Load(pszFileName As BytePtr) As Long
+		Dim hr As DWord
+
+		hr=LoadAndSetting(pszFileName)
+		If hr=FALSE Then
+			Load=FALSE
+			Exit Function
+		End If
+
+		'オーディオパスの生成
+		hr = dx_lpDMPerformance->CreateStandardAudioPath(DMUS_APATH_DYNAMIC_3D, 64, FALSE, VarPtr(lpDMAudioPath))
+		If hr Then
+			Load=0
+			Exit Function
+		End If
+
+		'3Dサウンドバッファの取得
+		hr = lpDMAudioPath->GetObjectInPath(DMUS_PCHANNEL_ALL, DMUS_PATH_BUFFER, 0,
+     	   GUID_NULL, 0, IID_IDirectSound3DBuffer8, VarPtr(lpDS3DBuffer))
+		If hr Then
+			Load=0
+			Exit Function
+		End If
+
+		'サウンドバッファの取得
+		hr = lpDMAudioPath->GetObjectInPath(DMUS_PCHANNEL_ALL, DMUS_PATH_BUFFER, 0,
+     	   GUID_NULL, 0, IID_IDirectSoundBuffer8, VarPtr(lpDSBuffer))
+		If hr Then
+			Load=0
+			Exit Function
+		End If
+
+		' オーディオパスのアクティブ化
+		lpDMAudioPath->Activate(TRUE)
+
+		Load=1
+	End Function
+
+	Function SetEffect(EffectFlag As EFFECT_FLAGS) As Long
+		'CAudio3Dではエフェクトをサポートしない
+		SetEffect=0
+	End Function
+
+	Function GetFrequency(lpdwFrequency As *DWord) As Long
+		Dim hr As Long
+		hr=lpDSBuffer->GetFrequency(lpdwFrequency)
+		If hr=S_OK Then
+			GetFrequency=TRUE
+		Else
+			GetFrequency=FALSE
+		End If
+	End Function
+
+	Function SetFrequency(dwFrequency As DWord) As Long
+		Dim hr As Long
+		hr=lpDSBuffer->SetFrequency(dwFrequency)
+		If hr=S_OK Then
+			SetFrequency=TRUE
+		Else
+			SetFrequency=FALSE
+		End If
+	End Function
+
+
+	'--------------------------
+	' 音源に関するメソッド
+	'--------------------------
+
+	'最短距離の設定（この距離を超えると減衰が始まる）
+	Function SetMinDistance(distance As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetMinDistance(distance, DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetMinDistance=TRUE
+		Else
+			SetMinDistance=FALSE
+		End If
+	End Function
+
+	'最長距離の設定（聞こえる音量が0になり、減衰の計算がストップする距離）
+	Function SetMaxDistance(distance As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetMaxDistance(distance, DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetMaxDistance=TRUE
+		Else
+			SetMaxDistance=FALSE
+		End If
+	End Function
+
+	'音源の位置の設定
+	Function SetPosition(x As Single, y As Single, z As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetPosition(x,y,z,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetPosition=TRUE
+		Else
+			SetPosition=FALSE
+		End If
+	End Function
+
+	'音源の速度の設定
+	Function SetVelocity(x As Single, y As Single, z As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetVelocity(x,y,z,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetVelocity=TRUE
+		Else
+			SetVelocity=FALSE
+		End If
+	End Function
+
+	'音源のコーン角度の設定
+	Function SetConeAngles(dwInsideAngle As DWord, dwOutsideAngle As DWord) As Long
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetConeAngles(dwInsideAngle,dwOutsideAngle,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetConeAngles=TRUE
+		Else
+			SetConeAngles=FALSE
+		End If
+	End Function
+
+	'音源のコーン方向の設定
+	Function SetConeOrientation(x As Single, y As Single, z As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetConeOrientation(x,y,z,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetConeOrientation=TRUE
+		Else
+			SetConeOrientation=FALSE
+		End If
+	End Function
+
+	'音源の外部角度の外側ボリュームの設定（1/100 dB 単位で指定）
+	Function SetConeOutsideVolume(ConeOutsideVolume As Long)
+		Dim hr As Long
+		hr=lpDS3DBuffer->SetConeOutsideVolume(ConeOutsideVolume,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetConeOutsideVolume=TRUE
+		Else
+			SetConeOutsideVolume=FALSE
+		End If
+	End Function
+End Class
+
+'リスナー
+Class CListener
+	lpDS3DListener As LPDIRECTSOUND3DLISTENER8
+Public
+	Sub CListener()
+		Dim hr As Long
+		Dim lpDMAudioPath As *IDirectMusicAudioPath8    'オーディオパス
+
+		'オーディオパスの生成
+		hr = dx_lpDMPerformance->CreateStandardAudioPath(DMUS_APATH_DYNAMIC_3D, 64, FALSE, VarPtr(lpDMAudioPath))
+		If hr Then
+			lpDMAudioPath=0
+			Exit Sub
+		End If
+
+		'リスナーの取得
+		hr = lpDMAudioPath->GetObjectInPath(0, DMUS_PATH_PRIMARY_BUFFER, 0,
+     	   GUID_NULL, 0, IID_IDirectSound3DListener8, VarPtr(lpDS3DListener))
+		If hr Then
+			lpDS3DListener=0
+			Exit Sub
+		End If
+
+		'オーディオパスを破棄
+		lpDMAudioPath->Release()
+	End Sub
+	Sub ~CListener()
+		If lpDS3DListener Then lpDS3DListener->Release()
+	End Sub
+
+	'リスナーの位置の設定
+	Function SetPosition(x As Single, y As Single, z As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DListener->SetPosition(x,y,z,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetPosition=TRUE
+		Else
+			SetPosition=FALSE
+		End If
+	End Function
+
+	'リスナーの速度の設定
+	Function SetVelocity(x As Single, y As Single, z As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DListener->SetVelocity(x,y,z,DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetVelocity=TRUE
+		Else
+			SetVelocity=FALSE
+		End If
+	End Function
+
+	'リスナーの方向の設定
+	Function SetOrientation(FrontX As Single, FrontY As Single, FrontZ As Single, TopX As Single, TopY As Single, TopZ As Single) As Long
+		Dim hr As Long
+		hr=lpDS3DListener->SetOrientation(
+			FrontX,FrontY,FrontZ,
+			TopX,TopY,TopZ,
+			DS3D_DEFERRED)
+		If hr=S_OK Then
+			SetOrientation=TRUE
+		Else
+			SetOrientation=FALSE
+		End If
+	End Function
+
+	'リスナー及び音源の状況を更新する
+	Function CommitSettings()
+		Dim hr As Long
+		hr=lpDS3DListener->CommitDeferredSettings()
+		If hr=S_OK Then
+			CommitSettings=TRUE
+		Else
+			CommitSettings=FALSE
+		End If
+	End Function
+End Class

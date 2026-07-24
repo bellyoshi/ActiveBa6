@@ -1,0 +1,367 @@
+'-----------------------------------------------------------------------------
+'  イベント プロシージャ
+'-----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [MainWnd] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hMainWnd
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+
+Const ID_TIMER = 100
+
+'MCI_OPEN_PARMS構造体。MCIデバイスのオープンに関する情報が格納される
+Dim mop As MCI_OPEN_PARMS
+
+'現在演奏中のトラック番号（1,2,3,...）が格納される
+Dim TrackNum As Long
+
+
+Function OpenMciDevice() As Long
+    'MCIデバイスをオープンする
+    '(mop.wDeviceIDにデバイスIDが格納される)
+
+    Dim dwError As DWord
+    Dim buffer[255] As Byte
+
+    mop.dwCallback=hMainWnd
+    mop.lpstrDeviceType="cdaudio"
+    dwError=mciSendCommand(0,MCI_OPEN,MCI_WAIT or MCI_OPEN_TYPE,mop)
+    If dwError Then
+        mciGetErrorString(dwError,buffer,255)
+        MessageBox(hMainWnd,buffer,"デバイスのオープンに失敗",MB_OK)
+        OpenMciDevice=0
+    Else
+        OpenMciDevice=1
+    End If
+End Function
+
+Sub CloseMciDevice()
+    'MCIデバイスを閉じる
+    Dim dwDummy As DWord
+    mciSendCommand(mop.wDeviceID,MCI_CLOSE,MCI_WAIT,dwDummy)
+    mop.wDeviceID=0
+End Sub
+
+Sub GetTrackInfo()
+    Dim dwError As DWord
+    Dim buffer[255] As Byte
+    Dim NumberOfTracks As Long
+
+    If mop.wDeviceID Then
+        '再生中のときは停止
+        SendMessage(hMainWnd,WM_COMMAND,StopButton,0)
+    End If
+
+    'MCIデバイスをオープン
+    If OpenMciDevice()=0 Then Exit Sub
+
+    'トラック数を取得（取得したトラック数はNumberOfTracks変数にコピーする）
+    Dim msp As MCI_STATUS_PARMS
+    msp.dwItem=MCI_STATUS_NUMBER_OF_TRACKS
+    dwError=mciSendCommand(mop.wDeviceID,MCI_STATUS,MCI_STATUS_ITEM,msp)
+    If dwError Then
+        mciGetErrorString(dwError,buffer,255)
+        MessageBox(hMainWnd,buffer,"トラック情報の取得に失敗",MB_OK)
+
+        'MCIデバイスを閉じる
+        CloseMciDevice()
+        Exit Sub
+    End If
+    NumberOfTracks=msp.dwReturn
+
+
+    '--------------------------------------
+    ' リストボックスにトラック情報をセット
+    '--------------------------------------
+    Dim i As Long
+    Dim hList As DWord
+    hList=GetDlgItem(hMainWnd,TrackList)
+
+    '時刻形式にMFSを指定
+    Dim msep As MCI_SET_PARMS
+    msep.dwTimeFormat = MCI_FORMAT_MSF
+    mciSendCommand(mop.wDeviceID,MCI_SET,MCI_SET_TIME_FORMAT,msep)
+
+    'リストボックスの内容をリセット
+    SendMessage(hList,LB_RESETCONTENT,0,0)
+
+    For i=1 To NumberOfTracks
+        'トラック情報を取得する
+        msp.dwItem=MCI_STATUS_LENGTH
+        msp.dwTrack=i
+        mciSendCommand(mop.wDeviceID,MCI_STATUS,MCI_STATUS_ITEM or MCI_TRACK,msp)
+
+        'トラック情報を文字列に変換
+        wsprintf(buffer,"Track%02d - %d分 %d秒",i,MCI_MSF_MINUTE(msp.dwReturn),MCI_MSF_SECOND(msp.dwReturn))
+
+        'リストボックスに追加
+        SendMessage(hList,LB_ADDSTRING,0,buffer)
+    Next
+
+
+    'MCIデバイスを閉じる
+    CloseMciDevice()
+
+    '再生ボタンを有効化し、一時停止・停止ボタンを無効化する
+    EnableWindow(GetDlgItem(hMainWnd,PlayButton),1)
+    EnableWindow(GetDlgItem(hMainWnd,PauseButton),0)
+    EnableWindow(GetDlgItem(hMainWnd,StopButton),0)
+End Sub
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Function MainWndProc(hWnd As DWord, dwMsg As DWord, wParam As DWord, lParam As DWord) As DWord
+	' TODO: この位置にウィンドウメッセージを処理するためのコードを記述します。
+
+	' イベントプロシージャの呼び出しを行います。
+	MainWndProc=EventCall_MainWnd(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ここから下は、イベントプロシージャを記述するための領域になります。
+
+Sub MainWnd_Destroy()
+	CDPlayer_DestroyObjects()
+	PostQuitMessage(0)
+End Sub
+
+Sub MainWnd_Create(ByRef CreateStruct As CREATESTRUCT)
+    'トラック情報を取得し、リストボックスの内容をセットする
+    GetTrackInfo()
+End Sub
+
+Sub MainWnd_ReloadButton_Click()
+    'トラック情報を取得し、リストボックスの内容をセットする
+    GetTrackInfo()
+End Sub
+
+Sub MainWnd_EjectButton_Click()
+    If mop.wDeviceID Then
+        '再生中のときは停止
+        SendMessage(hMainWnd,WM_COMMAND,StopButton,0)
+    End If
+
+    'MCIデバイスをオープン
+    If OpenMciDevice()=0 Then Exit Sub
+
+    'CDを取り出す
+    mciSendCommand(mop.wDeviceID, MCI_SET, MCI_SET_DOOR_OPEN, ByVal NULL)
+
+    'デバイスを閉じる
+    CloseMciDevice()
+
+    '再生・一時停止・停止ボタンを無効化する
+    EnableWindow(GetDlgItem(hMainWnd,PlayButton),0)
+    EnableWindow(GetDlgItem(hMainWnd,PauseButton),0)
+    EnableWindow(GetDlgItem(hMainWnd,StopButton),0)
+End Sub
+
+Sub MainWnd_PlayButton_Click()
+    Dim dwError As DWord
+    Dim buffer[255] As Byte
+    Dim msep As MCI_SET_PARMS
+    Dim mpp As MCI_PLAY_PARMS
+    Dim dwParms As DWord
+
+    If mop.wDeviceID=0 Then
+        '-----------------------------
+        ' 新たにMCIデバイスをオープン
+        '-----------------------------
+
+        'リストボックスで選択されているトラックを取得
+        TrackNum=SendDlgItemMessage(hMainWnd,TrackList,LB_GETCURSEL,0,0)
+        If TrackNum=LB_ERR Then Exit Sub
+        TrackNum=TrackNum+1    '(0,1,2...)を、(1,2,3...)に修正
+
+        'MCIデバイスをオープン
+        If OpenMciDevice()=0 Then Exit Sub
+
+
+        '--------------------------
+        ' トラックバーの範囲を設定
+        '--------------------------
+
+        '時刻形式にMSFを指定
+        msep.dwTimeFormat = MCI_FORMAT_MSF
+        mciSendCommand(mop.wDeviceID,MCI_SET,MCI_SET_TIME_FORMAT,msep)
+
+        'サウンドの長さを取得
+        Dim msp As MCI_STATUS_PARMS
+        msp.dwItem=MCI_STATUS_LENGTH
+        msp.dwTrack=TrackNum
+        mciSendCommand(mop.wDeviceID,MCI_STATUS,MCI_STATUS_ITEM or MCI_TRACK,msp)
+
+        'トラックバーの範囲を設定
+        Dim nMax As Integer
+        Dim hTrackBar As DWord
+        hTrackBar=GetDlgItem(hMainWnd,TrackBar1)
+        nMax=(MCI_MSF_MINUTE(msp.dwReturn)*60 + MCI_MSF_SECOND(msp.dwReturn)) * 10
+        SendMessage(hTrackBar,TBM_SETRANGE,0,MAKELONG(0,nMax))
+        SendMessage(hTrackBar,TBM_SETPOS,1,0)
+
+
+        '------------
+        ' 演奏を開始
+        '------------
+
+        '時刻形式にTMSFを指定
+        msep.dwTimeFormat = MCI_FORMAT_TMSF
+        mciSendCommand(mop.wDeviceID,MCI_SET,MCI_SET_TIME_FORMAT,msep)
+
+        '再生（トラックを指定）
+        mpp.dwCallback=hMainWnd
+        mpp.dwFrom=MCI_MAKE_TMSF(TrackNum,0,0,0)
+        If TrackNum=SendDlgItemMessage(hMainWnd,TrackList,LB_GETCOUNT,0,0) Then
+            dwParms=MCI_FROM or MCI_NOTIFY
+        Else
+            mpp.dwTo=MCI_MAKE_TMSF(TrackNum+1,0,0,0)
+            dwParms=MCI_FROM or MCI_TO or MCI_NOTIFY
+        End If
+        dwError=mciSendCommand(mop.wDeviceID,MCI_PLAY,dwParms,mpp)
+    Else
+        '-------------------------------------------
+        ' 演奏を再開（一時停止からの復帰、シーク時）
+        '-------------------------------------------
+
+        '再生
+        mpp.dwCallback=hMainWnd
+        If TrackNum=SendDlgItemMessage(hMainWnd,TrackList,LB_GETCOUNT,0,0) Then
+            dwParms=MCI_NOTIFY
+        Else
+            mpp.dwTo=MCI_MAKE_TMSF(TrackNum+1,0,0,0)
+            dwParms=MCI_TO or MCI_NOTIFY
+        End If
+        dwError=mciSendCommand(mop.wDeviceID,MCI_PLAY,dwParms,mpp)
+
+    End If
+
+    If dwError Then
+        'MCI_PLAYでエラーが出たとき
+        mciGetErrorString(dwError,buffer,255)
+        MessageBox(hMainWnd,buffer,"デバイスの再生に失敗",MB_OK)
+
+        'MCIデバイスを閉じる
+        CloseMciDevice()
+        Exit Sub
+    End If
+
+    '再生ボタンを無効化し、一時停止・停止ボタンを有効化する
+    EnableWindow(GetDlgItem(hMainWnd,PlayButton),0)
+    EnableWindow(GetDlgItem(hMainWnd,PauseButton),1)
+    EnableWindow(GetDlgItem(hMainWnd,StopButton),1)
+
+    'タイマー処理を開始する
+    SetTimer(hMainWnd,ID_TIMER,100,0)
+End Sub
+
+Sub MainWnd_PauseButton_Click()
+    '一時停止
+    mciSendCommand(mop.wDeviceID,MCI_PAUSE,0,ByVal 0)
+
+    '再生・停止ボタンを有効化し、一時停止ボタンを無効化する
+    EnableWindow(GetDlgItem(hMainWnd,PlayButton),1)
+    EnableWindow(GetDlgItem(hMainWnd,PauseButton),0)
+    EnableWindow(GetDlgItem(hMainWnd,StopButton),1)
+
+    'タイマー処理を終了する
+    KillTimer(hMainWnd,ID_TIMER)
+End Sub
+
+Sub MainWnd_StopButton_Click()
+    Dim bErr As Long
+    Dim dwCallback As DWord
+
+    '停止
+    bErr=mciSendCommand(mop.wDeviceID,MCI_STOP,MCI_WAIT,dwCallback)
+    If bErr Then
+        MessageBox(hMainWnd,"デバイスの停止に失敗","error",MB_OK)
+        Exit Sub
+    End If
+
+    'デバイスを閉じる
+    CloseMciDevice()
+
+    '再生ボタンを有効化し、一時停止・停止ボタンを無効化する
+    EnableWindow(GetDlgItem(hMainWnd,PlayButton),1)
+    EnableWindow(GetDlgItem(hMainWnd,PauseButton),0)
+    EnableWindow(GetDlgItem(hMainWnd,StopButton),0)
+
+    'タイマー処理を終了する
+    KillTimer(hMainWnd,ID_TIMER)
+
+    'トラックバーの位置を0に設定
+    SendMessage(GetDlgItem(hMainWnd,TrackBar1),TBM_SETPOS,1,0)
+End Sub
+
+Sub MainWnd_MciNotify(flags As Long, DevID As Long)
+    If flags=MCI_NOTIFY_SUCCESSFUL Then
+        '「停止」ボタンのイベントを実行
+        SendMessage(hMainWnd,WM_COMMAND,StopButton,0)
+    End If
+End Sub
+
+Sub MainWnd_HScroll(nScrollCode As Long, nPos As Integer, hwndScrollBar As Long)
+    Dim sw As Long
+
+    If mop.wDeviceID<>0 and _
+        hwndScrollBar=GetDlgItem(hMainWnd,TrackBar1) and _
+        (nScrollCode=SB_ENDSCROLL or _
+        nScrollCode=SB_LEFT or _
+        nScrollCode=SB_RIGHT or _
+        nScrollCode=SB_LINELEFT or _
+        nScrollCode=SB_LINERIGHT or _
+        nScrollCode=SB_PAGELEFT or _
+        nScrollCode=SB_PAGERIGHT or _
+        nScrollCode=SB_THUMBPOSITION)Then
+        '------------------------------------------
+        ' ユーザーがトラックバーの位置を変えたとき
+        '------------------------------------------
+
+        If IsWindowEnabled(GetDlgItem(hMainWnd,PlayButton))=0 Then
+            '再生中のときは一時停止
+            SendMessage(hMainWnd,WM_COMMAND,PauseButton,0)
+
+            sw=1
+        Else
+            sw=0
+        End If
+
+        Dim msep As MCI_SET_PARMS
+        msep.dwTimeFormat = MCI_FORMAT_TMSF
+        mciSendCommand(mop.wDeviceID,MCI_SET,MCI_SET_TIME_FORMAT,msep)
+
+        '演奏位置をトラックバーが示す位置に設定
+        Dim bErr As Long
+        Dim mciSeekParms As MCI_SEEK_PARMS
+        Dim pos As Long
+        pos=SendMessage(GetDlgItem(hMainWnd,TrackBar1),TBM_GETPOS,0,0)\10
+        mciSeekParms.dwTo=MCI_MAKE_TMSF(TrackNum, pos\60, pos mod 60,0)
+        bErr=mciSendCommand(mop.wDeviceID,MCI_SEEK,MCI_TO,mciSeekParms)
+        If bErr Then
+            MessageBox(hMainWnd,"シークに失敗","error",MB_OK)
+            Exit Sub
+        End If
+
+        If sw Then
+            '再生中のときは再生を再開
+            SendMessage(hMainWnd,WM_COMMAND,PlayButton,0)
+        End If
+    End If
+End Sub
+
+Sub MainWnd_Timer(TimerID As Long)
+    Dim hTrackBar As DWord
+    Dim pos As Long
+
+
+    If TimerID=ID_TIMER Then
+        hTrackBar=GetDlgItem(hMainWnd,TrackBar1)
+
+        'トラックバーを1目盛り進める
+        pos=SendMessage(hTrackBar,TBM_GETPOS,0,0)
+        pos=pos+1
+        SendMessage(hTrackBar,TBM_SETPOS,1,pos)
+    End If
+End Sub

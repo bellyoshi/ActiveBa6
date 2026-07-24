@@ -1,0 +1,24 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=TextEditor
+
+#PLATFORM=32
+
+#USEWINDOW=2
+
+#OPTION=&H0100000a
+
+#OUTPUT_RELEASE=.\TextEditor.exe
+
+#OUTPUT_DEBUG=.\TextEditor_debug.exe
+
+#RESOURCE=TextEditor.rc
+
+#SOURCE
+TextEditor.abp
+MainWnd.sbp
+SendMail.sbp

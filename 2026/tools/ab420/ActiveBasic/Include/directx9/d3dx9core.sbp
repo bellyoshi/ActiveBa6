@@ -1,0 +1,211 @@
+' d3dx9core.sbp
+
+
+Class ID3DXBuffer
+	Inherits IUnknown
+Public
+	'ID3DXBuffer
+	Virtual Function GetBufferPointer() As VoidPtr
+	Virtual Function GetBufferSize() As DWord
+End Class
+TypeDef LPD3DXBUFFER = *ID3DXBuffer
+
+
+Const D3DXSPRITE_DONOTSAVESTATE            = 1 << 0
+Const D3DXSPRITE_DONOTMODIFY_RENDERSTATE   = 1 << 1
+Const D3DXSPRITE_OBJECTSPACE               = 1 << 2
+Const D3DXSPRITE_BILLBOARD                 = 1 << 3
+Const D3DXSPRITE_ALPHABLEND                = 1 << 4
+Const D3DXSPRITE_SORT_TEXTURE              = 1 << 5
+Const D3DXSPRITE_SORT_DEPTH_FRONTTOBACK    = 1 << 6
+Const D3DXSPRITE_SORT_DEPTH_BACKTOFRONT    = 1 << 7
+
+
+Class ID3DXSprite
+	Inherits IUnknown
+Public
+	'ID3DXSprite
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+
+	Virtual Function GetTransform(pTransform As *D3DMATRIX) As DWord
+	Virtual Function SetTransform(pTransform As *D3DMATRIX) As DWord
+
+	Virtual Function SetWorldViewRH(pWorld As *D3DMATRIX, pView As *D3DMATRIX) As DWord
+	Virtual Function SetWorldViewLH(pWorld As *D3DMATRIX, pView As *D3DMATRIX) As DWord
+
+	Virtual Function Begin(Flags As DWord) As DWord
+	Virtual Function Draw(pTexture As *IDirect3DTexture9, pSrcRect As *RECT, pCenter As *D3DXVECTOR3, pPosition As *D3DVECTOR, Color As DWord) As DWord
+	Virtual Function Flush() As DWord
+	Virtual Function _End() As DWord
+
+	Virtual Function OnLostDevice() As DWord
+	Virtual Function OnResetDevice() As DWord
+End Class
+TypeDef LPD3DXSPRITE = *ID3DXSprite
+
+Declare Function D3DXCreateSprite Lib "dx9abm" Alias "D3DXCreateSprite_abm" (pDevice As LPDIRECT3DDEVICE9, ppSprite As **ID3DXSprite) As DWord
+
+
+Type D3DXFONT_DESC
+	Height As Long
+	Width As DWord
+	Weight As DWord
+	MipLevels As DWord
+	Italic As Long
+	CharSet As Byte
+	OutputPrecision As Byte
+	Quality As Byte
+	PitchAndFamily As Byte
+	FaceName[LF_FACESIZE-1] As Byte
+End Type
+Type D3DXFONT_DESCW
+	Height As Long
+	Width As DWord
+	Weight As DWord
+	MipLevels As DWord
+	Italic As Long
+	CharSet As Byte
+	OutputPrecision As Byte
+	Quality As Byte
+	PitchAndFamily As Byte
+    FaceName[LF_FACESIZE-1] As Word
+End Type
+
+Class ID3DXFont
+	Inherits IUnknown
+Public
+	'ID3DXFont
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetDesc(pDesc As *D3DXFONT_DESC) As DWord
+	Virtual Function GetDescW(pDesc As *D3DXFONT_DESCW) As DWord
+	Virtual Function GetTextMetricsA(pTextMetrics As *TEXTMETRIC) As Long
+	Virtual Function GetTextMetricsW(pTextMetrics As VoidPtr) As Long
+
+	Virtual Function GetDC() As DWord
+	Virtual Function GetGlyphData(Glyph As DWord, ppTexture As **IDirect3DTexture9, pBlackBox As *RECT, pCellInc As *POINTAPI) As DWord
+
+	Virtual Function PreloadCharacters(First As DWord, Last As DWord) As DWord
+	Virtual Function PreloadGlyphs(First As DWord, Last As DWord) As DWord
+	Virtual Function PreloadText(pString As BytePtr, Count As Long) As DWord
+	Virtual Function PreloadTextW(pString As WordPtr, Count As Long) As DWord
+
+	Virtual Function DrawText(pSprite As *ID3DXSprite, pString As BytePtr, Count As Long, pRect As *RECT, Format As DWord, Color As DWord) As Long
+	Virtual Function DrawTextW(pSprite As *ID3DXSprite, pString As WordPtr, Count As Long, pRect As *RECT, Format As DWord, Color As DWord) As Long
+
+	Virtual Function OnLostDevice() As DWord
+	Virtual Function OnResetDevice() As DWord
+End Class
+TypeDef LPD3DXFONT = *ID3DXFont
+
+Declare Function D3DXCreateFont Lib "dx9abm" Alias "D3DXCreateFont_abm" (pDevice As LPDIRECT3DDEVICE9, Height As Long, Width As DWord, Weight As DWord, MipLevels As DWord, Italic As Long, CharSet As DWord, OutputPrecision As DWord, Quality As DWord, PitchAndFamily As DWord, pFaceName As BytePtr, ppFont As **ID3DXFont) As DWord
+
+Declare Function D3DXCreateFontIndirect Lib "dx9abm" Alias "D3DXCreateFontIndirect_abm" (pDevice As LPDIRECT3DDEVICE9, pDesc As *D3DXFONT_DESC, ppFont As **ID3DXFont) As DWord
+
+
+'----------------------
+' ID3DXRenderToSurface
+'----------------------
+
+Type D3DXRTS_DESC
+	Width As DWord
+	Height As DWord
+	Format As D3DFORMAT
+	DepthStencil As Long
+	DepthStencilFormat As D3DFORMAT
+End Type
+
+Class ID3DXRenderToSurface
+	Inherits IUnknown
+Public
+	'ID3DXRenderToSurface
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetDesc(pDesc As *D3DXRTS_DESC) As DWord
+
+	Virtual Function BeginScene(pSurface As *IDirect3DSurface9, pViewport As *D3DVIEWPORT9) As DWord
+	Virtual Function EndScene(MipFilter As DWord) As DWord
+
+	Virtual Function OnLostDevice() As DWord
+	Virtual Function OnResetDevice() As DWord
+End Class
+TypeDef LPD3DXRENDERTOSURFACE = *ID3DXRenderToSurface
+
+Declare Function D3DXCreateRenderToSurface Lib "dx9abm" Alias "D3DXCreateRenderToSurface_abm" (pDevice As LPDIRECT3DDEVICE9, Width As DWord, Height As DWord, Format As D3DFORMAT, DepthStencil As Long, DepthStencilFormat As D3DFORMAT, ppRenderToSurface As **ID3DXRenderToSurface) As DWord
+
+
+'---------------------
+' ID3DXRenderToEnvMap
+'---------------------
+
+Type D3DXRTE_DESC
+	Size As DWord
+	MipLevels As DWord
+	Format As D3DFORMAT
+	DepthStencil As Long
+	DepthStencilFormat As D3DFORMAT
+End Type
+
+Class ID3DXRenderToEnvMap
+	Inherits IUnknown
+Public
+	'ID3DXRenderToEnvMap
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetDesc(pDesc As *D3DXRTE_DESC) As DWord
+
+	Virtual Function BeginCube(pCubeTex As *IDirect3DCubeTexture9) As DWord
+
+	Virtual Function BeginSphere(pTex As *IDirect3DTexture9) As DWord
+
+	Virtual Function BeginHemisphere(pTexZPos As *IDirect3DTexture9, pTexZNeg As *IDirect3DTexture9) As DWord
+
+	Virtual Function BeginParabolic(pTexZPos As *IDirect3DTexture9, pTexZNeg As *IDirect3DTexture9) As DWord
+
+	Virtual Function Face(Face As D3DCUBEMAP_FACES, MipFilter As DWord) As DWord
+	Virtual Function _End(MipFilter As DWord) As DWord
+
+	Virtual Function OnLostDevice() As DWord
+	Virtual Function OnResetDevice() As DWord
+End Class
+TypeDef LPD3DXRenderToEnvMap = *ID3DXRenderToEnvMap
+
+Declare Function D3DXCreateRenderToEnvMap Lib "dx9abm" Alias "D3DXCreateRenderToEnvMap_abm" (pDevice As LPDIRECT3DDEVICE9, Size As DWord, MipLevels As DWord, Format As D3DFORMAT, DepthStencil As Long, DepthStencilFormat As D3DFORMAT, ppRenderToEnvMap As *LPD3DXRenderToEnvMap) As DWord
+
+
+'-----------
+' ID3DXLine
+'-----------
+
+Class ID3DXLine
+	Inherits IUnknown
+Public
+    'ID3DXLine
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+
+	Virtual Function Begin() As DWord
+
+	Virtual Function Draw(pVertexList As *D3DXVECTOR2, dwVertexListCount As DWord, dwColor As DWord) As DWord
+
+	Virtual Function DrawTransform(pVertexList As *D3DXVECTOR3, dwVertexListCount As DWord, pTransform As *D3DXMATRIX, dwColor As DWord) As DWord
+
+	Virtual Function SetPattern(dwPattern As DWord) As DWord
+	Virtual Function GetPattern() As DWord
+
+	Virtual Function SetPatternScale(fPatternScale As Single) As DWord
+	Virtual Function GetPatternScale() As Single
+
+	Virtual Function SetWidth(fWidth As Single) As DWord
+	Virtual Function GetWidth() As Single
+
+	Virtual Function SetAntialias(bAntialias As Long) As DWord
+	Virtual Function GetAntialias() As Long
+
+	Virtual Function SetGLLines(bGLLines As Long) As DWord
+	Virtual Function GetGLLines() As Long
+
+	Virtual Function _End() As DWord
+
+	Virtual Function OnLostDevice() As DWord
+	Virtual Function OnResetDevice() As DWord
+End Class
+TypeDef LPD3DXLINE = *ID3DXLine
+
+Declare Function D3DXCreateLine Lib "dx9abm" Alias "D3DXCreateLine_abm" (pDevice As LPDIRECT3DDEVICE9, ppLine As **ID3DXLine) As DWord

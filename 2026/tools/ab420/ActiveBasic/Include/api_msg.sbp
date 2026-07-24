@@ -1,0 +1,816 @@
+' api_msg.sbp - declarations file for window control.
+
+
+'------------------------------
+'  Virtual Keys, Standard Set
+'------------------------------
+
+Const VK_LBUTTON =      &H01
+Const VK_RBUTTON =      &H02
+Const VK_CANCEL =       &H03
+Const VK_MBUTTON =      &H04
+
+Const VK_BACK =         &H08
+Const VK_TAB =          &H09
+
+Const VK_CLEAR =        &H0C
+Const VK_RETURN =       &H0D
+
+Const VK_SHIFT =        &H10
+Const VK_CONTROL =      &H11
+Const VK_MENU =         &H12
+Const VK_PAUSE =        &H13
+Const VK_CAPITAL =      &H14
+
+Const VK_KANA =         &H15
+Const VK_HANGEUL =      &H15
+Const VK_HANGUL =       &H15
+Const VK_JUNJA =        &H17
+Const VK_FINAL =        &H18
+Const VK_HANJA =        &H19
+Const VK_KANJI =        &H19
+
+Const VK_ESCAPE =       &H1B
+
+Const VK_CONVERT =      &H1C
+Const VK_NONCONVERT =   &H1D
+Const VK_ACCEPT =       &H1E
+Const VK_MODECHANGE =   &H1F
+
+Const VK_SPACE =        &H20
+Const VK_PRIOR =        &H21
+Const VK_NEXT =         &H22
+Const VK_END =          &H23
+Const VK_HOME =         &H24
+Const VK_LEFT =         &H25
+Const VK_UP =           &H26
+Const VK_RIGHT =        &H27
+Const VK_DOWN =         &H28
+Const VK_SELECT =       &H29
+Const VK_PRINT =        &H2A
+Const VK_EXECUTE =      &H2B
+Const VK_SNAPSHOT =     &H2C
+Const VK_INSERT =       &H2D
+Const VK_DELETE =       &H2E
+Const VK_HELP =         &H2F
+
+Const VK_LWIN =         &H5B
+Const VK_RWIN =         &H5C
+Const VK_APPS =         &H5D
+
+Const VK_NUMPAD0 =      &H60
+Const VK_NUMPAD1 =      &H61
+Const VK_NUMPAD2 =      &H62
+Const VK_NUMPAD3 =      &H63
+Const VK_NUMPAD4 =      &H64
+Const VK_NUMPAD5 =      &H65
+Const VK_NUMPAD6 =      &H66
+Const VK_NUMPAD7 =      &H67
+Const VK_NUMPAD8 =      &H68
+Const VK_NUMPAD9 =      &H69
+Const VK_MULTIPLY =     &H6A
+Const VK_ADD =          &H6B
+Const VK_SEPARATOR =    &H6C
+Const VK_SUBTRACT =     &H6D
+Const VK_DECIMAL =      &H6E
+Const VK_DIVIDE =       &H6F
+Const VK_F1 =           &H70
+Const VK_F2 =           &H71
+Const VK_F3 =           &H72
+Const VK_F4 =           &H73
+Const VK_F5 =           &H74
+Const VK_F6 =           &H75
+Const VK_F7 =           &H76
+Const VK_F8 =           &H77
+Const VK_F9 =           &H78
+Const VK_F10 =          &H79
+Const VK_F11 =          &H7A
+Const VK_F12 =          &H7B
+Const VK_F13 =          &H7C
+Const VK_F14 =          &H7D
+Const VK_F15 =          &H7E
+Const VK_F16 =          &H7F
+Const VK_F17 =          &H80
+Const VK_F18 =          &H81
+Const VK_F19 =          &H82
+Const VK_F20 =          &H83
+Const VK_F21 =          &H84
+Const VK_F22 =          &H85
+Const VK_F23 =          &H86
+Const VK_F24 =          &H87
+
+Const VK_NUMLOCK =      &H90
+Const VK_SCROLL =       &H91
+
+' Used only as parameters to GetAsyncKeyState() and GetKeyState().
+Const VK_LSHIFT =       &HA0
+Const VK_RSHIFT =       &HA1
+Const VK_LCONTROL =     &HA2
+Const VK_RCONTROL =     &HA3
+Const VK_LMENU =        &HA4
+Const VK_RMENU =        &HA5
+
+Const VK_PROCESSKEY =   &HE5
+
+Const VK_ATTN =         &HF6
+Const VK_CRSEL =        &HF7
+Const VK_EXSEL =        &HF8
+Const VK_EREOF =        &HF9
+Const VK_PLAY =         &HFA
+Const VK_ZOOM =         &HFB
+Const VK_NONAME =       &HFC
+Const VK_PA1 =          &HFD
+Const VK_OEM_CLEAR =    &HFE
+
+
+'-------------------
+'  Window Messages
+'-------------------
+
+Const WM_NULL =                       &H0000
+Const WM_CREATE =                     &H0001
+' lParam of WM_CREATE message point to...
+Type CREATESTRUCT
+	lpCreateParams As VoidPtr
+	hInstance As HINSTANCE
+	hMenu As HMENU
+	hwndParent As HWND
+	cy As Long
+	cx As Long
+	y As Long
+	x As Long
+	style As Long
+	lpszName As BytePtr
+	lpszClass As BytePtr
+	dwExStyle As DWord
+End Type
+Const WM_DESTROY =                    &H0002
+Const WM_MOVE =                       &H0003
+Const WM_SIZE =                       &H0005
+' WM_SIZE message wParam values
+Const   SIZE_RESTORED =     0
+Const   SIZE_MINIMIZED =    1
+Const   SIZE_MAXIMIZED =    2
+Const   SIZE_MAXSHOW =      3
+Const   SIZE_MAXHIDE =      4
+
+Const WM_ACTIVATE =                   &H0006
+' WM_ACTIVATE state values
+Const     WA_INACTIVE =    0
+Const     WA_ACTIVE =      1
+Const     WA_CLICKACTIVE = 2
+
+Const WM_SETFOCUS =                   &H0007
+Const WM_KILLFOCUS =                  &H0008
+Const WM_ENABLE =                     &H000A
+Const WM_SETREDRAW =                  &H000B
+Const WM_SETTEXT =                    &H000C
+Const WM_GETTEXT =                    &H000D
+Const WM_GETTEXTLENGTH =              &H000E
+Const WM_PAINT =                      &H000F
+Const WM_CLOSE =                      &H0010
+Const WM_QUERYENDSESSION =            &H0011
+Const WM_QUIT =                       &H0012
+Const WM_QUERYOPEN =                  &H0013
+Const WM_ERASEBKGND =                 &H0014
+Const WM_SYSCOLORCHANGE =             &H0015
+Const WM_ENDSESSION =                 &H0016
+Const WM_SHOWWINDOW =                 &H0018
+' Identifiers for the WM_SHOWWINDOW message
+Const   SW_PARENTCLOSING =  1
+Const   SW_OTHERZOOM =      2
+Const   SW_PARENTOPENING =  3
+Const   SW_OTHERUNZOOM =    4
+Const WM_WININICHANGE =               &H001A
+Const WM_SETTINGCHANGE =              WM_WININICHANGE
+
+Const WM_DEVMODECHANGE =              &H001B
+Const WM_ACTIVATEAPP =                &H001C
+Const WM_FONTCHANGE =                 &H001D
+Const WM_TIMECHANGE =                 &H001E
+Const WM_CANCELMODE =                 &H001F
+Const WM_SETCURSOR =                  &H0020
+Const WM_MOUSEACTIVATE =              &H0021
+Const WM_CHILDACTIVATE =              &H0022
+Const WM_QUEUESYNC =                  &H0023
+
+Const WM_GETMINMAXINFO =              &H0024
+' Struct pointed to by WM_GETMINMAXINFO lParam
+Type MINMAXINFO
+	ptReserved As POINTAPI
+	ptMaxSize As POINTAPI
+	ptMaxPosition As POINTAPI
+	ptMinTrackSize As POINTAPI
+	ptMaxTrackSize As POINTAPI
+End Type
+
+Const WM_PAINTICON =                  &H0026
+Const WM_ICONERASEBKGND =             &H0027
+Const WM_NEXTDLGCTL =                 &H0028
+Const WM_SPOOLERSTATUS =              &H002A
+Const WM_DRAWITEM =                   &H002B
+Const WM_MEASUREITEM =                &H002C
+Const WM_DELETEITEM =                 &H002D
+' DELETEITEMSTRUCT for ownerdraw
+Type DELETEITEMSTRUCT
+	CtlType As DWord
+	CtlID As DWord
+	itemID As DWord
+	hwndItem As HWND
+	itemData As DWord
+End Type
+Const WM_VKEYTOITEM =                 &H002E
+Const WM_CHARTOITEM =                 &H002F
+Const WM_SETFONT =                    &H0030
+Const WM_GETFONT =                    &H0031
+Const WM_SETHOTKEY =                  &H0032
+Const WM_GETHOTKEY =                  &H0033
+Const WM_QUERYDRAGICON =              &H0037
+Const WM_COMPAREITEM =                &H0039
+' COMPAREITEMSTUCT for ownerdraw sorting
+Type COMPAREITEMSTRUCT
+	CtlType As DWord
+	CtlID As DWord
+	hwndItem As HWND
+	itemID1 As DWord
+	itemData1 As DWord
+	itemID2 As DWord
+	itemData2 As DWord
+	dwLocaleId As DWord
+End Type
+Const WM_GETOBJECT =                  &H003D
+Const WM_COMPACTING =                 &H0041
+Const WM_COMMNOTIFY =                 &H0044
+Const WM_WINDOWPOSCHANGING =          &H0046
+Const WM_WINDOWPOSCHANGED =           &H0047
+' WM_WINDOWPOSCHANGING/CHANGED struct pointed to by lParam
+Type WINDOWPOS
+	hwnd As HWND
+	hwndInsertAfter As HWND
+	x As Long
+	y As Long
+	cx As Long
+	cy As Long
+	flags As DWord
+End Type
+
+Const WM_POWER =                      &H0048
+' wParam for WM_POWER window message and DRV_POWER driver notification
+Const   PWR_OK =            1
+Const   PWR_FAIL =          -1
+Const   PWR_SUSPENDREQUEST =1
+Const   PWR_SUSPENDRESUME = 2
+Const   PWR_CRITICALRESUME =3
+
+Const WM_COPYDATA =                   &H004A
+' lParam of WM_COPYDATA message points to...
+Type COPYDATASTRUCT
+	dwData As DWord
+	cbData As DWord
+	lpData As VoidPtr
+End Type
+
+Const WM_CANCELJOURNAL =              &H004B
+Const WM_NOTIFY =                     &H004E
+Const WM_INPUTLANGCHANGEREQUEST =     &H0050
+Const WM_INPUTLANGCHANGE =            &H0051
+Const WM_TCARD =                      &H0052
+Const WM_HELP =                       &H0053
+' lParam of WM_HELP messgae point to...
+Type HELPINFO
+	cbSize As DWord
+	iContextType As Long
+	iCtrlId As Long
+	hItemHandle As HANDLE
+	dwContextId As DWord
+	MousePos As POINTAPI
+End Type
+Const WM_USERCHANGED =                &H0054
+Const WM_NOTIFYFORMAT =               &H0055
+Const   NFR_ANSI =                           1
+Const   NFR_UNICODE =                        2
+Const   NF_QUERY =                           3
+Const   NF_REQUERY =                         4
+
+Const WM_CONTEXTMENU =                &H007B
+Const WM_STYLECHANGING =              &H007C
+Const WM_STYLECHANGED =               &H007D
+Const WM_DISPLAYCHANGE =              &H007E
+Const WM_GETICON =                    &H007F
+Const WM_SETICON =                    &H0080
+' WM_SETICON / WM_GETICON Type Codes
+Const   ICON_SMALL =        0
+Const   ICON_BIG =          1
+
+Const WM_NCCREATE =                   &H0081
+Const WM_NCDESTROY =                  &H0082
+Const WM_NCCALCSIZE =                 &H0083
+Const WM_NCHITTEST =                  &H0084
+' WM_NCHITTEST and MOUSEHOOKSTRUCT Mouse Position Codes
+Const   HTERROR =           -2
+Const   HTTRANSPARENT =     -1
+Const   HTNOWHERE =         0
+Const   HTCLIENT =          1
+Const   HTCAPTION =         2
+Const   HTSYSMENU =         3
+Const   HTGROWBOX =         4
+Const   HTSIZE =            HTGROWBOX
+Const   HTMENU =            5
+Const   HTHSCROLL =         6
+Const   HTVSCROLL =         7
+Const   HTMINBUTTON =       8
+Const   HTMAXBUTTON =       9
+Const   HTLEFT =            10
+Const   HTRIGHT =           11
+Const   HTTOP =             12
+Const   HTTOPLEFT =         13
+Const   HTTOPRIGHT =        14
+Const   HTBOTTOM =          15
+Const   HTBOTTOMLEFT =      16
+Const   HTBOTTOMRIGHT =     17
+Const   HTBORDER =          18
+Const   HTREDUCE =          HTMINBUTTON
+Const   HTZOOM =            HTMAXBUTTON
+Const   HTSIZEFIRST =       HTLEFT
+Const   HTSIZELAST =        HTBOTTOMRIGHT
+Const   HTOBJECT =          19
+Const   HTCLOSE =           20
+Const   HTHELP =            21
+Const WM_NCPAINT =                    &H0085
+Const WM_NCACTIVATE =                 &H0086
+Const WM_GETDLGCODE =                 &H0087
+Const WM_SYNCPAINT =                  &H0088
+Const WM_NCMOUSEMOVE =                &H00A0
+Const WM_NCLBUTTONDOWN =              &H00A1
+Const WM_NCLBUTTONUP =                &H00A2
+Const WM_NCLBUTTONDBLCLK =            &H00A3
+Const WM_NCRBUTTONDOWN =              &H00A4
+Const WM_NCRBUTTONUP =                &H00A5
+Const WM_NCRBUTTONDBLCLK =            &H00A6
+Const WM_NCMBUTTONDOWN =              &H00A7
+Const WM_NCMBUTTONUP =                &H00A8
+Const WM_NCMBUTTONDBLCLK =            &H00A9
+
+Const WM_KEYFIRST =                   &H0100
+Const WM_KEYDOWN =                    &H0100
+Const WM_KEYUP =                      &H0101
+Const WM_CHAR =                       &H0102
+Const WM_DEADCHAR =                   &H0103
+Const WM_SYSKEYDOWN =                 &H0104
+Const WM_SYSKEYUP =                   &H0105
+Const WM_SYSCHAR =                    &H0106
+Const WM_SYSDEADCHAR =                &H0107
+Const WM_KEYLAST =                    &H0108
+
+Const WM_IME_STARTCOMPOSITION =       &H010D
+Const WM_IME_ENDCOMPOSITION =         &H010E
+Const WM_IME_COMPOSITION =            &H010F
+Const WM_IME_KEYLAST =                &H010F
+
+Const WM_INITDIALOG =                 &H0110
+Const WM_COMMAND =                    &H0111
+Const WM_SYSCOMMAND =                 &H0112
+' System Menu Command Values
+Const   SC_SIZE =         &HF000
+Const   SC_MOVE =         &HF010
+Const   SC_MINIMIZE =     &HF020
+Const   SC_MAXIMIZE =     &HF030
+Const   SC_NEXTWINDOW =   &HF040
+Const   SC_PREVWINDOW =   &HF050
+Const   SC_CLOSE =        &HF060
+Const   SC_VSCROLL =      &HF070
+Const   SC_HSCROLL =      &HF080
+Const   SC_MOUSEMENU =    &HF090
+Const   SC_KEYMENU =      &HF100
+Const   SC_ARRANGE =      &HF110
+Const   SC_RESTORE =      &HF120
+Const   SC_TASKLIST =     &HF130
+Const   SC_SCREENSAVE =   &HF140
+Const   SC_HOTKEY =       &HF150
+Const   SC_DEFAULT =      &HF160
+Const   SC_MONITORPOWER = &HF170
+Const   SC_CONTEXTHELP =  &HF180
+Const   SC_SEPARATOR =    &HF00F
+Const WM_TIMER =                      &H0113
+Const WM_HSCROLL =                    &H0114
+Const WM_VSCROLL =                    &H0115
+' Scroll Bar Commands
+Const   SB_LINEUP =         0
+Const   SB_LINELEFT =       0
+Const   SB_LINEDOWN =       1
+Const   SB_LINERIGHT =      1
+Const   SB_PAGEUP =         2
+Const   SB_PAGELEFT =       2
+Const   SB_PAGEDOWN =       3
+Const   SB_PAGERIGHT =      3
+Const   SB_THUMBPOSITION =  4
+Const   SB_THUMBTRACK =     5
+Const   SB_TOP =            6
+Const   SB_LEFT =           6
+Const   SB_BOTTOM =         7
+Const   SB_RIGHT =          7
+Const   SB_ENDSCROLL =      8
+Const WM_INITMENU =                   &H0116
+Const WM_INITMENUPOPUP =              &H0117
+Const WM_MENUSELECT =                 &H011F
+Const WM_MENUCHAR =                   &H0120
+' return codes for WM_MENUCHAR
+Const   MNC_IGNORE =  0
+Const   MNC_CLOSE =   1
+Const   MNC_EXECUTE = 2
+Const   MNC_SELECT = 3
+Const WM_ENTERIDLE =                  &H0121
+
+Const WM_MENURBUTTONUP =              &H0122
+Const WM_MENUDRAG =                   &H0123
+Const WM_MENUGETOBJECT =              &H0124
+Const WM_UNINITMENUPOPUP =            &H0125
+Const WM_MENUCOMMAND =                &H0126
+
+Const WM_CTLCOLORMSGBOX =             &H0132
+Const WM_CTLCOLOREDIT =               &H0133
+Const WM_CTLCOLORLISTBOX =            &H0134
+Const WM_CTLCOLORBTN =                &H0135
+Const WM_CTLCOLORDLG =                &H0136
+Const WM_CTLCOLORSCROLLBAR =          &H0137
+Const WM_CTLCOLORSTATIC =             &H0138
+
+Const WM_MOUSEFIRST =                 &H0200
+Const WM_MOUSEMOVE =                  &H0200
+Const WM_LBUTTONDOWN =                &H0201
+Const WM_LBUTTONUP =                  &H0202
+Const WM_LBUTTONDBLCLK =              &H0203
+Const WM_RBUTTONDOWN =                &H0204
+Const WM_RBUTTONUP =                  &H0205
+Const WM_RBUTTONDBLCLK =              &H0206
+Const WM_MBUTTONDOWN =                &H0207
+Const WM_MBUTTONUP =                  &H0208
+Const WM_MBUTTONDBLCLK =              &H0209
+Const WM_MOUSEWHEEL =                 &H020A
+Const WM_MOUSELAST =                  &H020A
+Const WHEEL_DELTA =                   120
+Const WHEEL_PAGESCROLL =              &HFFFFFFFF
+
+Const WM_PARENTNOTIFY =               &H0210
+Const WM_ENTERMENULOOP =              &H0211
+Const WM_EXITMENULOOP =               &H0212
+
+Const WM_SIZING =                     &H0214
+' wParam for WM_SIZING message
+Const   WMSZ_LEFT =         1
+Const   WMSZ_RIGHT =        2
+Const   WMSZ_TOP =          3
+Const   WMSZ_TOPLEFT =      4
+Const   WMSZ_TOPRIGHT =     5
+Const   WMSZ_BOTTOM =       6
+Const   WMSZ_BOTTOMLEFT =   7
+Const   WMSZ_BOTTOMRIGHT =  8
+
+Const WM_CAPTURECHANGED =             &H0215
+Const WM_MOVING =                     &H0216
+
+Const WM_POWERBROADCAST =             &H0218
+' wParam for WM_POWERBROADCAST message
+Const   PBT_APMQUERYSUSPEND =           &H0000
+Const   PBT_APMQUERYSTANDBY =           &H0001
+Const   PBT_APMQUERYSUSPENDFAILED =     &H0002
+Const   PBT_APMQUERYSTANDBYFAILED =     &H0003
+Const   PBT_APMSUSPEND =                &H0004
+Const   PBT_APMSTANDBY =                &H0005
+Const   PBT_APMRESUMECRITICAL =         &H0006
+Const   PBT_APMRESUMESUSPEND =          &H0007
+Const   PBT_APMRESUMESTANDBY =          &H0008
+Const   PBTF_APMRESUMEFROMFAILURE =     &H00000001
+Const   PBT_APMBATTERYLOW =             &H0009
+Const   PBT_APMPOWERSTATUSCHANGE =      &H000A
+Const   PBT_APMOEMEVENT =               &H000B
+Const   PBT_APMRESUMEAUTOMATIC =        &H0012
+
+Const WM_DEVICECHANGE =               &H0219
+
+Const WM_MDICREATE =                  &H0220
+' lParam of WM_MDICREATE message point to...
+Type MDICREATESTRUCT
+	szClass As BytePtr
+	szTitle As BytePtr
+	hOwner As HANDLE
+	x As Long
+	y As Long
+	cx As Long
+	cy As Long
+	style As DWord
+	lParam As LPARAM
+End Type
+Const WM_MDIDESTROY =                 &H0221
+Const WM_MDIACTIVATE =                &H0222
+Const WM_MDIRESTORE =                 &H0223
+Const WM_MDINEXT =                    &H0224
+Const WM_MDIMAXIMIZE =                &H0225
+Const WM_MDITILE =                    &H0226
+' wParam Flags for WM_MDITILE and WM_MDICASCADE messages.
+Const   MDITILE_VERTICAL =     &H0000
+Const   MDITILE_HORIZONTAL =   &H0001
+Const   MDITILE_SKIPDISABLED = &H0002
+Const WM_MDICASCADE =                 &H0227
+Const WM_MDIICONARRANGE =             &H0228
+Const WM_MDIGETACTIVE =               &H0229
+
+Const WM_MDISETMENU =                 &H0230
+Const WM_ENTERSIZEMOVE =              &H0231
+Const WM_EXITSIZEMOVE =               &H0232
+Const WM_DROPFILES =                  &H0233
+Const WM_MDIREFRESHMENU =             &H0234
+
+Const WM_IME_SETCONTEXT =             &H0281
+Const WM_IME_NOTIFY =                 &H0282
+Const WM_IME_CONTROL =                &H0283
+Const WM_IME_COMPOSITIONFULL =        &H0284
+Const WM_IME_SELECT =                 &H0285
+Const WM_IME_CHAR =                   &H0286
+Const WM_IME_REQUEST =                &H0288
+Const WM_IME_KEYDOWN =                &H0290
+Const WM_IME_KEYUP =                  &H0291
+
+Const WM_MOUSEHOVER =                 &H02A1
+Const WM_MOUSELEAVE =                 &H02A3
+
+Const WM_CUT =                        &H0300
+Const WM_COPY =                       &H0301
+Const WM_PASTE =                      &H0302
+Const WM_CLEAR =                      &H0303
+Const WM_UNDO =                       &H0304
+Const WM_RENDERFORMAT =               &H0305
+Const WM_RENDERALLFORMATS =           &H0306
+Const WM_DESTROYCLIPBOARD =           &H0307
+Const WM_DRAWCLIPBOARD =              &H0308
+Const WM_PAINTCLIPBOARD =             &H0309
+Const WM_VSCROLLCLIPBOARD =           &H030A
+Const WM_SIZECLIPBOARD =              &H030B
+Const WM_ASKCBFORMATNAME =            &H030C
+Const WM_CHANGECBCHAIN =              &H030D
+Const WM_HSCROLLCLIPBOARD =           &H030E
+Const WM_QUERYNEWPALETTE =            &H030F
+Const WM_PALETTEISCHANGING =          &H0310
+Const WM_PALETTECHANGED =             &H0311
+Const WM_HOTKEY =                     &H0312
+
+Const WM_PRINT =                      &H0317
+Const WM_PRINTCLIENT =                &H0318
+' WM_PRINT flags
+Const   PRF_CHECKVISIBLE =  &H00000001
+Const   PRF_NONCLIENT =     &H00000002
+Const   PRF_CLIENT =        &H00000004
+Const   PRF_ERASEBKGND =    &H00000008
+Const   PRF_CHILDREN =      &H00000010
+Const   PRF_OWNED =         &H00000020
+
+Const WM_HANDHELDFIRST =              &H0358
+Const WM_HANDHELDLAST =               &H035F
+
+Const WM_AFXFIRST =                   &H0360
+Const WM_AFXLAST =                    &H037F
+
+Const WM_PENWINFIRST =                &H0380
+Const WM_PENWINLAST =                 &H038F
+
+Const WM_APP =                        &H8000
+Const WM_USER =                       &H0400
+
+' WM_MOUSEACTIVATE Return Codes
+Const MA_ACTIVATE =         1
+Const MA_ACTIVATEANDEAT =   2
+Const MA_NOACTIVATE =       3
+Const MA_NOACTIVATEANDEAT = 4
+
+' Key State Masks for Mouse Messages
+Const MK_LBUTTON =        &H0001
+Const MK_RBUTTON =        &H0002
+Const MK_SHIFT =          &H0004
+Const MK_CONTROL =        &H0008
+Const MK_MBUTTON =        &H0010
+
+
+'----------------------------------
+' Edit Control Notification Codes
+'----------------------------------
+
+Const EN_SETFOCUS =       &H0100
+Const EN_KILLFOCUS =      &H0200
+Const EN_CHANGE =         &H0300
+Const EN_UPDATE =         &H0400
+Const EN_ERRSPACE =       &H0500
+Const EN_MAXTEXT =        &H0501
+Const EN_HSCROLL =        &H0601
+Const EN_VSCROLL =        &H0602
+
+
+'------------------------
+' Edit Control Messages
+'------------------------
+Const EM_GETSEL =             &H00B0
+Const EM_SETSEL =             &H00B1
+Const EM_GETRECT =            &H00B2
+Const EM_SETRECT =            &H00B3
+Const EM_SETRECTNP =          &H00B4
+Const EM_SCROLL =             &H00B5
+Const EM_LINESCROLL =         &H00B6
+Const EM_SCROLLCARET =        &H00B7
+Const EM_GETMODIFY =          &H00B8
+Const EM_SETMODIFY =          &H00B9
+Const EM_GETLINECOUNT =       &H00BA
+Const EM_LINEINDEX =          &H00BB
+Const EM_SETHANDLE =          &H00BC
+Const EM_GETHANDLE =          &H00BD
+Const EM_GETTHUMB =           &H00BE
+Const EM_LINELENGTH =         &H00C1
+Const EM_REPLACESEL =         &H00C2
+Const EM_GETLINE =            &H00C4
+Const EM_LIMITTEXT =          &H00C5
+Const EM_CANUNDO =            &H00C6
+Const EM_UNDO =               &H00C7
+Const EM_FMTLINES =           &H00C8
+Const EM_LINEFROMCHAR =       &H00C9
+Const EM_SETTABSTOPS =        &H00CB
+Const EM_SETPASSWORDCHAR =    &H00CC
+Const EM_EMPTYUNDOBUFFER =    &H00CD
+Const EM_GETFIRSTVISIBLELINE =&H00CE
+Const EM_SETREADONLY =        &H00CF
+Const EM_SETWORDBREAKPROC =   &H00D0
+Const EM_GETWORDBREAKPROC =   &H00D1
+Const EM_GETPASSWORDCHAR =    &H00D2
+
+Const EM_SETMARGINS =         &H00D3
+Const EC_LEFTMARGIN =     &H0001
+Const EC_RIGHTMARGIN =    &H0002
+Const EC_USEFONTINFO =    &Hffff
+
+Const EM_GETMARGINS =         &H00D4
+Const EM_SETLIMITTEXT =       EM_LIMITTEXT
+Const EM_GETLIMITTEXT =       &H00D5
+Const EM_POSFROMCHAR =        &H00D6
+Const EM_CHARFROMPOS =        &H00D7
+
+Const EM_SETIMESTATUS =       &H00D8
+Const EM_GETIMESTATUS =       &H00D9
+Const EMSIS_COMPOSITIONSTRING =      &H0001
+Const EIMES_GETCOMPSTRATONCE =       &H0001
+Const EIMES_CANCELCOMPSTRINFOCUS =   &H0002
+Const EIMES_COMPLETECOMPSTRKILLFOCUS =&H0004
+
+
+'---------------------------------
+' User Button Notification Codes
+'---------------------------------
+
+Const BN_CLICKED =        0
+Const BN_PAINT =          1
+Const BN_HILITE =         2
+Const BN_UNHILITE =       3
+Const BN_DISABLE =        4
+Const BN_DOUBLECLICKED =  5
+Const BN_PUSHED =         BN_HILITE
+Const BN_UNPUSHED =       BN_UNHILITE
+Const BN_DBLCLK =         BN_DOUBLECLICKED
+Const BN_SETFOCUS =       6
+Const BN_KILLFOCUS =      7
+
+
+'--------------------------
+' Button Control Messages
+'--------------------------
+
+Const BM_GETCHECK =      &H00F0
+Const BM_SETCHECK =      &H00F1
+Const BM_GETSTATE =      &H00F2
+Const BM_SETSTATE =      &H00F3
+Const BM_SETSTYLE =      &H00F4
+Const BM_CLICK =         &H00F5
+Const BM_GETIMAGE =      &H00F6
+Const BM_SETIMAGE =      &H00F7
+
+Const BST_UNCHECKED =    &H0000
+Const BST_CHECKED =      &H0001
+Const BST_INDETERMINATE =&H0002
+Const BST_PUSHED =       &H0004
+Const BST_FOCUS =        &H0008
+
+
+'-------------------------
+' Static Control Mesages
+'-------------------------
+Const STM_SETICON =       &H0170
+Const STM_GETICON =       &H0171
+Const STM_SETIMAGE =      &H0172
+Const STM_GETIMAGE =      &H0173
+Const STN_CLICKED =       0
+Const STN_DBLCLK =        1
+Const STN_ENABLE =        2
+Const STN_DISABLE =       3
+Const STM_MSGMAX =        &H0174
+
+
+'--------------------------
+' ListBox Control Mesages
+'--------------------------
+Const LB_ADDSTRING =           &H0180
+Const LB_INSERTSTRING =        &H0181
+Const LB_DELETESTRING =        &H0182
+Const LB_SELITEMRANGEEX =      &H0183
+Const LB_RESETCONTENT =        &H0184
+Const LB_SETSEL =              &H0185
+Const LB_SETCURSEL =           &H0186
+Const LB_GETSEL =              &H0187
+Const LB_GETCURSEL =           &H0188
+Const LB_GETTEXT =             &H0189
+Const LB_GETTEXTLEN =          &H018A
+Const LB_GETCOUNT =            &H018B
+Const LB_SELECTSTRING =        &H018C
+Const LB_DIR =                 &H018D
+Const LB_GETTOPINDEX =         &H018E
+Const LB_FINDSTRING =          &H018F
+Const LB_GETSELCOUNT =         &H0190
+Const LB_GETSELITEMS =         &H0191
+Const LB_SETTABSTOPS =         &H0192
+Const LB_GETHORIZONTALEXTENT = &H0193
+Const LB_SETHORIZONTALEXTENT = &H0194
+Const LB_SETCOLUMNWIDTH =      &H0195
+Const LB_ADDFILE =             &H0196
+Const LB_SETTOPINDEX =         &H0197
+Const LB_GETITEMRECT =         &H0198
+Const LB_GETITEMDATA =         &H0199
+Const LB_SETITEMDATA =         &H019A
+Const LB_SELITEMRANGE =        &H019B
+Const LB_SETANCHORINDEX =      &H019C
+Const LB_GETANCHORINDEX =      &H019D
+Const LB_SETCARETINDEX =       &H019E
+Const LB_GETCARETINDEX =       &H019F
+Const LB_SETITEMHEIGHT =       &H01A0
+Const LB_GETITEMHEIGHT =       &H01A1
+Const LB_FINDSTRINGEXACT =     &H01A2
+Const LB_SETLOCALE =           &H01A5
+Const LB_GETLOCALE =           &H01A6
+Const LB_SETCOUNT =            &H01A7
+Const LB_INITSTORAGE =         &H01A8
+Const LB_ITEMFROMPOINT =       &H01A9
+
+Const LBN_ERRSPACE =      -2
+Const LBN_SELCHANGE =     1
+Const LBN_DBLCLK =        2
+Const LBN_SELCANCEL =     3
+Const LBN_SETFOCUS =      4
+Const LBN_KILLFOCUS =     5
+
+Const LB_ERR =      -1
+Const LB_ERRSPACE = -2
+
+
+'---------------------------
+' ComboBox Control Mesages
+'---------------------------
+Const CB_GETEDITSEL =             &H0140
+Const CB_LIMITTEXT =              &H0141
+Const CB_SETEDITSEL =             &H0142
+Const CB_ADDSTRING =              &H0143
+Const CB_DELETESTRING =           &H0144
+Const CB_DIR =                    &H0145
+Const CB_GETCOUNT =               &H0146
+Const CB_GETCURSEL =              &H0147
+Const CB_GETLBTEXT =              &H0148
+Const CB_GETLBTEXTLEN =           &H0149
+Const CB_INSERTSTRING =           &H014A
+Const CB_RESETCONTENT =           &H014B
+Const CB_FINDSTRING =             &H014C
+Const CB_SELECTSTRING =           &H014D
+Const CB_SETCURSEL =              &H014E
+Const CB_SHOWDROPDOWN =           &H014F
+Const CB_GETITEMDATA =            &H0150
+Const CB_SETITEMDATA =            &H0151
+Const CB_GETDROPPEDCONTROLRECT =  &H0152
+Const CB_SETITEMHEIGHT =          &H0153
+Const CB_GETITEMHEIGHT =          &H0154
+Const CB_SETEXTENDEDUI =          &H0155
+Const CB_GETEXTENDEDUI =          &H0156
+Const CB_GETDROPPEDSTATE =        &H0157
+Const CB_FINDSTRINGEXACT =        &H0158
+Const CB_SETLOCALE =              &H0159
+Const CB_GETLOCALE =              &H015A
+Const CB_GETTOPINDEX =            &H015B
+Const CB_SETTOPINDEX =            &H015C
+Const CB_GETHORIZONTALEXTENT =    &H015D
+Const CB_SETHORIZONTALEXTENT =    &H015E
+Const CB_GETDROPPEDWIDTH =        &H015F
+Const CB_SETDROPPEDWIDTH =        &H0160
+Const CB_INITSTORAGE =            &H0161
+Const CB_MSGMAX =                 &H0162
+
+Const CBN_ERRSPACE =      -1
+Const CBN_SELCHANGE =     1
+Const CBN_DBLCLK =        2
+Const CBN_SETFOCUS =      3
+Const CBN_KILLFOCUS =     4
+Const CBN_EDITCHANGE =    5
+Const CBN_EDITUPDATE =    6
+Const CBN_DROPDOWN =      7
+Const CBN_CLOSEUP =       8
+Const CBN_SELENDOK =      9
+Const CBN_SELENDCANCEL =  10

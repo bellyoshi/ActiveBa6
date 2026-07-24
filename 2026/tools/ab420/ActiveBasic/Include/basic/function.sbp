@@ -1,0 +1,998 @@
+'function.sbp
+
+
+Const _System_PI = 3.14159265358979323846264
+Const _System_LOG2 = 0.6931471805599453094172321214581765680755
+Const _System_SQRT2 = 1.41421356237309504880168872421
+
+
+'------------- サポート関数の定義 -------------
+
+Function ldexp(x As Double, k As Long)
+	Dim w As Double
+
+	If k>=0 Then
+		w=2
+	Else
+		w=0.5
+		k=-k
+	End If
+
+	While k
+		If k and 1 Then x=x*w
+		w=w*w
+		k=k>>1
+	Wend
+
+	ldexp=x
+End Function
+
+Function frexp(x As Double,ByRef n As Long) As Double
+	Dim m As Double
+
+	If x=0 Then
+		frexp=0
+		n=0
+		Exit Function
+	End If
+
+	n=0
+	If Abs(x)>=1.0 Then
+		Do
+			m=x/(ipow(2,n))
+			If 0.5<=Abs(m) and Abs(m)<1.0 Then
+				frexp=m
+				Exit Function
+			End If
+			n=n+1
+		Loop
+	Else
+		Do
+			m=x/(ipow(2,n))
+			If 0.5<=Abs(m) and Abs(m)<1.0 Then
+				frexp=m
+				Exit Function
+			End If
+			n=n-1
+		Loop
+	End If
+End Function
+
+Function ipow(x As Double, n As Long) As Double
+	Dim abs_n As Long
+	Dim r As Double
+
+	abs_n=Abs(n) As Long
+	r=1
+	While abs_n<>0
+		If abs_n and 1 Then r=r*x
+		x=x*x
+		abs_n=abs_n\2
+	Wend
+
+	If n>=0 Then
+		ipow=r
+	Else
+		ipow=1/r
+	End If
+End Function
+
+Function pow(x As Double, y As Double) As Double
+	If -LONG_MAX<=y and y<=LONG_MAX and y=CDbl(Int(y)) Then
+		pow=ipow(x,y As Long)
+		Exit Function
+	End If
+
+	If x>0 Then
+		pow=Exp(y*Log(x))
+		Exit Function
+	End If
+
+	If x<>0 or y<=0 Then
+		'error
+	End If
+
+	pow=0
+End Function
+
+Const RAND_MAX=&H7FFF
+Dim _System_RndNext As DWord
+Function rand() As DWord
+	_System_RndNext=_System_RndNext*1103515245+12345
+	rand=(((_CUDbl(_System_RndNext)/65536) As QWord) Mod 32768) As DWord
+End Function
+Sub srand(dwSeek As DWord)
+	_System_RndNext=dwSeek
+End Sub
+
+
+'------------- ここからBasic標準関数の定義 -------------
+
+
+'------------------
+' データ型変換関数
+'------------------
+
+Function CDbl(number As Double) As Double
+	CDbl=number
+End Function
+
+Function _CUDbl(number As QWord) As Double
+	_CUDbl=number As Double
+End Function
+
+Function CDWord(num As Double) As DWord
+	CDWord=num
+End Function
+
+Function CInt(number As Double) As Long
+	CInt=number
+End Function
+
+Function CSng(number As Double) As Single
+	CSng=number
+End Function
+
+#ifdef _WIN64
+Function Fix(number As Double) As Long
+	Fix=number As Long
+End Function
+#else
+'Fix関数はコンパイラに組み込まれている
+'Function Fix(number As Double) As Long
+#endif
+
+Function Int(number As Double) As Long
+	Int=Fix(number)
+	If number<0 Then
+		If number<Fix(number) Then Int=Int-1
+	End If
+End Function
+
+
+'-------------------------------------
+' ポインタ関数（コンパイラに組み込み）
+'-------------------------------------
+
+'Function GetDouble(p As DWord) As Double
+'Function GetSingle(p As DWord) As Single
+'Function GetDWord(p As DWord) As DWord
+'Function GetWord(p As DWord) As Word
+'Function GetByte(p As DWord) As Byte
+'Sub SetDouble(p As DWord, dblData As Double)
+'Sub SetSingle(p As DWord, fltData As Single)
+'Sub SetDWord(p As DWord, dwData As DWord)
+'Sub SetWord(p As DWord, wData As Word)
+'Sub SetByte(p As DWord, byteData As Byte)
+
+
+'----------
+' 算術関数
+'----------
+
+Function Abs(number As Double) As Double
+	If number<0 Then
+		Abs=-number
+	Else
+		Abs=number
+	End If
+End Function
+
+Function Exp(x As Double) As Double
+	Dim i As Long, k As Long
+	Dim x2 As Double, w As Double
+
+	If x>=0 Then
+		k=Int(x/_System_LOG2+0.5)
+	Else
+		k=Int(x/_System_LOG2-0.5)
+	End If
+
+	x=x-k*_System_LOG2
+
+	x2=x*x
+	w=x2/22
+
+	i=18
+	While i>=6
+		w=x2/(w+i)
+		i=i-4
+	Wend
+
+	Exp=ldexp((2+w+x)/(2+w-x),k)
+End Function
+
+Function Log(x As Double) As Double
+	Dim i As Long, k As Long
+	Dim s As Double
+
+	If x<=0 Then
+		'error
+		Exit Function
+	End If
+
+	frexp(x/_System_SQRT2,k)
+
+	x=x/ldexp(1,k)
+
+	x=x-1
+	s=0
+	i=9
+	While i>=1
+		s=i*x/(2+i*x/(2*i+1+s))
+
+		i=i-1
+	Wend
+
+	Log=_System_LOG2*k+x/(1+s)
+End Function
+
+Function Sgn(number As Double) As Long
+	If number>0 Then
+		Sgn=1
+	ElseIf number=0 Then
+		Sgn=0
+	Else
+		Sgn=-1
+	End If
+End Function
+
+Function Sqr(number As Double) As Double
+	Dim s,last As Double
+	Dim i As Long,j As Long,jj As Long,k As Long
+	If number=0 Then
+		Sqr=0
+		Exit Function
+	ElseIf number>0 Then
+		s=number
+		i=Varptr(s)+6
+		jj=GetWord(i)
+		j=jj\32
+		k=jj mod 32
+		j=(j+511)*16+k
+		SetWord(i,j)
+		Do
+			last=s
+			s=(number/s+s)/2
+		Loop While s<>last
+	Else
+		'error  
+		OutputDebugString("Error:Sqr argument is illegal")
+		Sqr=-1
+		Exit Function
+	End If
+	Sqr=s
+End Function
+
+Function Atn(number As Double) As Double
+	Dim i As Long
+	Dim sgn As Long
+	Dim dbl As Double
+
+	If number>1 Then
+		sgn=1
+		number=1/number
+	ElseIf number<-1 Then
+		sgn=-1
+		number=1/number
+	Else
+		sgn=0
+	End If
+
+	dbl=0
+
+	For i=24 To 1 Step -1
+		dbl=(i*i*number*number)/(2*i+1+dbl)
+	Next
+
+	If sgn>0 Then
+		Atn=_System_PI/2-number/(1+dbl)
+	ElseIf sgn<0 Then
+		Atn=-_System_PI/2-number/(1+dbl)
+	Else
+		Atn=number/(1+dbl)
+	End If
+End Function
+
+Function _Support_tan(x As Double, ByRef k As Long) As Double
+	Dim i As Long
+	Dim t As Double, x2 As Double
+
+	If x>=0 Then
+		k=Fix(x/(_System_PI/2)+0.5)
+	Else
+		k=Fix(x/(_System_PI/2)-0.5)
+	End If
+
+	x=(x-(CDbl(3217)/CDbl(2048))*k)+4.4544551033807686783083602485579e-6*k
+
+	x2=x*x
+	t=0
+
+	For i=19 To 3 Step -2
+		t=x2/(i-t)
+	Next
+
+	_Support_tan=x/(1-t)
+End Function
+
+Function Sin(number As Double) As Double
+	Dim k As Long
+	Dim t As Double
+
+	t=_Support_tan(number/2,k)
+	t=2*t/(1+t*t)
+	If k mod 2=0 Then
+		Sin=t
+	Else
+		Sin=-t
+	End If
+End Function
+
+Function Cos(number As Double) As Double
+	Cos=Sin(_System_PI/2-Abs(number))
+End Function
+
+Function Tan(number As Double) As Double
+	Dim k As Long
+	Dim t As Double
+
+	t=_Support_tan(number,k)
+	If k mod 2=0 Then
+		Tan=t
+	ElseIf t<>0 Then
+		Tan=-1/t
+	End If
+End Function
+
+Function Rnd() As Double
+	Rnd=CDbl(rand()*rand() Mod 100000)/100000
+End Function
+
+Const HIBYTE(w) = (((w As Word) >> 8) and &HFF) As Byte
+Const LOBYTE(w) = ((w As Word) and &HFF) As Byte
+Const HIWORD(dw) = (((dw As DWord) >> 16) and &HFFFF) As Word
+Const LOWORD(dw) = ((dw As DWord) and &HFFFF) As Word
+
+Const MAKEWORD(a,b) = (((a As Word) and &HFF) or (((b As Word) and &HFF)<<8)) As Word
+Const MAKELONG(a,b) = (((a As DWord) and &HFFFF) or (((b As DWord) and &HFFFF)<<16)) As Long
+
+
+
+'------------
+' 文字列関数
+'------------
+
+Function Asc(buf As String) As Byte
+	Asc=buf[0]
+End Function
+
+Function Chr$(code As Byte) As String
+	Chr$=ZeroString(1)
+	Chr$[0]=code
+End Function
+
+Function Date$() As String
+	Dim st As SYSTEMTIME
+
+	GetLocalTime(st)
+
+	'year
+	Date$=Str$(st.wYear)
+
+	'month
+	If st.wMonth<10 Then
+		Date$=Date$+"/0"
+	Else
+		Date$=Date$+"/"
+	End If
+	Date$=Date$+Str$(st.wMonth)
+
+	'day
+	If st.wDay<10 Then
+		Date$=Date$+"/0"
+	Else
+		Date$=Date$+"/"
+	End If
+	Date$=Date$+Str$(st.wDay)
+End Function
+
+Function Hex$(num As LONG_PTR) As String
+	Dim length As Long
+	Hex$=ZeroString(64)
+	length=wsprintf(Hex$,"%X",num)
+	Hex$=Left$(Hex$,length)
+End Function
+
+Function InStr(StartPos As Long, buf1 As String, buf2 As String) As Long
+	Dim len1 As Long, len2 As Long, i As Long, i2 As Long, i3 As Long
+
+	len1=Len(buf1)
+	len2=Len(buf2)
+
+	If len2=0 Then
+		InStr=StartPos
+		Exit Function
+	End If
+
+	StartPos=StartPos-1
+	If StartPos<0 Then
+		'error
+		InStr=0
+		Exit Function
+	End If
+
+	i=StartPos:InStr=0
+	While i<=len1-len2
+		i2=i:i3=0
+		Do
+			If i3=len2 Then
+				InStr=i+1
+				Exit Do
+			End If
+			If buf1[i2]<>buf2[i3] Then Exit Do
+
+			i2=i2+1
+			i3=i3+1
+		Loop
+		If InStr Then Exit While
+		i=i+1
+	Wend
+End Function
+
+Function Left$(buf As String, length As Long) As String
+	Left$=ZeroString(length)
+	memcpy(
+		StrPtr(Left$),
+		StrPtr(buf),
+		length)
+End Function
+
+Function Mid$(buf As String, StartPos As Long)(ReadLength As Long) As String
+	Dim length As Long
+
+	StartPos=StartPos-1
+	If StartPos<0 Then
+		'error
+		'Debug
+		Exit Function
+	End If
+
+	length=Len(buf)
+	If length<=StartPos Then Exit Function
+
+	If ReadLength=0 Then
+		ReadLength=length-StartPos
+	End If
+
+	If ReadLength>length-StartPos Then
+		ReadLength=length-StartPos
+	End If
+
+	Mid$=ZeroString(ReadLength)
+	memcpy(StrPtr(Mid$),StrPtr(buf)+StartPos,ReadLength)
+End Function
+
+Function Oct$(num As DWord) As String
+	Dim i As DWord, i2 As DWord
+
+	For i=10 To 1 Step -1
+		If (num\CDWord(8^i)) And &H07 Then
+			Exit For
+		End If
+	Next
+
+	Oct$=ZeroString(i+1)
+	i2=0
+	Do
+		Oct$[i2]=Asc("0")+((num\CDWord(8^i)) And &H07)
+		If i=0 Then Exit Do
+		i=i-1
+		i2=i2+1
+	Loop
+End Function
+
+Function Right$(buf As String, length As Long) As String
+	Dim i As Long
+
+	i=Len(buf)
+	If i>length Then
+		Right$=ZeroString(length)
+		memcpy(Right$,StrPtr(buf)+i-length,length)
+	Else
+		Right$=buf
+	End If
+End Function
+
+Function Space$(length As Long) As String
+	Space$=ZeroString(length)
+	FillMemory(StrPtr(Space$),length,&H20)
+End Function
+
+Dim _System_ecvt_buffer[16] As Byte
+Sub _ecvt_support(count As Long)
+	Dim i As Long
+	If _System_ecvt_buffer[count]=9 Then
+		_System_ecvt_buffer[count]=0
+		If count=0 Then
+			For i=16 To 1 Step -1
+				_System_ecvt_buffer[i]=_System_ecvt_buffer[i-1]
+			Next
+			_System_ecvt_buffer[0]=1
+		Else
+			_ecvt_support(count-1)
+		End If
+	Else
+		_System_ecvt_buffer[count]=_System_ecvt_buffer[count]+1 As Byte
+	End If
+End Sub
+Function _ecvt(value As Double, count As Long, ByRef dec As Long, ByRef sign As Long) As BytePtr
+	Dim temp As BytePtr
+	Dim i As Long, i2 As Long
+
+	_ecvt=_System_ecvt_buffer
+
+	'値が0の場合
+	If value=0 Then
+		FillMemory(_System_ecvt_buffer,count,&H30)
+		_System_ecvt_buffer[count]=0
+		dec=0
+		sign=0
+		Exit Function
+	End If
+
+	'符号の判断（同時に符号を取り除く）
+	If value<0 Then
+		sign=1
+		value=-value
+	Else
+		sign=0
+	End If
+
+	'正規化
+	dec=1
+	While value<0.999999999999999  'value<1
+		value=value*10
+		dec=dec-1
+	Wend
+	While 9.99999999999999<=value  '10<=value
+		value=value/10
+		dec=dec+1
+	Wend
+
+	For i=0 To count-1
+		_System_ecvt_buffer[i]=Int(value) As Byte
+
+		value=(value-CDbl(Int(value)))*10
+	Next
+	_System_ecvt_buffer[i]=0
+
+	i=i-1
+	If value>=5 Then
+		'切り上げ処理
+		_ecvt_support(i)
+	End If
+
+	For i=0 To count-1
+		_System_ecvt_buffer[i]=_System_ecvt_buffer[i]+&H30
+	Next
+	_System_ecvt_buffer[i]=0
+End Function
+
+Function Str$(dbl As Double) As String
+	Dim dec As Long, sign As Long
+	Dim buffer[32] As Byte, temp As BytePtr
+	Dim i As Long, i2 As Long, i3 As Long
+
+	'浮動小数点を文字列に変換
+	temp=_ecvt(dbl,15,dec,sign)
+
+	i=0
+
+	'符号の取り付け
+	If sign Then
+		buffer[i]=Asc("-")
+		i=i+1
+	End If
+
+	If dec>15 Then
+		'指数表示（桁が大きい場合）
+		buffer[i]=temp[0]
+		i=i+1
+		buffer[i]=Asc(".")
+		i=i+1
+		memcpy(buffer+i,temp+1,14)
+		i=i+14
+		buffer[i]=Asc("e")
+		i=i+1
+		wsprintf(buffer+i,"+%03d",dec-1)
+
+		Str$=MakeStr(buffer)
+		Exit Function
+	End If
+
+	If dec<-3 Then
+		'指数表示（桁が小さい場合）
+		buffer[i]=temp[0]
+		i=i+1
+		buffer[i]=Asc(".")
+		i=i+1
+		memcpy(buffer+i,temp+1,14)
+		i=i+14
+		buffer[i]=Asc("e")
+		i=i+1
+		wsprintf(buffer+i,"%03d",dec-1)
+
+		Str$=MakeStr(buffer)
+		Exit Function
+	End If
+
+	'整数部
+	i2=dec
+	i3=0
+	If i2>0 Then
+		While i2>0
+			buffer[i]=temp[i3]
+			i=i+1
+			i3=i3+1
+			i2=i2-1
+		Wend
+		buffer[i]=Asc(".")
+		i=i+1
+	Else
+		buffer[i]=&H30
+		i=i+1
+		buffer[i]=Asc(".")
+		i=i+1
+
+		i2=dec
+		While i2<0
+			buffer[i]=&H30
+			i=i+1
+			i2=i2+1
+		Wend
+	End If
+
+	'小数部
+	While i3<15
+		buffer[i]=temp[i3]
+		i=i+1
+		i3=i3+1
+	Wend
+
+	While buffer[i-1]=&H30
+		i=i-1
+	Wend
+	If buffer[i-1]=Asc(".") Then i=i-1
+
+	buffer[i]=0
+	Str$=MakeStr(buffer)
+End Function
+
+Function String$(num As Long, buf As String) As String
+	Dim dwStrPtr As DWord
+	Dim length As Long
+
+	length=Len(buf)
+
+	'バッファ領域を確保
+	_System_HeapStringFree(StrPtr(String$))
+	dwStrPtr=_System_HeapStringAlloc(length*num)
+	SetDWord(VarPtr(String$),dwStrPtr)
+
+	'文字列をコピー
+	Dim i As Long
+	For i=0 To num-1
+		memcpy(StrPtr(String$)+i*length,StrPtr(buf),length)
+	Next
+End Function
+
+Function Time$() As String
+	Dim st As SYSTEMTIME
+
+	GetLocalTime(st)
+
+	'hour
+	If st.wHour<10 Then
+		Time$="0"
+	End If
+	Time$=Time$+Str$(st.wHour)
+
+	'minute
+	If st.wMinute<10 Then
+		Time$=Time$+":0"
+	Else
+		Time$=Time$+":"
+	End If
+	Time$=Time$+Str$(st.wMinute)
+
+	'second
+	If st.wSecond<10 Then
+		Time$=Time$+":0"
+	Else
+		Time$=Time$+":"
+	End If
+	Time$=Time$+Str$(st.wSecond)
+End Function
+
+Function Val(buf As BytePtr) As Double
+	Dim i As Long, i2 As Long, i3 As Long, i4 As Long
+	Dim temporary As String
+	Dim TempPtr As BytePtr
+	Dim dbl As Double
+	Dim i64data As Int64
+
+	Val=0
+
+	While buf[0]=Asc(" ") or buf[0]=Asc(Ex"\t")
+		buf=buf+1
+	Wend
+
+	If buf[0]=Asc("&") Then
+		temporary=ZeroString(lstrlen(buf))
+		lstrcpy(temporary,buf)
+		TempPtr=StrPtr(temporary)
+		CharUpper(TempPtr)
+		If TempPtr(1)=Asc("O") Then
+			'8進数
+			i=2
+			While 1
+				'数字以外の文字の場合は抜け出す
+				i3=TempPtr[i]-&H30
+				If Not (0<=i3 And i3<=7) Then Exit While
+
+				TempPtr[i]=i3 As Byte
+				i=i+1
+			Wend
+			i=i-1
+
+			i64data=1
+			While i>=2
+				Val=Val+i64data*TempPtr[i]
+
+				i64data=i64data*&O10
+				i=i-1
+			Wend
+		ElseIf TempPtr(1)=Asc("H") Then
+			'16進数
+			i=2
+			While 1
+				'数字以外の文字の場合は抜け出す
+				i3=TempPtr[i]-&H30
+				If Not(0<=i3 and i3<=9) Then
+					i3=TempPtr[i]-&H41+10
+					If Not(&HA<=i3 and i3<=&HF) Then Exit While
+				End If
+
+				TempPtr[i]=i3 As Byte
+				i=i+1
+			Wend
+			i=i-1
+
+			i64data=1
+			While i>=2
+				Val=Val+i64data*TempPtr[i]
+
+				i64data=i64data*&H10
+				i=i-1
+			Wend
+		End If
+	Else
+		'10進数
+		If buf[0]=&H2D Then
+			'マイナス値
+			i4=1
+			buf=buf+1
+		Else
+			'プラス値
+			i4=0
+			If buf[0]=&H2B Then
+				buf=buf+1
+			End If
+		End If
+
+		i=0
+
+		While 1
+			'数字以外の文字の場合は抜け出す
+			i3=buf[i]-&H30
+			If Not (0<=i3 And i3<=9) Then Exit While
+
+			i=i+1
+		Wend
+
+		'整数部
+		dbl=1
+		i3=i-1
+		While i3>=0
+			Val=Val+dbl*(buf[i3]-&H30)
+
+			dbl=dbl*10
+			i3=i3-1
+		Wend
+
+		If buf[i]=Asc(".") Then
+			'小数部
+			i=i+1
+			dbl=10
+			While 1
+				'数字以外の文字の場合は抜け出す
+				i3=buf[i]-&H30
+				If Not (0<=i3 And i3<=9) Then Exit While
+
+				Val=Val+(buf[i]-&H30)/dbl
+				dbl=dbl*10
+				i=i+1
+			Wend
+		End If
+
+		If i4 Then Val=-Val
+	End If
+End Function
+
+
+'--------------
+' ファイル関数
+'--------------
+
+Function Eof(FileNum As Long) As Long
+	Dim dwCurrent As DWord, dwEnd As DWord
+
+	FileNum=FileNum-1
+
+	dwCurrent=SetFilePointer(_System_hFile(FileNum),0,NULL,FILE_CURRENT)
+	dwEnd=SetFilePointer(_System_hFile(FileNum),0,NULL,FILE_END)
+	SetFilePointer(_System_hFile(FileNum),dwCurrent,NULL,FILE_BEGIN)
+
+	If dwCurrent>=dwEnd Then
+		Eof=-1
+	Else
+		Eof=0
+	End If
+End Function
+
+Function Lof(FileNum As Long) As Long
+	Lof=GetFileSize(_System_hFile(FileNum-1),NULL)
+End Function
+
+Function Loc(FileNum As Long) As Long
+	Dim NowPos As Long, BeginPos As Long
+
+	FileNum=FileNum-1
+
+	NowPos=SetFilePointer(_System_hFile(FileNum),0,NULL,FILE_CURRENT)
+	BeginPos=SetFilePointer(_System_hFile(FileNum),0,NULL,FILE_BEGIN)
+	SetFilePointer(_System_hFile(FileNum),NowPos-BeginPos,NULL,FILE_BEGIN)
+
+	Loc=NowPos-BeginPos
+End Function
+
+
+'------------------
+' メモリ関連の関数
+'------------------
+
+Function malloc(stSize As SIZE_T) As VoidPtr
+	malloc=HeapAlloc(_System_hProcessHeap,0,stSize)
+End Function
+
+Function calloc(stSize As SIZE_T) As VoidPtr
+	calloc=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,stSize)
+End Function
+
+Function realloc(lpMem As VoidPtr, stSize As SIZE_T) As VoidPtr
+	realloc=HeapReAlloc(_System_hProcessHeap,0,lpMem,stSize)
+End Function
+
+Sub free(lpMem As VoidPtr)
+	HeapFree(_System_hProcessHeap,0,lpMem)
+End Sub
+
+
+'--------
+' その他
+'--------
+
+Sub _splitpath(path As BytePtr, drive As BytePtr, dir As BytePtr, fname As BytePtr, ext As BytePtr)
+	Dim i As Long, i2 As Long, i3 As Long, length As Long
+	Dim buffer[MAX_PATH] As Byte
+
+	'":\"をチェック
+	If not(path[1]=&H3A and path[2]=&H5C) Then Exit Sub
+
+	'ドライブ名をコピー
+	If drive Then
+		drive[0]=path[0]
+		drive[1]=path[1]
+		drive[2]=0
+	End If
+
+	'ディレクトリ名をコピー
+	i=2
+	i2=0
+	Do
+		If IsDBCSLeadByte(path[i])=TRUE and path[i+1]<>0 Then
+			If dir Then
+				dir[i2]=path[i]
+				dir[i2+1]=path[i+1]
+			End If
+
+			i=i+2
+			i2=i2+2
+			Continue
+		End If
+
+		If path[i]=0 Then Exit Do
+
+		If path[i]=&H5C Then '"\"記号であるかどうか
+			i3=i2+1
+		End If
+
+		If dir Then dir[i2]=path[i]
+
+		i=i+1
+		i2=i2+1
+	Loop
+	If dir Then dir[i3]=0
+	i3=i3+(i-i2)
+
+	'ファイル名をコピー
+	i=i3
+	i2=0
+	i3=-1
+	Do
+		If IsDBCSLeadByte(path[i])=TRUE and path[i+1]<>0 Then
+			If fname Then
+				fname[i2]=path[i]
+				fname[i2+1]=path[i+1]
+			End If
+
+			i=i+2
+			i2=i2+2
+			Continue
+		End If
+
+		If path[i]=0 Then Exit Do
+
+		If path[i]=&H2E Then	'.'記号であるかどうか
+			i3=i2
+		End If
+
+		If fname Then fname[i2]=path[i]
+
+		i=i+1
+		i2=i2+1
+	Loop
+	If i3=-1 Then i3=i2
+	If fname Then fname[i3]=0
+	i3=i3+(i-i2)
+
+	'拡張子名をコピー
+	If ext Then
+		If i3 Then
+			lstrcpy(ext,path+i3)
+		End If
+		else ext[0]=0
+	End If
+End Sub
+
+Function GetBasicColor(ColorCode) As Long
+	Select Case ColorCode
+		Case 0
+			GetBasicColor=RGB(0,0,0)
+		Case 1
+			GetBasicColor=RGB(0,0,255)
+		Case 2
+			GetBasicColor=RGB(255,0,0)
+		Case 3
+			GetBasicColor=RGB(255,0,255)
+		Case 4
+			GetBasicColor=RGB(0,255,0)
+		Case 5
+			GetBasicColor=RGB(0,255,255)
+		Case 6
+			GetBasicColor=RGB(255,255,0)
+		Case 7
+			GetBasicColor=RGB(255,255,255)
+	End Select
+End Function

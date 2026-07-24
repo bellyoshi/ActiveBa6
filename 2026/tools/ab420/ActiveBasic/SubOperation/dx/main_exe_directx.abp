@@ -1,0 +1,106 @@
+#include "#name#.idx"
+
+
+Dim ScreenX=640 As Long	'ディスプレイの幅  （ピクセル単位）
+Dim ScreenY=480 As Long	'ディスプレイの高さ（ピクセル単位）
+
+' TODO: この位置にグローバル変数を定義してください。
+
+
+Function InitProc()
+	'DirectXを初期化
+	If dx_Init(hMainWnd,ScreenX,ScreenY,FALSE)=0 Then
+		InitProc=0
+		Exit Function
+	End If
+
+	'マウスカーソルを非表示にする
+	ShowCursor(FALSE)
+
+	' TODO: この位置にアプリケーションの初期化コードを記述してください。
+
+	InitProc=1
+End Function
+
+Sub QuitProc()
+	' TODO: この位置にアプリケーションの終了処理を記述してください。
+
+	'DirectXの終了処理
+	dx_Quit()
+End Sub
+
+Sub InputActionProc()
+	' TODO: この位置に入力に関するコードを記述してください。
+	'       （キーボード、マウス、ジョイパッド、ジョイスティックなどによる入力）
+
+	' メモ - キャラクタの移動など、状況進行（アクション）を意味するコードを
+	'        記述することもできます。
+
+End Sub
+
+Sub RenderProc()
+	' TODO: この位置に描画に関するコードを記述してください。
+
+End Sub
+
+
+'------------------------------------------------
+' 初期化処理
+'------------------------------------------------
+
+If InitProc()=0 Then
+	MessageBox(0,"初期化に失敗しました。","Error",MB_OK or MB_ICONEXCLAMATION)
+	ExitProcess(0)
+End If
+
+
+'------------------------------------------------
+' メインループ
+'------------------------------------------------
+Dim msgMain As MSG, iResult As Long
+Dim bDeviceLost As Long
+Do
+	If PeekMessage(msgMain,0,0,0,PM_REMOVE) Then
+		'----------------------------------
+		' メインウィンドウのメッセージ処理
+		'----------------------------------
+
+		If msgMain.message=WM_QUIT Then Exit Do
+		TranslateMessage(msgMain)
+		DispatchMessage(msgMain)
+	Else
+		'---------------------------
+		' DirectXによる入力及び描画
+		'---------------------------
+
+		If bDeviceLost Then
+			'デバイスが消失しているとき
+			If dx_RestoreDevice()=D3D_OK Then
+				bDeviceLost=FALSE
+			Else
+				Continue
+			End If
+		End If
+
+		InputActionProc()			'入力
+
+		dx_BeginScene()				'描画を開始
+		dx_Clear()					'画面をクリア
+		RenderProc()				'レンダリング（描画）
+		dx_EndScene()				'描画を終了
+
+		'画面を更新
+		If Not(dx_Present()=D3D_OK) Then
+			'デバイスの消失が確認されたとき
+			bDeviceLost=TRUE
+		End If
+	End If
+Loop
+
+
+'------------------------------------------------
+' 終了処理
+'------------------------------------------------
+
+QuitProc()
+ExitProcess(msgMain.wParam)

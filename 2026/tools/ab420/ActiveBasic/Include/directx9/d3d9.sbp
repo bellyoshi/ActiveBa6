@@ -1,0 +1,439 @@
+'d3d9.sbp - Direct3D include file
+
+Const DIRECT3D_VERSION = &H0900
+Const D3D_SDK_VERSION = 32
+
+#include <directx9\d3d9types.sbp>
+#include <directx9\d3d9caps.sbp>
+
+
+'--------------
+' DirectX9 API
+'--------------
+
+Declare Function Direct3DCreate9 Lib "d3d9.dll" (SDKVersion As DWord) As LPDIRECT3D9
+
+
+'--------------------
+' DirectX9 Interface
+'--------------------
+
+Class IDirect3D9
+	Inherits IUnknown
+Public
+	'IDirect3D9 methods
+	Virtual Function ShoRegisterSoftwareDevice(pInitializeFunction As VoidPtr) As DWord
+	Virtual Function GetAdapterCount() As DWord
+	Virtual Function GetAdapterIdentifier(Adapter As DWord, Flags As DWord, pIdentifier As *D3DADAPTER_IDENTIFIER9) As DWord
+	Virtual Function GetAdapterModeCount(Adapter As DWord, Format As D3DFORMAT) As DWord
+	Virtual Function EnumAdapterModes(Adapter As DWord, Format As D3DFORMAT, Mode As DWord, pMode As *D3DDISPLAYMODE) As DWord
+	Virtual Function GetAdapterDisplayMode(Adapter As DWord, pMode As *D3DDISPLAYMODE) As DWord
+	Virtual Function CheckDeviceType(Adapter As DWord, DevType As D3DDEVTYPE, AdapterFormat As D3DFORMAT, BackBufferFormat As D3DFORMAT, bWindowed As Long) As DWord
+	Virtual Function CheckDeviceFormat(Adapter As DWord, DeviceType As D3DDEVTYPE, AdapterFormat As D3DFORMAT, Usage As DWord, RType As D3DRESOURCETYPE, CheckFormat As D3DFORMAT) As DWord
+	Virtual Function CheckDeviceMultiSampleType(Adapter As DWord, DeviceType As D3DDEVTYPE, SurfaceFormat As D3DFORMAT, Windowed As Long, MultiSampleType As D3DMULTISAMPLE_TYPE, pQualityLevels As DWordPtr) As DWord
+	Virtual Function CheckDepthStencilMatch(Adapter As DWord, DeviceType As D3DDEVTYPE, AdapterFormat As D3DFORMAT, RenderTargetFormat As D3DFORMAT, DepthStencilFormat As D3DFORMAT) As DWord
+	Virtual Function CheckDeviceFormatConversion(Adapter As DWord, DeviceType As D3DDEVTYPE, SourceFormat As D3DFORMAT, TargetFormat As D3DFORMAT) As DWord
+	Virtual Function GetDeviceCaps(Adapter As DWord, DeviceType As D3DDEVTYPE, pCaps As *D3DCAPS9) As DWord
+	Virtual Function GetAdapterMonitor(Adapter As DWord) As DWord
+	Virtual Function CreateDevice(Adapter As DWord, DeviceType As D3DDEVTYPE, hFocusWindow As HWND, BehaviorFlags As DWord, pPresentationParameters As *D3DPRESENT_PARAMETERS, ppReturnedDeviceInterface As *LPDIRECT3DDEVICE9) As DWord
+End Class
+TypeDef LPDIRECT3D9 = *IDirect3D9
+
+Class IDirect3DDevice9
+	Inherits IUnknown
+Public
+	'IDirect3DDevice9 methods
+	Virtual Function TestCooperativeLevel() As DWord
+	Virtual Function GetAvailableTextureMem() As DWord
+	Virtual Function EvictManagedResources() As DWord
+	Virtual Function GetDirect3D(ppD3D9 As *LPDIRECT3D9) As DWord
+	Virtual Function GetDeviceCaps(pCaps As *D3DCAPS9) As DWord
+	Virtual Function GetDisplayMode(iSwapChain As DWord, pMode As DWordPtr) As DWord
+	Virtual Function GetCreationParameters(pParameters As *D3DDEVICE_CREATION_PARAMETERS) As DWord
+	Virtual Function SetCursorProperties(XHotSpot As DWord, YHotSpot As DWord,pCursorBitmap As *IDirect3DSurface9) As DWord
+	Virtual Sub SetCursorPosition(X As Long, Y As Long, Flags As DWord)
+	Virtual Function ShowCursor(bShow As Long) As Long
+	Virtual Function CreateAdditionalSwapChain(pPresentationParameters As *D3DPRESENT_PARAMETERS, ppSwapChain As **IDirect3DSwapChain9) As DWord
+	Virtual Function GetSwapChain(iSwapChain As DWord, ppSwapChain As **IDirect3DSwapChain9) As DWord
+	Virtual Function GetNumberOfSwapChains() As DWord
+	Virtual Function Reset(pPresentationParameters As *D3DPRESENT_PARAMETERS) As DWord
+	Virtual Function Present(pSourceRect As *RECT, pDestRect As *RECT, hDestWindowOverride As DWord, pDirtyRegion As *RGNDATA) As DWord
+	Virtual Function GetBackBuffer(iSwapChain As DWord, iBackBuffer As DWord, bufType As D3DBACKBUFFER_TYPE, ppBackBuffer As **IDirect3DSurface9) As DWord
+	Virtual Function GetRasterStatus(iSwapChain As DWord, pRasterStatus As *D3DRASTER_STATUS) As DWord
+	Virtual Function SetDialogBoxMode(bEnableDialogs As Long) As DWord
+	Virtual Sub SetGammaRamp(iSwapChain As DWord, Flags As DWord, pRamp As *D3DGAMMARAMP)
+	Virtual Sub GetGammaRamp(iSwapChain As DWord, pRamp As *D3DGAMMARAMP)
+	Virtual Function CreateTexture(Width As DWord, Height As DWord, Levels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppTexture As **IDirect3DTexture9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function CreateVolumeTexture(Width As DWord, Height As DWord, Depth As DWord, Levels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppVolumeTexture As **IDirect3DVolumeTexture9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function CreateCubeTexture(EdgeLength As DWord, Levels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppCubeTexture As **IDirect3DCubeTexture9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function CreateVertexBuffer(Length As DWord, Usage As DWord, FVF As DWord, Pool As D3DPOOL, ppVertexBuffer As **IDirect3DVertexBuffer9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function CreateIndexBuffer(Length As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppIndexBuffer As **IDirect3DIndexBuffer9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function CreateRenderTarget(Width As DWord, Height As DWord, Format As D3DFORMAT, MultiSample As D3DMULTISAMPLE_TYPE, MultisampleQuality As DWord, Lockable As Long, ppSurface As **IDirect3DSurface9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function CreateDepthStencilSurface(Width As DWord, Height As DWord, Format As D3DFORMAT, MultiSample As D3DMULTISAMPLE_TYPE, MultisampleQuality As DWord, Discard As Long, ppSurface As **IDirect3DSurface9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function UpdateSurface(pSourceSurface As *IDirect3DSurface9, pSourceRect As *RECT, pDestinationSurface As *IDirect3DSurface9, pDestPoint As *POINTAPI) As DWord
+	Virtual Function UpdateTexture(pSourceTexture As *IDirect3DBaseTexture9, pDestinationTexture As *IDirect3DBaseTexture9) As DWord
+	Virtual Function GetRenderTargetData(pRenderTarget As *IDirect3DSurface9, pDestSurface As *IDirect3DSurface9) As DWord
+	Virtual Function GetFrontBufferData(iSwapChain As DWord, pDestSurface As *IDirect3DSurface9) As DWord
+	Virtual Function StretchRect(pSourceSurface As *IDirect3DSurface9, pSourceRect As *RECT, pDestSurface As *IDirect3DSurface9, pDestRect As *RECT, Filter As D3DTEXTUREFILTERTYPE) As DWord
+	Virtual Function ColorFill(pSurface As *IDirect3DSurface9, pRect As *RECT,dwColor As DWord) As DWord
+	Virtual Function CreateOffscreenPlainSurface(Width As DWord, Height As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppSurface As **IDirect3DSurface9, pSharedHandle As DWordPtr) As DWord
+	Virtual Function SetRenderTarget(RenderTargetIndex As DWord, pRenderTarget As *IDirect3DSurface9) As DWord
+	Virtual Function GetRenderTarget(RenderTargetIndex As DWord, ppRenderTarget As **IDirect3DSurface9) As DWord
+	Virtual Function SetDepthStencilSurface(pNewZStencil As *IDirect3DSurface9) As DWord
+	Virtual Function GetDepthStencilSurface(ppZStencilSurface As **IDirect3DSurface9) As DWord
+	Virtual Function BeginScene() As DWord
+	Virtual Function EndScene() As DWord
+	Virtual Function Clear(Count As DWord, pRects As *D3DRECT, Flags As DWord, dwColor As DWord, Z As Single, Stencil As DWord) As DWord
+	Virtual Function SetTransform(State As D3DTRANSFORMSTATETYPE, pMatrix As *D3DMATRIX) As DWord
+	Virtual Function GetTransform(State As D3DTRANSFORMSTATETYPE, pMatrix As *D3DMATRIX) As DWord
+	Virtual Function MultiplyTransform(State As D3DTRANSFORMSTATETYPE, pMatrix As *D3DMATRIX) As DWord
+	Virtual Function SetViewport(pViewport As *D3DVIEWPORT9) As DWord
+	Virtual Function GetViewport(pViewport As *D3DVIEWPORT9) As DWord
+	Virtual Function SetMaterial(pMaterial As *D3DMATERIAL9) As DWord
+	Virtual Function GetMaterial(pMaterial As *D3DMATERIAL9) As DWord
+	Virtual Function SetLight(Index As DWord, pLight As *D3DLIGHT9) As DWord
+	Virtual Function GetLight(Index As DWord, pLight As *D3DLIGHT9) As DWord
+	Virtual Function LightEnable(Index As DWord, Enable As Long) As DWord
+	Virtual Function GetLightEnable(Index As DWord, pEnable As DWordPtr) As DWord
+	Virtual Function SetClipPlane(Index As DWord, pPlane As SinglePtr) As DWord
+	Virtual Function GetClipPlane(Index As DWord, pPlane As SinglePtr) As DWord
+	Virtual Function SetRenderState(State As D3DRENDERSTATETYPE, Value As DWord) As DWord
+	Virtual Function GetRenderState(State As D3DRENDERSTATETYPE, pValue As DWordPtr) As DWord
+	Virtual Function CreateStateBlock(BlockType As D3DSTATEBLOCKTYPE, ppSB As **IDirect3DStateBlock9) As DWord
+	Virtual Function BeginStateBlock() As DWord
+	Virtual Function EndStateBlock(ppSB As **IDirect3DStateBlock9) As DWord
+	Virtual Function SetClipStatus(pClipStatus As *D3DCLIPSTATUS9) As DWord
+	Virtual Function GetClipStatus(pClipStatus As *D3DCLIPSTATUS9) As DWord
+	Virtual Function GetTexture(Stage As DWord, ppTexture As **IDirect3DBaseTexture9) As DWord
+	Virtual Function SetTexture(Stage As DWord, pTexture As *IDirect3DBaseTexture9) As DWord
+	Virtual Function GetTextureStageState(Stage As DWord, StateType As D3DTEXTURESTAGESTATETYPE, pValue As DWordPtr) As DWord
+	Virtual Function SetTextureStageState(Stage As DWord, StateType As D3DTEXTURESTAGESTATETYPE, Value As DWord) As DWord
+	Virtual Function GetSamplerState(Sampler As DWord, SamplerStateType As D3DSAMPLERSTATETYPE, pValue As DWordPtr) As DWord
+	Virtual Function SetSamplerState(Sampler As DWord, SamplerStateType As D3DSAMPLERSTATETYPE, Value As DWord) As DWord
+	Virtual Function ValidateDevice(pNumPasses As DWordPtr) As DWord
+	Virtual Function SetPaletteEntries(PaletteNumber As DWord, pEntries As *PALETTEENTRY) As DWord
+	Virtual Function GetPaletteEntries(PaletteNumber As DWord, pEntries As *PALETTEENTRY) As DWord
+	Virtual Function SetCurrentTexturePalette(PaletteNumber As DWord) As DWord
+	Virtual Function GetCurrentTexturePalette(pPaletteNumber As DWordPtr) As DWord
+	Virtual Function SetScissorRect(pRect As *RECT) As DWord
+	Virtual Function GetScissorRect(pRect As *RECT) As DWord
+	Virtual Function SetSoftwareVertexProcessing(bSoftware As Long) As DWord
+	Virtual Function GetSoftwareVertexProcessing() As Long
+	Virtual Function SetNPatchMode(nSegments As Single) As DWord
+	Virtual Function GetNPatchMode() As Single
+	Virtual Function DrawPrimitive(PrimitiveType As D3DPRIMITIVETYPE, StartVertex As DWord, PrimitiveCount As DWord) As DWord
+	Virtual Function DrawIndexedPrimitive(PrimitiveType As D3DPRIMITIVETYPE, BaseVertexIndex As Long, MinVertexIndex As DWord, NumVertices As DWord, startIndex As DWord, primCount As DWord) As DWord
+	Virtual Function DrawPrimitiveUP(PrimitiveType As D3DPRIMITIVETYPE, PrimitiveCount As DWord, pVertexStreamZeroData As VoidPtr, VertexStreamZeroStride As DWord) As DWord
+	Virtual Function DrawIndexedPrimitiveUP(PrimitiveType As D3DPRIMITIVETYPE, MinVertexIndex As DWord, NumVertices As DWord, PrimitiveCount As DWord, pIndexData As VoidPtr, IndexDataFormat As D3DFORMAT, pVertexStreamZeroData As VoidPtr, VertexStreamZeroStride As DWord) As DWord
+	Virtual Function ProcessVertices(SrcStartIndex As DWord, DestIndex As DWord, VertexCount As DWord, pDestBuffer As *IDirect3DVertexBuffer9, pVertexDecl As *IDirect3DVertexDeclaration9, Flags As DWord) As DWord
+	Virtual Function CreateVertexDeclaration(pVertexElements As *D3DVERTEXELEMENT9, ppDecl As **IDirect3DVertexDeclaration9) As DWord
+	Virtual Function SetVertexDeclaration(pDecl As *IDirect3DVertexDeclaration9) As DWord
+	Virtual Function GetVertexDeclaration(ppDecl As **IDirect3DVertexDeclaration9) As DWord
+	Virtual Function SetFVF(FVF As DWord) As DWord
+	Virtual Function GetFVF(pFVF As DWordPtr) As DWord
+	Virtual Function CreateVertexShader(pFunction As DWordPtr, ppShader As **IDirect3DVertexShader9) As DWord
+	Virtual Function SetVertexShader(pShader As *IDirect3DVertexShader9) As DWord
+	Virtual Function GetVertexShader(ppShader As **IDirect3DVertexShader9) As DWord
+	Virtual Function SetVertexShaderConstantF(StartRegister As DWord, pConstantData As SinglePtr, Vector4fCount As DWord) As DWord
+	Virtual Function GetVertexShaderConstantF(StartRegister As DWord, pConstantData As SinglePtr, Vector4fCount As DWord) As DWord
+	Virtual Function SetVertexShaderConstantI(StartRegister As DWord, pConstantData As WordPtr, Vector4iCount As DWord) As DWord
+	Virtual Function GetVertexShaderConstantI(StartRegister As DWord, pConstantData As WordPtr, Vector4iCount As DWord) As DWord
+	Virtual Function SetVertexShaderConstantB(StartRegister As DWord, pConstantData As DWordPtr, BoolCount As DWord) As DWord
+	Virtual Function GetVertexShaderConstantB(StartRegister As DWord, pConstantData As DWordPtr, BoolCount As DWord) As DWord
+	Virtual Function SetStreamSource(StreamNumber As DWord, pStreamData As *IDirect3DVertexBuffer9, OffsetInBytes As DWord, Stride As DWord) As DWord
+	Virtual Function GetStreamSource(StreamNumber As DWord, ppStreamData As **IDirect3DVertexBuffer9, pOffsetInBytes As DWordPtr, pStride As DWordPtr) As DWord
+	Virtual Function SetStreamSourceFreq(StreamNumber As DWord, Setting As DWord) As DWord
+	Virtual Function GetStreamSourceFreq(StreamNumber As DWord, pSetting As DWordPtr) As DWord
+	Virtual Function SetIndices(pIndexData As *IDirect3DIndexBuffer9) As DWord
+	Virtual Function GetIndices(ppIndexData As **IDirect3DIndexBuffer9) As DWord
+	Virtual Function CreatePixelShader(pFunction As DWordPtr, ppShader As **IDirect3DPixelShader9) As DWord
+	Virtual Function SetPixelShader(pShader As *IDirect3DPixelShader9) As DWord
+	Virtual Function GetPixelShader(ppShader As **IDirect3DPixelShader9) As DWord
+	Virtual Function SetPixelShaderConstantF(StartRegister As DWord, pConstantData As SinglePtr, Vector4fCount As DWord) As DWord
+	Virtual Function GetPixelShaderConstantF(StartRegister As DWord, pConstantData As SinglePtr, Vector4fCount As DWord) As DWord
+	Virtual Function SetPixelShaderConstantI(StartRegister As DWord, pConstantData As WordPtr, Vector4iCount As DWord) As DWord
+	Virtual Function GetPixelShaderConstantI(StartRegister As DWord, pConstantData As WordPtr, Vector4iCount As DWord) As DWord
+	Virtual Function SetPixelShaderConstantB(StartRegister As DWord, pConstantData As DWordPtr, BoolCount As DWord) As DWord
+	Virtual Function GetPixelShaderConstantB(StartRegister As DWord, pConstantData As DWordPtr, BoolCount As DWord) As DWord
+	Virtual Function DrawRectPatch(Handle As DWord, pNumSegs As SinglePtr, pRectPatchInfo As *D3DRECTPATCH_INFO) As DWord
+	Virtual Function DrawTriPatch(Handle As DWord, pNumSegs As SinglePtr, pTriPatchInfo As *D3DTRIPATCH_INFO) As DWord
+	Virtual Function DeletePatch(Handle As DWord) As DWord
+	Virtual Function CreateQuery(QueryType As D3DQUERYTYPE, ppQuery As **IDirect3DQuery9) As DWord
+End Class
+TypeDef LPDIRECT3DDEVICE9 = *IDirect3DDevice9
+
+Class IDirect3DStateBlock9
+	Inherits IUnknown
+Public
+	'IDirect3DStateBlock9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function Capture() As DWord
+	Virtual Function Apply() As DWord
+End Class
+TypeDef LPDIRECT3DSTATEBLOCK9 = *IDirect3DStateBlock9
+
+Class IDirect3DSwapChain9
+	Inherits IUnknown
+Public
+	'IDirect3DSwapChain9 methods
+	Virtual Function Present(pSourceRect As *RECT, pDestRect As *RECT, hDestWindowOverride As DWord, pDirtyRegion As *RGNDATA, dwFlags As DWord) As DWord
+	Virtual Function GetFrontBufferData(pDestSurface As *IDirect3DSurface9) As DWord
+	Virtual Function GetBackBuffer(iBackBuffer As DWord, bbtype As D3DBACKBUFFER_TYPE, ppBackBuffer As **IDirect3DSurface9) As DWord
+	Virtual Function GetRasterStatus(pRasterStatus As *D3DRASTER_STATUS) As DWord
+	Virtual Function GetDisplayMode(pMode As *D3DDISPLAYMODE) As DWord
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetPresentParameters(pPresentationParameters As *D3DPRESENT_PARAMETERS) As DWord
+End Class
+TypeDef LPDIRECT3DSWAPCHAIN9 = *IDirect3DSwapChain9
+
+Class IDirect3DResource9
+	Inherits IUnknown
+Public
+	'IDirect3DResource9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetPrivateData(ByRef refguid As GUID, pData As VoidPtr, SizeOfData As DWord, Flags As DWord) As DWord
+	Virtual Function GetPrivateData(ByRef refguid As GUID, pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+	Virtual Function FreePrivateData(ByRef refguid As GUID) As DWord
+	Virtual Function SetPriority(PriorityNew As DWord) As DWord
+	Virtual Function GetPriority() As DWord
+	Virtual Sub PreLoad()
+	Virtual Function GetType() As D3DRESOURCETYPE
+End Class
+TypeDef LPDIRECT3DRESOURCE9 = *IDirect3DResource9
+
+Class IDirect3DVertexDeclaration9
+	Inherits IUnknown
+Public
+	'IDirect3DVertexDeclaration9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetDeclaration(pElement As *D3DVERTEXELEMENT9, pNumElements As DWordPtr) As DWord
+End Class
+TypeDef LPDIRECT3DVERTEXDECLARATION9 = *IDirect3DVertexDeclaration9
+
+Class IDirect3DVertexShader9
+	Inherits IUnknown
+Public
+	'IDirect3DVertexShader9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetFunction(pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+End Class
+TypeDef LPDIRECT3DVERTEXSHADER9 = *IDirect3DVertexShader9
+
+Class IDirect3DPixelShader9
+	Inherits IUnknown
+Public
+	'IDirect3DPixelShader9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetFunction(pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+End Class
+TypeDef LPDIRECT3DPIXELSHADER9 = *IDirect3DPixelShader9
+
+Class IDirect3DBaseTexture9
+	Inherits IUnknown
+Public
+	'IDirect3DResource9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetPrivateData(ByRef refguid As GUID, pData As VoidPtr, SizeOfData As DWord, Flags As DWord) As DWord
+	Virtual Function GetPrivateData(ByRef refguid As GUID, pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+	Virtual Function FreePrivateData(ByRef refguid As GUID) As DWord
+	Virtual Function SetPriority(PriorityNew As DWord) As DWord
+	Virtual Function GetPriority() As DWord
+	Virtual Sub PreLoad()
+	Virtual Function GetType() As D3DRESOURCETYPE
+	Virtual Function SetLOD(LODNew As DWord) As DWord
+	Virtual Function GetLOD() As DWord
+	Virtual Function GetLevelCount() As DWord
+	Virtual Function SetAutoGenFilterType(FilterType As D3DTEXTUREFILTERTYPE) As DWord
+	Virtual Function GetAutoGenFilterType() As D3DTEXTUREFILTERTYPE
+	Virtual Sub GenerateMipSubLevels()
+End Class
+TypeDef LPDIRECT3DBASETEXTURE9 = *IDirect3DBaseTexture9
+
+Class IDirect3DTexture9
+	Inherits IDirect3DBaseTexture9
+Public
+	Virtual Function GetLevelDesc(Level As DWord, pDesc As *D3DSURFACE_DESC) As DWord
+	Virtual Function GetSurfaceLevel(Level As DWord, ppSurfaceLevel As **IDirect3DSurface9) As DWord
+	Virtual Function LockRect(Level As DWord, pLockedRect As *D3DLOCKED_RECT, pRect As *RECT, Flags As DWord) As DWord
+	Virtual Function UnlockRect(Level As DWord) As DWord
+	Virtual Function AddDirtyRect(pDirtyRect As *RECT) As DWord
+End Class
+TypeDef LPDIRECT3DTEXTURE9 = *IDirect3DTexture9
+
+Class IDirect3DVolumeTexture9
+	Inherits IDirect3DBaseTexture9
+Public
+	Virtual Function GetLevelDesc(Level As DWord, pDesc As *D3DSURFACE_DESC) As DWord
+	Virtual Function GetVolumeLevel(Level As DWord, ppVolumeLevel As **IDirect3DVolume9) As DWord
+	Virtual Function LockBox(Level As DWord, pLockedVolume As *D3DLOCKED_BOX, pBox As *D3DBOX, Flags As DWord) As DWord
+	Virtual Function UnlockBox(Level As DWord) As DWord
+	Virtual Function AddDirtyBox(pDirtyBox As *D3DBOX) As DWord
+End Class
+TypeDef LPDIRECT3DVOLUMETEXTURE9 = *IDirect3DVolumeTexture9
+
+Class IDirect3DCubeTexture9
+	Inherits IDirect3DBaseTexture9
+End Class
+TypeDef LPDIRECT3DCUBETEXTURE9 = *IDirect3DCubeTexture9
+
+Class IDirect3DVertexBuffer9
+	Inherits IUnknown
+Public
+	'IDirect3DResource9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetPrivateData(ByRef refguid As GUID, pData As VoidPtr, SizeOfData As DWord, Flags As DWord) As DWord
+	Virtual Function GetPrivateData(ByRef refguid As GUID, pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+	Virtual Function FreePrivateData(ByRef refguid As GUID) As DWord
+	Virtual Function SetPriority(PriorityNew As DWord) As DWord
+	Virtual Function GetPriority() As DWord
+	Virtual Sub PreLoad()
+	Virtual Function GetType() As D3DRESOURCETYPE
+	Virtual Function Lock(OffsetToLock As DWord, SizeToLock As DWord, ppbData As VoidPtr, Flags As DWord) As DWord
+	Virtual Function Unlock() As DWord
+	Virtual Function GetDesc(pDesc As *D3DVERTEXBUFFER_DESC) As DWord
+End Class
+TypeDef LPDIRECT3DVERTEXBUFFER9 = *IDirect3DVertexBuffer9
+
+Class IDirect3DIndexBuffer9
+	Inherits IUnknown
+Public
+	'IDirect3DResource9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetPrivateData(ByRef refguid As GUID, pData As VoidPtr, SizeOfData As DWord, Flags As DWord) As DWord
+	Virtual Function GetPrivateData(ByRef refguid As GUID, pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+	Virtual Function FreePrivateData(ByRef refguid As GUID) As DWord
+	Virtual Function SetPriority(PriorityNew As DWord) As DWord
+	Virtual Function GetPriority() As DWord
+	Virtual Sub PreLoad()
+	Virtual Function GetType() As D3DRESOURCETYPE
+	Virtual Function Lock(OffsetToLock As DWord, SizeToLock As DWord, ppbData As VoidPtr, Flags As DWord) As DWord
+	Virtual Function Unlock() As DWord
+	Virtual Function GetDesc(pDesc As *D3DINDEXBUFFER_DESC) As DWord
+End Class
+TypeDef LPDIRECT3DINDEXBUFFER9 = *IDirect3DIndexBuffer9
+
+Class IDirect3DSurface9
+	Inherits IUnknown
+Public
+	'IDirect3DResource9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetPrivateData(ByRef refguid As GUID, pData As VoidPtr, SizeOfData As DWord, Flags As DWord) As DWord
+	Virtual Function GetPrivateData(ByRef refguid As GUID, pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+	Virtual Function FreePrivateData(ByRef refguid As GUID) As DWord
+	Virtual Function SetPriority(PriorityNew As DWord) As DWord
+	Virtual Function GetPriority() As DWord
+	Virtual Sub PreLoad()
+	Virtual Function GetType() As D3DRESOURCETYPE
+	Virtual Function GetContainer(ByRef riid As GUID, ppContainer As VoidPtr) As DWord
+	Virtual Function GetDesc(pDesc As *D3DSURFACE_DESC) As DWord
+	Virtual Function LockRect(pLockedRect As *D3DLOCKED_RECT, pRect As *RECT, Flags As DWord) As DWord
+	Virtual Function UnlockRect() As DWord
+	Virtual Function GetDC(phdc As DWordPtr) As DWord
+	Virtual Function ReleaseDC(hdc As DWord) As DWord
+End Class
+TypeDef LPDIRECT3DSURFACE9 = *IDirect3DSurface9
+
+Class IDirect3DVolume9
+	Inherits IUnknown
+Public
+	'IDirect3DVolume9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetPrivateData(ByRef refguid As GUID, pData As VoidPtr, SizeOfData As DWord, Flags As DWord) As DWord
+	Virtual Function GetPrivateData(ByRef refguid As GUID, pData As VoidPtr, pSizeOfData As DWordPtr) As DWord
+	Virtual Function FreePrivateData(ByRef refguid As GUID) As DWord
+	Virtual Function GetContainer(ByRef riid As GUID, ppContainer As DWordPtr) As DWord
+	Virtual Function GetDesc(pDesc As *D3DVOLUME_DESC) As DWord
+	Virtual Function LockBox(pLockedVolume As *D3DLOCKED_BOX, pBox As *D3DBOX, Flags As DWord) As DWord
+	Virtual Function UnlockBox() As DWord
+End Class
+TypeDef LPDIRECT3DVOLUME9 = *IDirect3DVolume9
+
+Class IDirect3DQuery9
+	Inherits IUnknown
+Public
+	'IDirect3DQuery9 methods
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetType() As D3DQUERYTYPE
+	Virtual Function GetDataSize() As DWord
+	Virtual Function Issue(dwIssueFlags As DWord) As DWord
+	Virtual Function GetData(pData As VoidPtr, dwSize As DWord, dwGetDataFlags As DWord) As DWord
+End Class
+TypeDef LPDIRECT3DQUERY9 = *IDirect3DQuery9
+
+
+' Flags for SetPrivateData method on all D3D9 interfaces
+Const D3DSPD_IUNKNOWN = &H00000001
+
+
+' Flags for IDirect3D9::CreateDevice's BehaviorFlags
+Const D3DCREATE_FPU_PRESERVE                 = &H00000002
+Const D3DCREATE_MULTITHREADED                = &H00000004
+
+Const D3DCREATE_PUREDEVICE                   = &H00000010
+Const D3DCREATE_SOFTWARE_VERTEXPROCESSING    = &H00000020
+Const D3DCREATE_HARDWARE_VERTEXPROCESSING    = &H00000040
+Const D3DCREATE_MIXED_VERTEXPROCESSING       = &H00000080
+Const D3DCREATE_DISABLE_DRIVER_MANAGEMENT    = &H00000100
+Const D3DCREATE_ADAPTERGROUP_DEVICE          = &H00000200
+Const D3DCREATE_DISABLE_DRIVER_MANAGEMENT_EX = &H00000400
+
+Const D3DCREATE_NOWINDOWCHANGES = &H00000800
+
+
+' Parameter for IDirect3D9::CreateDevice's Adapter argument
+Const D3DADAPTER_DEFAULT = 0
+
+
+' Flags for IDirect3D9::EnumAdapters
+Const D3DENUM_WHQL_LEVEL = &H00000002
+
+
+' Maximum number of back-buffers supported in DX9
+Const D3DPRESENT_BACK_BUFFERS_MAX = 3
+
+
+' Flags for IDirect3DDevice9::SetGammaRamp
+Const D3DSGR_NO_CALIBRATION = &H00000000
+Const D3DSGR_CALIBRATE      = &H00000001
+
+
+' Flags for IDirect3DDevice9::SetCursorPosition
+Const D3DCURSOR_IMMEDIATE_UPDATE = &H00000001
+
+
+' Flags for IDirect3DSwapChain9::Present
+Const D3DPRESENT_DONOTWAIT      = &H00000001
+Const D3DPRESENT_LINEAR_CONTENT = &H00000002
+
+
+' DirectDraw error codes
+Const _FACD3D = &H876
+Const MAKE_D3DHRESULT(code) = MAKE_HRESULT( 1, _FACD3D, code )
+Const MAKE_D3DSTATUS(code)  = MAKE_HRESULT( 0, _FACD3D, code )
+
+' Direct3D Errors
+Const D3D_OK = S_OK
+Const D3DERR_WRONGTEXTUREFORMAT            = MAKE_D3DHRESULT(2072)
+Const D3DERR_UNSUPPORTEDCOLOROPERATION     = MAKE_D3DHRESULT(2073)
+Const D3DERR_UNSUPPORTEDCOLORARG           = MAKE_D3DHRESULT(2074)
+Const D3DERR_UNSUPPORTEDALPHAOPERATION     = MAKE_D3DHRESULT(2075)
+Const D3DERR_UNSUPPORTEDALPHAARG           = MAKE_D3DHRESULT(2076)
+Const D3DERR_TOOMANYOPERATIONS             = MAKE_D3DHRESULT(2077)
+Const D3DERR_CONFLICTINGTEXTUREFILTER      = MAKE_D3DHRESULT(2078)
+Const D3DERR_UNSUPPORTEDFACTORVALUE        = MAKE_D3DHRESULT(2079)
+Const D3DERR_CONFLICTINGRENDERSTATE        = MAKE_D3DHRESULT(2081)
+Const D3DERR_UNSUPPORTEDTEXTUREFILTER      = MAKE_D3DHRESULT(2082)
+Const D3DERR_CONFLICTINGTEXTUREPALETTE     = MAKE_D3DHRESULT(2086)
+Const D3DERR_DRIVERINTERNALERROR           = MAKE_D3DHRESULT(2087)
+
+Const D3DERR_NOTFOUND                      = MAKE_D3DHRESULT(2150)
+Const D3DERR_MOREDATA                      = MAKE_D3DHRESULT(2151)
+Const D3DERR_DEVICELOST                    = MAKE_D3DHRESULT(2152)
+Const D3DERR_DEVICENOTRESET                = MAKE_D3DHRESULT(2153)
+Const D3DERR_NOTAVAILABLE                  = MAKE_D3DHRESULT(2154)
+Const D3DERR_OUTOFVIDEOMEMORY              = MAKE_D3DHRESULT(380)
+Const D3DERR_INVALIDDEVICE                 = MAKE_D3DHRESULT(2155)
+Const D3DERR_INVALIDCALL                   = MAKE_D3DHRESULT(2156)
+Const D3DERR_DRIVERINVALIDCALL             = MAKE_D3DHRESULT(2157)
+Const D3DERR_WASSTILLDRAWING               = MAKE_D3DHRESULT(540)
+Const D3DOK_NOAUTOGEN                      = MAKE_D3DSTATUS(2159)

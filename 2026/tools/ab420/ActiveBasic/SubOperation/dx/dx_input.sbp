@@ -1,0 +1,96 @@
+'このファイルには、DirectInputをCOMインターフェイスレベルで扱うための関数が定義されています。
+
+
+'-------------------------------------------------
+' DirectInputに必要なヘッダファイルをインクルード
+'-------------------------------------------------
+#include <directx9\dinput.sbp>
+
+
+Dim dx_lpDI As LPDIRECTINPUT8	'DirectInputインターフェイス
+
+'DirectMusicを初期化する関数
+Function dx_InitDInput() As Long
+	Dim hr As DWord
+
+	hr=DirectInput8Create(GetModuleHandle(0), DIRECTINPUT_VERSION, IID_IDirectInput8,
+		VarPtr(dx_lpDI), NULL )
+
+	If hr=S_OK Then dx_InitDInput=TRUE Else dx_InitDInput=FALSE
+End Function
+
+' DirectMusicを終了するための関数
+Sub dx_QuitDInput()
+	If dx_lpDI Then	dx_lpDI->Release()
+End Sub
+
+
+'----------------
+' クラス
+'----------------
+
+Class CInputKeyboard
+	lpDIDevice As LPDIRECTINPUTDEVICE8
+Public
+	Sub CInputKeyboard()
+		'デバイスを生成
+		dx_lpDI->CreateDevice(GUID_SysKeyboard,VarPtr(lpDIDevice),NULL)
+
+		'データ形式を設定
+		lpDIDevice->SetDataFormat(VarPtr(c_dfDIKeyboard))
+
+		'操作レベルを設定
+		lpDIDevice->SetCooperativeLevel(hMainWnd, DISCL_FOREGROUND or DISCL_NONEXCLUSIVE)
+
+		'アクセス権の取得
+		lpDIDevice->Acquire()
+	End Sub
+
+	Sub ~CInputKeyboard()
+		'アクセス権を放棄
+		lpDIDevice->Unacquire()
+
+		'デバイスを閉じる
+		lpDIDevice->Release()
+	End Sub
+
+	'キーボードの状態を取得する関数（pKeyStateは256個のByte領域を持つ配列へのポインタ）
+	Function GetState(pKeyState As *Char) As Long
+		Dim hr As DWord
+		hr=lpDIDevice->GetDeviceState(256,pKeyState)
+		If hr=S_OK Then GetState=TRUE Else GetState=FALSE
+	End Function
+End Class
+
+Class CInputMouse
+	lpDIDevice As LPDIRECTINPUTDEVICE8
+Public
+	Sub CInputMouse()
+		'デバイスを生成
+		dx_lpDI->CreateDevice(GUID_SysMouse,VarPtr(lpDIDevice),NULL)
+
+		'データ形式を設定
+		lpDIDevice->SetDataFormat(VarPtr(c_dfDIMouse))
+
+		'操作レベルを設定
+		lpDIDevice->SetCooperativeLevel(hMainWnd, DISCL_FOREGROUND or DISCL_NONEXCLUSIVE)
+
+		'アクセス権の取得
+		lpDIDevice->Acquire()
+	End Sub
+
+	Sub ~CInputMouse()
+		'アクセス権を放棄
+		lpDIDevice->Unacquire()
+
+		'デバイスを閉じる
+		lpDIDevice->Release()
+	End Sub
+
+	'キーボードの状態を取得する関数（pKeyStateは256個のByte領域を持つ配列へのポインタ）
+	Function GetState(pMouseState As *DIMOUSESTATE) As Long
+		Dim hr As DWord
+		hr=lpDIDevice->GetDeviceState(SizeOf(DIMOUSESTATE),pMouseState)
+		If hr=S_OK Then GetState=TRUE Else GetState=FALSE
+	End Function
+End Class

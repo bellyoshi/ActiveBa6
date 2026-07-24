@@ -1,0 +1,67 @@
+WINDOW:MainWnd
+    HANDLE    = hMainWnd
+    POINT     = -2147483648,-2147483648
+    SIZE      = 480,360
+    CAPTION   = "TextEditor"
+    STYLE     = &H10cf0000
+    EXSTYLE   = &H00000010
+    MENUID    = MainMenu
+    ID        = 0
+    BGCOLOR   = 15
+    FONT      = -19,0,0,0,400,0,0,0,128,1,2,1,1,"FixedSys"
+    CLASS     = "NORMAL"
+    CALLBACK  = MainWndProc
+    TYPE      = 0
+    FILEPATH  = MainWnd.sbp
+    ITEM      = EditBox1,77,12,70,21,"",&H503000c4,&H00000200,4
+END
+WINDOW:SendMail
+    HANDLE    = hSendMail
+    POINT     = -2147483648,-2147483648
+    SIZE      = 315,257
+    CAPTION   = "SendMail"
+    STYLE     = &H00c80000
+    EXSTYLE   = &H00000000
+    ID        = 0
+    BGCOLOR   = 15
+    FONT      = -12,0,0,0,400,0,0,0,128,3,2,1,32,"ＭＳ Ｐゴシック"
+    CLASS     = "NORMAL"
+    CALLBACK  = SendMailProc
+    TYPE      = 1
+    FILEPATH  = SendMail.sbp
+    ITEM      = EditBox1,116,12,162,21,"",&H50000000,&H00000200,4
+    ITEM      = EditBox2,116,39,162,21,"",&H50000000,&H00000200,4
+    ITEM      = CommandButton1,104,203,88,21,"送信",&H50000000,&H00000000,1
+    ITEM      = EditBox3,116,77,163,21,"",&H50000000,&H00000200,4
+    ITEM      = EditBox4,116,104,162,21,"",&H50000000,&H00000200,4
+    ITEM      = Static1,13,16,83,12,"SMTPサーバー",&H50000000,&H00000000,11
+    ITEM      = Static2,13,43,81,12,"送信元アドレス",&H50000000,&H00000000,11
+    ITEM      = Static3,13,83,81,12,"送信先アドレス",&H50000000,&H00000000,11
+    ITEM      = Static4,13,108,99,12,"件名（英数字のみ）",&H50000000,&H00000000,11
+    ITEM      = CommandButton2,200,203,88,21,"閉じる",&H50000000,&H00000000,1
+    ITEM      = Static_Recv,10,146,290,42,"この位置にSTMPサーバーからのメッセージが表\示されます",&H50000000,&H00000000,11
+END
+MENU:MainMenu
+    POPUP     = "ファイル(&F)",0
+        ITEM      = IDM_NEW,"新規作成(&N)",0
+        SEPARATOR
+        ITEM      = IDM_OPEN,"開く(&O)",0
+        ITEM      = IDM_SAVE,"保存(&S)",0
+        SEPARATOR
+        ITEM      = IDM_SENDMAIL,"メールで送信(&M)",0
+        SEPARATOR
+        ITEM      = IDM_EXIT,"終了(&X)",0
+    END
+    POPUP     = "編集(&E)",0
+        ITEM      = IDM_UNDO,"元に戻す(&U)",0
+        SEPARATOR
+        ITEM      = IDM_CUT,"切り取り(&T)",0
+        ITEM      = IDM_COPY,"コピー(&C)",0
+        ITEM      = IDM_PASTE,"貼り付け(&P)",0
+        SEPARATOR
+        ITEM      = IDM_ALLSELECT,"すべて選択(&A)",0
+    END
+    POPUP     = "ヘルプ(&H)",0
+        ITEM      = IDM_ABOUT,"バージョン情報(&A)",0
+    END
+END

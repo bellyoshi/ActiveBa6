@@ -1,0 +1,23 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=CDPlayer
+
+#PLATFORM=32
+
+#USEWINDOW=1
+
+#OPTION=&H01000003
+
+#OUTPUT_RELEASE=.\CDPlayer.exe
+
+#OUTPUT_DEBUG=.\CDPlayer_debug.exe
+
+#RESOURCE=CDPlayer.rc
+
+#SOURCE
+CDPlayer.abp
+MainWnd.sbp

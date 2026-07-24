@@ -1,0 +1,741 @@
+'prompt.sbp
+
+#include <api_imm.sbp>
+
+Dim _PromptSys_hWnd As HWND
+Dim _PromptSys_dwThreadID As DWord
+Dim _PromptSys_bInitFinish As Long
+
+'text
+Dim _PromptSys_LogFont As LOGFONT
+Dim _PromptSys_hFont As HFONT
+Dim _PromptSys_FontSize As SIZE
+Dim _PromptSys_InputStr[255] As Byte
+Dim _PromptSys_InputLen As Long
+Dim _PromptSys_KeyChar As Byte
+Dim _PromptSys_CurPos As POINTAPI
+Dim _PromptSys_Buffer[100] As BytePtr
+Dim _PromptSys_TextColor[100] As DWordPtr
+Dim _PromptSys_BackColor[100] As DWordPtr
+Dim _PromptSys_NowTextColor As DWord
+Dim _PromptSys_NowBackColor As DWord
+
+
+_PromptSys_InputLen=-1
+
+'graphic
+Dim _PromptSys_hBitmap As HBITMAP
+Dim _PromptSys_hMemDC As HDC
+Dim _PromptSys_ScreenSize As SIZE
+Dim _PromptSys_GlobalPos As POINTAPI
+
+
+_PromptSys_bInitFinish=0
+CreateThread(
+	ByVal 0,
+	0,
+	AddressOf(PromptMain) As LPTHREAD_START_ROUTINE,
+	0 As VoidPtr,
+	0,
+	VarPtr(_PromptSys_dwThreadID) As *DWord)
+Do
+	Sleep(20)
+Loop Until _PromptSys_bInitFinish
+
+Sub DrawPromptBuffer(hDC As HDC, StartLine As Long, EndLine As Long)
+	Dim i As Long, i2 As Long, i3 As Long
+	Dim hOldFont As HFONT
+	Dim sz As SIZE
+	Dim temporary[2] As Byte
+
+	hOldFont=SelectObject(hDC,_PromptSys_hFont)
+
+	'Scroll
+	Dim rc As RECT
+	GetClientRect(_PromptSys_hWnd,rc)
+	While (_PromptSys_CurPos.y+1)*_PromptSys_FontSize.cy>rc.bottom and _PromptSys_CurPos.y>0
+		HeapFree(_System_hProcessHeap,0,_PromptSys_Buffer[0])
+		HeapFree(_System_hProcessHeap,0,_PromptSys_TextColor[0])
+		HeapFree(_System_hProcessHeap,0,_PromptSys_BackColor[0])
+		For i=0 To 100-1
+			_PromptSys_Buffer[i]=_PromptSys_Buffer[i+1]
+			_PromptSys_TextColor[i]=_PromptSys_TextColor[i+1]
+			_PromptSys_BackColor[i]=_PromptSys_BackColor[i+1]
+		Next
+		_PromptSys_Buffer[100]=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,255)
+		_PromptSys_TextColor[100]=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,255*SizeOf(LONG_PTR))
+		_PromptSys_BackColor[100]=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,255*SizeOf(LONG_PTR))
+
+		_PromptSys_CurPos.y=_PromptSys_CurPos.y-1
+
+		'Redraw
+		StartLine=-1
+	Wend
+
+	i=0
+	While i*_PromptSys_FontSize.cy<rc.bottom and i<=100
+		If StartLine=-1 or (StartLine<=i and i<=EndLine) Then
+			GetTextExtentPoint32(hDC,_PromptSys_Buffer[i],lstrlen(_PromptSys_Buffer[i]),sz)
+			BitBlt(hDC,_
+				sz.cx, i*_PromptSys_FontSize.cy, _
+				rc.right, _PromptSys_FontSize.cy, _
+				_PromptSys_hMemDC,sz.cx,i*_PromptSys_FontSize.cy,SRCCOPY)
+
+			i3=lstrlen(_PromptSys_Buffer[i])
+			For i2=0 To i3-1
+				SetTextColor(hDC,_PromptSys_TextColor[i][i2])
+				If _PromptSys_BackColor[i][i2]=-1 Then
+					SetBkMode(hDC,TRANSPARENT)
+				Else
+					SetBkMode(hDC,OPAQUE)
+					SetBkColor(hDC,_PromptSys_BackColor[i][i2])
+				End If
+
+				temporary[0]=_PromptSys_Buffer[i][i2]
+				If IsDBCSLeadByte(temporary[0]) Then
+					temporary[1]=_PromptSys_Buffer[i][i2+1]
+					temporary[2]=0
+				Else
+					temporary[1]=0
+				End If
+				TextOut(hDC,i2*_PromptSys_FontSize.cx,i*_PromptSys_FontSize.cy,_
+					temporary,lstrlen(temporary))
+
+				If IsDBCSLeadByte(temporary[0]) Then i2=i2+1
+			Next
+		End If
+
+		i=i+1
+	Wend
+
+	SelectObject(hDC,hOldFont)
+End Sub
+
+Sub PRINT_ToPrompt(buf As String)
+	Dim hDC As HDC
+	Dim StartLine As Long
+	Dim i2 As Long, i3 As Long
+
+	StartLine=_PromptSys_CurPos.y
+
+	'Addition
+	i2=0
+	Do
+		If buf[i2]=9 Then	'tab
+			i3=8-(_PromptSys_CurPos.x mod 8)
+
+			FillMemory(_PromptSys_Buffer[_PromptSys_CurPos.y]+_PromptSys_CurPos.x,i3,Asc(" "))
+
+			i2=i2+1
+			_PromptSys_CurPos.x=_PromptSys_CurPos.x+i3
+			Continue
+		End If
+
+		If buf[i2]=13 and buf[i2+1]=10 Then	'\r\n
+			i2=i2+2
+			_PromptSys_CurPos.y=_PromptSys_CurPos.y+1
+			_PromptSys_CurPos.x=0
+			Continue
+		End If
+
+		If buf[i2]=0 Then Exit Do
+		_PromptSys_Buffer[_PromptSys_CurPos.y][_PromptSys_CurPos.x]=buf[i2]
+		_PromptSys_TextColor[_PromptSys_CurPos.y][_PromptSys_CurPos.x]=_PromptSys_NowTextColor
+		_PromptSys_BackColor[_PromptSys_CurPos.y][_PromptSys_CurPos.x]=_PromptSys_NowBackColor
+
+		i2=i2+1
+		_PromptSys_CurPos.x=_PromptSys_CurPos.x+1
+	Loop
+
+	'Draw the text buffer added
+	hDC=GetDC(_PromptSys_hWnd)
+	DrawPromptBuffer(hDC,StartLine,_PromptSys_CurPos.y)
+	ReleaseDC(_PromptSys_hWnd,hDC)
+End Sub
+
+Function PromptProc(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Dim hIMC As HIMC
+	Dim hDC As HDC
+	Dim ps As PAINTSTRUCT
+	Dim TempStr As String
+	Dim CompForm As COMPOSITIONFORM
+	Dim hGlobal As HGLOBAL
+	Dim pTemp As BytePtr
+
+	Select Case message
+		Case WM_CREATE
+			hDC=GetDC(hWnd)
+			_PromptSys_hBitmap=CreateCompatibleBitmap(hDC,_PromptSys_ScreenSize.cx,_PromptSys_ScreenSize.cy)
+			_PromptSys_hMemDC=CreateCompatibleDC(hDC)
+			SelectObject(_PromptSys_hMemDC,_PromptSys_hBitmap)
+
+			'Initialize for Win9x
+			Dim hOldBrush As HBRUSH
+			hOldBrush=SelectObject(_PromptSys_hMemDC,GetStockObject(BLACK_BRUSH))
+			PatBlt(_PromptSys_hMemDC,0,0,_PromptSys_ScreenSize.cx,_PromptSys_ScreenSize.cy,PATCOPY)
+			SelectObject(_PromptSys_hMemDC,hOldBrush)
+
+			Dim hOldFont As HFONT
+			Dim tm As TEXTMETRIC
+			hOldFont=SelectObject(_PromptSys_hMemDC,_PromptSys_hFont)
+			GetTextExtentPoint32(_PromptSys_hMemDC," ",1,_PromptSys_FontSize)
+			GetTextMetrics(_PromptSys_hMemDC,tm)
+			SelectObject(_PromptSys_hMemDC,hOldFont)
+			_PromptSys_FontSize.cy=tm.tmHeight
+
+			ReleaseDC(hWnd,hDC)
+		Case WM_PAINT
+			hDC=BeginPaint(hWnd,ps)
+			BitBlt(hDC,0,0,_PromptSys_ScreenSize.cx,_PromptSys_ScreenSize.cy,_PromptSys_hMemDC,0,0,SRCCOPY)
+			DrawPromptBuffer(hDC,-1,0)
+			EndPaint(hWnd,ps)
+
+			_PromptSys_bInitFinish=1
+		Case WM_SETFOCUS
+			If _PromptSys_InputLen<>-1 Then
+				hIMC=ImmGetContext(hWnd)
+				If hIMC Then
+					CompForm.dwStyle=CFS_POINT
+					CompForm.ptCurrentPos.x=_PromptSys_CurPos.x*_PromptSys_FontSize.cx
+					CompForm.ptCurrentPos.y=_PromptSys_CurPos.y*_PromptSys_FontSize.cy
+					ImmSetCompositionWindow(hIMC,CompForm)
+					ImmSetCompositionFont(hIMC,_PromptSys_LogFont)
+				End If
+				ImmReleaseContext(hWnd,hIMC)
+
+				CreateCaret(hWnd,NULL,9,6)
+				SetCaretPos(_PromptSys_CurPos.x*_PromptSys_FontSize.cx, _
+					(_PromptSys_CurPos.y+1)*_PromptSys_FontSize.cy-7)
+				ShowCaret(hWnd)
+			End If
+		Case WM_KILLFOCUS
+			HideCaret(hWnd)
+			DestroyCaret()
+		Case WM_KEYDOWN
+			If _PromptSys_InputLen=-1 Then
+				_PromptSys_KeyChar=wParam As Byte
+			End If
+		Case WM_CHAR
+			If _PromptSys_InputLen<>-1 Then
+				If wParam=VK_BACK Then
+					If _PromptSys_InputLen Then
+						_PromptSys_InputLen=_PromptSys_InputLen-1
+						_PromptSys_InputStr[_PromptSys_InputLen]=0
+
+						_PromptSys_CurPos.x=_PromptSys_CurPos.x-1
+						_PromptSys_Buffer[_PromptSys_CurPos.y][_PromptSys_CurPos.x]=0
+					End If
+				ElseIf wParam=VK_RETURN Then
+					_PromptSys_InputStr[_PromptSys_InputLen]=0
+					_PromptSys_InputLen=-1
+					TempStr=Ex"\r\n"
+				ElseIf wParam=&H16 Then
+					'Paste Command(Use Clippboard)
+					OpenClipboard(hWnd)
+					hGlobal=GetClipboardData(CF_TEXT)
+					If hGlobal=0 Then PromptProc=0:Exit Function
+					pTemp=GlobalLock(hGlobal) As *Byte
+
+					TempStr=ZeroString(lstrlen(pTemp)+1)
+					lstrcpy(StrPtr(TempStr),pTemp)
+
+					lstrcpy((VarPtr(_PromptSys_InputStr[0])+_PromptSys_InputLen) As *Byte,pTemp)
+					_PromptSys_InputLen=_PromptSys_InputLen+lstrlen(pTemp)
+
+					GlobalUnlock(hGlobal)
+					CloseClipboard()
+				Else
+					_PromptSys_InputStr[_PromptSys_InputLen]=wParam As Byte
+					_PromptSys_InputLen=_PromptSys_InputLen+1
+
+					TempStr=ZeroString(2)
+					TempStr[0]=wParam As Byte
+				End If
+
+				SendMessage(hWnd,WM_KILLFOCUS,0,0)
+				PRINT_ToPrompt(TempStr)
+				SendMessage(hWnd,WM_SETFOCUS,0,0)
+			End If
+		Case WM_DESTROY
+			DeleteDC(_PromptSys_hMemDC)
+			DeleteObject(_PromptSys_hBitmap)
+
+			PostQuitMessage(0)
+		Case Else
+			PromptProc=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	PromptProc=0
+End Function
+
+Function PromptMain(dwData As Long) As Long
+	Dim i As Long
+
+	'Allocate
+	For i=0 To 100
+		_PromptSys_Buffer[i]=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,255)
+		_PromptSys_TextColor[i]=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,255*SizeOf(LONG_PTR))
+		_PromptSys_BackColor[i]=HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,255*SizeOf(LONG_PTR))
+	Next
+
+	'Current Colors initialize
+	_PromptSys_NowTextColor=RGB(255,255,255)
+	_PromptSys_NowBackColor=RGB(0,0,0)
+
+	'Setup
+	_PromptSys_ScreenSize.cx=GetSystemMetrics(SM_CXSCREEN)
+	_PromptSys_ScreenSize.cy=GetSystemMetrics(SM_CYSCREEN)
+
+	'LogFont initialize
+	_PromptSys_LogFont.lfHeight=-16
+	_PromptSys_LogFont.lfWidth=0
+	_PromptSys_LogFont.lfEscapement=0
+	_PromptSys_LogFont.lfOrientation=0
+	_PromptSys_LogFont.lfWeight=0
+	_PromptSys_LogFont.lfItalic=0
+	_PromptSys_LogFont.lfUnderline=0
+	_PromptSys_LogFont.lfStrikeOut=0
+	_PromptSys_LogFont.lfCharSet=SHIFTJIS_CHARSET
+	_PromptSys_LogFont.lfOutPrecision=OUT_DEFAULT_PRECIS
+	_PromptSys_LogFont.lfClipPrecision=CLIP_DEFAULT_PRECIS
+	_PromptSys_LogFont.lfQuality=DEFAULT_QUALITY
+	_PromptSys_LogFont.lfPitchAndFamily=FIXED_PITCH
+	lstrcpy(_PromptSys_LogFont.lfFaceName,"ＭＳ 明朝")
+
+	_PromptSys_hFont=CreateFontIndirect(_PromptSys_LogFont)
+
+	'Regist Prompt Class
+	Dim wcl As WNDCLASSEX
+	FillMemory(VarPtr(wcl),Len(wcl),0)
+	wcl.cbSize=Len(wcl)
+	wcl.hInstance=GetModuleHandle(0)
+	wcl.style=CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+	wcl.hIcon=LoadIcon(NULL,MAKEINTRESOURCE(IDI_APPLICATION))
+	wcl.hIconSm=LoadIcon(NULL,MAKEINTRESOURCE(IDI_WINLOGO))
+	wcl.hCursor=LoadCursor(NULL,MAKEINTRESOURCE(IDC_ARROW))
+	wcl.lpszClassName="PROMPT"
+	wcl.lpfnWndProc=AddressOf(PromptProc)
+	wcl.hbrBackground=GetStockObject(BLACK_BRUSH)
+	RegisterClassEx(wcl)
+
+	'Create Prompt Window
+	_PromptSys_hWnd=CreateWindowEx(WS_EX_CLIENTEDGE,"PROMPT","BASIC PROMPT",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,0,0,GetModuleHandle(0),0)
+	ShowWindow(_PromptSys_hWnd,SW_SHOW)
+
+	Dim msg As MSG, iResult As Long
+	Do
+		iResult=GetMessage(msg,0,0,0)
+		If iResult=0 or iResult=-1 Then Exit Do
+		TranslateMessage(msg)
+		DispatchMessage(msg)
+	Loop
+
+	For i=0 to 100
+		HeapFree(_System_hProcessHeap,0,_PromptSys_Buffer[i])
+		HeapFree(_System_hProcessHeap,0,_PromptSys_TextColor[i])
+		HeapFree(_System_hProcessHeap,0,_PromptSys_BackColor[i])
+	Next
+
+	ExitProcess(0)
+End Function
+
+
+'----------------------
+' Prompt text Commands
+'----------------------
+
+Macro CLS()(num As Long)
+	Dim i As Long
+	Dim hOldBrush As HBRUSH
+
+	'When parameter was omitted, num is set to 1
+	If num=0 Then num=1
+
+	If num=1 or num=3 Then
+		'Clear the text screen
+		For i=0 To 100
+			FillMemory(_PromptSys_Buffer[i],255,0)
+		Next
+		_PromptSys_CurPos.x=0
+		_PromptSys_CurPos.y=0
+	End If
+
+	If num=2 or num=3 Then
+		'Clear the graphics screen
+		hOldBrush=SelectObject(_PromptSys_hMemDC,GetStockObject(BLACK_BRUSH))
+		PatBlt(_PromptSys_hMemDC,0,0,_PromptSys_ScreenSize.cx,_PromptSys_ScreenSize.cy,PATCOPY)
+		SelectObject(_PromptSys_hMemDC,hOldBrush)
+	End If
+
+	'Redraw
+	InvalidateRect(_PromptSys_hWnd,ByVal 0,0)
+End Macro
+
+Macro COLOR(TextColorCode As Long)(BackColorCode As Long)
+	_PromptSys_NowTextColor=GetBasicColor(TextColorCode)
+	If BackColorCode=-1 Then
+		_PromptSys_NowBackColor=-1
+	Else
+		_PromptSys_NowBackColor=GetBasicColor(BackColorCode)
+	End If
+End Macro
+
+'---------- Defined in "command.sbp" ----------
+'Dim _System_InputDataPtr[_System_MAX_PARMSNUM] As VoidPtr
+'Dim _System_InputDataType[_System_MAX_PARMSNUM] As DWord
+'----------------------------------------------
+Sub INPUT_FromPrompt(ShowStr As String)
+	Dim i As Long ,i2 As Long, i3 As Long
+	Dim buf As String
+
+*InputReStart
+
+	PRINT_ToPrompt(ShowStr)
+
+	'Input by keyboard
+	_PromptSys_InputLen=0
+	SendMessage(_PromptSys_hWnd,WM_SETFOCUS,0,0)
+	While _PromptSys_InputLen<>-1
+		Sleep(10)
+	Wend
+	SendMessage(_PromptSys_hWnd,WM_KILLFOCUS,0,0)
+
+	'Set value to variable
+	i=0
+	i2=0
+	buf=ZeroString(lstrlen(_PromptSys_InputStr)+1)
+	While 1
+		i3=0
+		While 1
+			If _PromptSys_InputStr[i2]=Asc(",") Then
+				buf[i3]=0
+				Exit While
+			End If
+
+			buf[i3]=_PromptSys_InputStr[i2]
+
+			If _PromptSys_InputStr[i2]=0 Then Exit While
+
+			i2=i2+1
+			i3=i3+1
+		Wend
+
+		Select Case _System_InputDataType[i]
+			Case _System_Type_Double
+				SetDouble(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_Single
+				SetSingle(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_DWord
+				SetDWord(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_Word
+				SetWord(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_Byte
+				SetByte(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_String
+#ifdef _WIN64
+				_System_HeapStringFree(GetQWord(_System_InputDataPtr[i]) As VoidPtr)
+				SetQWord(_System_InputDataPtr[i],_System_HeapStringAlloc(lstrlen(buf)))
+				memcpy(GetQWord(_System_InputDataPtr[i]) As VoidPtr,StrPtr(buf),lstrlen(buf))
+#else
+				_System_HeapStringFree(GetDWord(_System_InputDataPtr[i]))
+				SetDWord(_System_InputDataPtr[i],_System_HeapStringAlloc(lstrlen(buf)))
+				memcpy(GetDWord(_System_InputDataPtr[i]),buf,lstrlen(buf))
+#endif
+		End Select
+
+		i=i+1
+		If _System_InputDataPtr[i]=0 and _PromptSys_InputStr[i2]=Asc(",") Then
+			PRINT_ToPrompt(Ex"入力データの個数が多すぎます\r\n")
+			Goto *InputReStart
+		ElseIf _PromptSys_InputStr[i2]=0 Then
+			If _System_InputDataPtr[i]<>0 Then
+				PRINT_ToPrompt(Ex"入力データの個数が足りません\r\n")
+				Goto *InputReStart
+			Else
+				Exit While
+			End If
+		End If
+
+		i2=i2+1
+	Wend
+End Sub
+
+Sub PRINTUSING_ToPrompt(UsingStr As String)
+	PRINT_ToPrompt(_System_GetUsingFormat(UsingStr))
+End Sub
+
+Macro LOCATE(x As Long, y As Long)
+	Dim i As Long, i2 As Long
+
+	If x<0 Then x=0
+	If y<0 Then y=0
+	If y>100 Then y=100
+
+	_PromptSys_CurPos.x=x
+	_PromptSys_CurPos.y=y
+
+	i=0
+	While _PromptSys_Buffer[y][i]
+		i=i+1
+	Wend
+
+	If i<x Then
+		FillMemory(_PromptSys_Buffer[y]+i,x-i,Asc(" "))
+		For i2=i To x-1
+			_PromptSys_BackColor[y][i2]=-1
+		Next
+	End If
+End Macro
+
+
+'-------------------
+' Graphics Commands
+'-------------------
+
+Macro CIRCLE(x As Long , y As Long, radius As Long)(ColorCode As Long, StartPos As Double, EndPos As Double, Aspect As Double, bFill As Long, BrushColor As Long)
+	'呼び出し方法は以下のようになります（コンパイラがパラメータの並びを最適化します）
+	'Circle (x, y), radius [, color] [, start] [, end] [, aspect] [, f] [, color2]
+
+	Dim hDC As Long
+	Dim hPen As Long, hOldPen As Long
+	Dim hBrush As Long, hOldBrush As Long
+	Dim radi2 As Long
+	Dim sw As Long
+	Dim i1 As Long, i2 As Long, i3 As Long, i4 As Long
+
+	hPen=CreatePen(PS_SOLID,1,GetBasicColor(ColorCode))
+	If bFill Then
+		hBrush=CreateSolidBrush(GetBasicColor(BrushColor))
+	Else
+		hBrush=GetStockObject(NULL_BRUSH)
+	End If
+
+	hDC=GetDC(_PromptSys_hWnd)
+	SelectObject(hDC,hPen)
+	SelectObject(hDC,hBrush)
+	hOldPen=SelectObject(_PromptSys_hMemDC,hPen)
+	hOldBrush=SelectObject(_PromptSys_hMemDC,hBrush)
+
+	If Aspect<1 Then
+		radi2=CDbl(radius)*Aspect
+	Else
+		radi2=radius
+		radius=CDbl(radius)/Aspect
+	End If
+
+	If StartPos=0 And EndPos=0 Then
+		Ellipse(hDC,x-radius,y-radi2,x+radius,y+radi2)
+		Ellipse(_PromptSys_hMemDC,x-radius,y-radi2,x+radius,y+radi2)
+	Else
+		StartPos=StartPos*100
+		EndPos=EndPos*100
+
+		If StartPos<0 Or EndPos<0 Then
+			sw=1
+		Else
+			sw=0
+		End If
+
+		If StartPos<0 Then StartPos=StartPos*-1
+		If EndPos<0 Then EndPos=EndPos*-1
+
+		If StartPos<=78.5 Then
+			i1=78
+			i2=Int(StartPos)
+		ElseIf StartPos<=235.5 Then
+			StartPos=StartPos-78.5
+			i1=78-Int(StartPos)
+			i2=78
+		ElseIf StartPos<=392.5 Then
+			StartPos=StartPos-235.5
+			i1=-78
+			i2=78-Int(StartPos)
+		ElseIf StartPos<=549.5 Then
+			StartPos=StartPos-392.5
+			i1=-78+Int(StartPos)
+			i2=-78
+		ElseIf StartPos<=628 Then
+			StartPos=StartPos-549.5
+			i1=78
+			i2=-78+Int(StartPos)
+		End If
+
+		If EndPos<=78.5 Then
+			i3=78
+			i4=Int(EndPos)
+		ElseIf EndPos<=235.5 Then
+			EndPos=EndPos-78.5
+			i3=78-Int(EndPos)
+			i4=78
+		ElseIf EndPos<=392.5 Then
+			EndPos=EndPos-235.5
+			i3=-78
+			i4=78-Int(EndPos)
+		ElseIf EndPos<=549.5 Then
+			EndPos=EndPos-392.5
+			i3=-78+Int(EndPos)
+			i4=-78
+		ElseIf EndPos<=628 Then
+			EndPos=EndPos-549.5
+			i3=78
+			i4=-78+Int(EndPos)
+		End If
+
+		If sw Then
+			Pie(hDC,x-radius,y-radi2,x+radius,y+radi2,  x+i1,y-i2,x+i3,y-i4)
+			Pie(_PromptSys_hMemDC,x-radius,y-radi2,x+radius,y+radi2,  x+i1,y-i2,x+i3,y-i4)
+		Else
+			Arc(hDC,x-radius,y-radi2,x+radius,y+radi2,  x+i1,y-i2,x+i3,y-i4)
+			Arc(_PromptSys_hMemDC,x-radius,y-radi2,x+radius,y+radi2,  x+i1,y-i2,x+i3,y-i4)
+		End If
+	End If
+
+	ReleaseDC(_PromptSys_hWnd,hDC)
+	SelectObject(_PromptSys_hMemDC,hOldPen)
+	SelectObject(_PromptSys_hMemDC,hOldBrush)
+	DeleteObject(hPen)
+	If bFill Then DeleteObject(hBrush)
+End Macro
+
+Macro LINE(sx As Long, sy As Long, bStep As Long, ex As Long, ey As Long)(ColorCode As Long, fType As Long, BrushColor As Long)
+	'呼び出し方法は以下のようになります（コンパイラがパラメータの並びを最適化します）
+	'Line (sx,sy)-[STEP](ex,ey),[ColorCode],[B/Bf],[BrushColor]
+	Dim temp As Long
+
+	If sx=&H80000000 And sy=&H80000000 Then
+		sx=_PromptSys_GlobalPos.x
+		sy=_PromptSys_GlobalPos.y
+	End If
+
+	If bStep Then
+		ex=sx+ex
+		ey=sy+ey
+	Else
+		If fType Then
+			'ラインの場合（四角形でない場合）
+			If sx>ex Then
+				temp=ex
+				ex=sx
+				sx=temp
+			End If
+			If sy>ey Then
+				temp=ey
+				ey=sy
+				sy=temp
+			End If
+		End If
+	End If
+
+	Dim hDC As Long
+	Dim hPen As Long, hOldPen As Long
+	Dim hBrush As Long, hOldBrush As Long
+
+	hDC=GetDC(_PromptSys_hWnd)
+	hPen=CreatePen(PS_SOLID,1,GetBasicColor(ColorCode))
+	If fType=2 Then
+		hBrush=CreateSolidBrush(GetBasicColor(BrushColor))
+	Else
+		hBrush=GetStockObject(NULL_BRUSH)
+	End If
+
+	SelectObject(hDC,hPen)
+	SelectObject(hDC,hBrush)
+	hOldPen=SelectObject(_PromptSys_hMemDC,hPen)
+	hOldBrush=SelectObject(_PromptSys_hMemDC,hBrush)
+
+	Select Case fType
+		Case 0
+			'line
+			MoveToEx(_PromptSys_hMemDC,sx,sy,ByVal NULL)
+			LineTo(_PromptSys_hMemDC,ex,ey)
+			SetPixel(_PromptSys_hMemDC,ex,ey,GetBasicColor(ColorCode))
+			MoveToEx(hDC,sx,sy,ByVal NULL)
+			LineTo(hDC,ex,ey)
+			SetPixel(hDC,ex,ey,GetBasicColor(ColorCode))
+		Case Else
+			'Rectangle
+			Rectangle(hDC,sx,sy,ex+1,ey+1)
+			Rectangle(_PromptSys_hMemDC,sx,sy,ex+1,ey+1)
+	End Select
+
+	ReleaseDC(_PromptSys_hWnd,hDC)
+	SelectObject(_PromptSys_hMemDC,hOldPen)
+	SelectObject(_PromptSys_hMemDC,hOldBrush)
+	DeleteObject(hPen)
+	If fType=2 Then DeleteObject(hBrush)
+
+	_PromptSys_GlobalPos.x=ex
+	_PromptSys_GlobalPos.y=ey
+End Macro
+
+Macro PSET(x As Long, y As Long)(ColorCode As Long)
+	'呼び出し方法は以下のようになります（コンパイラがパラメータの並びを最適化します）
+	'PSet (x,y),ColorCode
+
+	Dim hDC As Long
+
+	hDC=GetDC(_PromptSys_hWnd)
+	SetPixel(hDC,x,y,GetBasicColor(ColorCode))
+	SetPixel(_PromptSys_hMemDC,x,y,GetBasicColor(ColorCode))
+	ReleaseDC(_PromptSys_hWnd,hDC)
+
+	_PromptSys_GlobalPos.x=x
+	_PromptSys_GlobalPos.y=y
+End Macro
+
+Macro PAINT(x As Long, y As Long, BrushColor As Long)(ByVal LineColor As Long)
+	'呼び出し方法は以下のようになります（コンパイラがパラメータの並びを最適化します）
+	'Paint (x,y),BrushColor,LineColor
+
+	Dim hDC As Long
+	Dim hBrush As Long, hOldBrush As Long
+
+	hBrush=CreateSolidBrush(GetBasicColor(BrushColor))
+
+	hDC=GetDC(_PromptSys_hWnd)
+	SelectObject(hDC,hBrush)
+	hOldBrush=SelectObject(_PromptSys_hMemDC,hBrush)
+
+	ExtFloodFill(hDC,x,y,GetBasicColor(LineColor),FLOODFILLBORDER)
+	ExtFloodFill(_PromptSys_hMemDC,x,y,GetBasicColor(LineColor),FLOODFILLBORDER)
+
+	ReleaseDC(_PromptSys_hWnd,hDC)
+	SelectObject(_PromptSys_hMemDC,hOldBrush)
+	DeleteObject(hBrush)
+End Macro
+
+
+'-----------
+' Functions
+'-----------
+
+Function Inkey$() As String
+	If _PromptSys_KeyChar=0 Then
+		Inkey$=""
+	Else
+		Inkey$=Chr$(_PromptSys_KeyChar)
+	End If
+	_PromptSys_KeyChar=0
+End Function
+
+Function Input$(length As Long) As String
+	Dim i As Long
+
+	If length<=0 Then
+		Input$=""
+		Exit Function
+	End If
+
+	i=0
+	While 1
+		If _PromptSys_KeyChar Then
+			Input$=Input$+Chr$(_PromptSys_KeyChar)
+			_PromptSys_KeyChar=0
+			i=i+1
+			If i>=length Then
+				Exit While
+			End If
+		End If
+		Sleep(1)
+	Wend
+End Function

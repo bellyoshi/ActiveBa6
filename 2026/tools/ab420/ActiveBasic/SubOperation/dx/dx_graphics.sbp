@@ -1,0 +1,817 @@
+'このファイルには、DirectGraphicsをCOMインターフェイスレベルで扱うための関数が定義されています。
+
+
+'----------------------------------------------------
+' DirectGraphicsに必要なヘッダファイルをインクルード
+'----------------------------------------------------
+#include <directx9\d3dx9.sbp>
+
+
+Dim dx_lpD3D As LPDIRECT3D9
+Dim dx_lpD3DDEV As LPDIRECT3DDEVICE9	'Direct3Dデバイスを扱うインターフェイス
+Dim dx_lpD3DXFont As LPD3DXFONT			'文字列描画を扱うインターフェイス
+Dim dx_d3dpp As D3DPRESENT_PARAMETERS
+
+
+Function dx_InitD3D(hWnd As HWND, ScreenX As Long, ScreenY As Long, bWindowMode As Long) As Long
+	dx_lpD3D=Direct3DCreate9(D3D_SDK_VERSION)
+	If dx_lpD3D=0 Then
+		MessageBox(0, "Direct3D オブジェクトの生成に失敗しました。", "エラー", MB_OK or MB_ICONSTOP)
+		ExitProcess(0)
+	End If
+
+	Dim d3ddm As D3DDISPLAYMODE
+	dx_lpD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, VarPtr(d3ddm))
+
+	ZeroMemory(VarPtr(dx_d3dpp), SizeOf(D3DPRESENT_PARAMETERS))
+	dx_d3dpp.BackBufferWidth			= ScreenX					' バックバッファの幅
+	dx_d3dpp.BackBufferHeight			= ScreenY					' バックバッファの高さ
+	dx_d3dpp.BackBufferFormat			= D3DFMT_R5G6B5				' バックバッファのフォーマット
+	dx_d3dpp.BackBufferCount			= 1						 	' バックバッファの数
+	dx_d3dpp.MultiSampleType			= D3DMULTISAMPLE_NONE		' マルチサンプリングの種類
+	dx_d3dpp.MultiSampleQuality			= 0							' マルチサンプリングの品質
+	dx_d3dpp.SwapEffect					= D3DSWAPEFFECT_DISCARD		' スワップエフェクト
+	dx_d3dpp.hDeviceWindow				= hWnd						' デバイスウインドウハンドル
+	dx_d3dpp.Windowed					= bWindowMode				' ウインドウモードならTRUE
+	dx_d3dpp.EnableAutoDepthStencil		= TRUE						' Ｚバッファの有無
+	dx_d3dpp.AutoDepthStencilFormat		= D3DFMT_D16				' Ｚバッファのフォーマット
+	dx_d3dpp.Flags						= 0							' 動作設定
+	dx_d3dpp.FullScreen_RefreshRateInHz	= D3DPRESENT_RATE_DEFAULT	' リフレッシュレート
+	dx_d3dpp.PresentationInterval		= D3DPRESENT_INTERVAL_ONE	' 画面の更新間隔
+
+	Dim result As Long
+
+	'T&L HAL デバイスの生成
+	result=dx_lpD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,D3DCREATE_HARDWARE_VERTEXPROCESSING, VarPtr(dx_d3dpp), VarPtr(dx_lpD3DDEV))
+	If result Then
+		'失敗時 HAL デバイスの生成
+		result=dx_lpD3D->CreateDevice(D3DADAPTER_DEFAULT,D3DDEVTYPE_HAL,hWnd,D3DCREATE_SOFTWARE_VERTEXPROCESSING,VarPtr(dx_d3dpp), VarPtr(dx_lpD3DDEV))
+		If result Then
+			'失敗時 REF デバイスの生成
+			result=dx_lpD3D->CreateDevice(D3DADAPTER_DEFAULT,D3DDEVTYPE_REF,hWnd,D3DCREATE_SOFTWARE_VERTEXPROCESSING,VarPtr(dx_d3dpp), VarPtr(dx_lpD3DDEV))
+			If result Then
+				'全て失敗
+				dx_InitD3D=0
+				Exit Function
+			End If
+		End If
+	End If
+	dx_InitD3D=1
+End Function
+
+' Direct3Dフォントを生成する関数
+Function dx_InitFont() As Long As Long
+	Dim hr As DWord
+
+	'論理フォント構造体
+	Dim dfont As D3DXFONT_DESC
+	ZeroMemory(VarPtr(dfont), Len(dfont))
+	dfont.Height=16
+	dfont.Width=0
+	dfont.Weight=FW_NORMAL
+	dfont.MipLevels=0
+	dfont.CharSet=SHIFTJIS_CHARSET
+	dfont.OutputPrecision=OUT_DEFAULT_PRECIS
+	dfont.Quality=DEFAULT_QUALITY
+	dfont.PitchAndFamily=DEFAULT_PITCH
+
+	'Direct3D フォント生成
+	hr = D3DXCreateFontIndirect(dx_lpD3DDEV, VarPtr(dfont), VarPtr(dx_lpD3DXFont))
+	If hr Then dx_InitFont=0 Else dx_InitFont=1
+End Function
+
+' デバイスを生成する関数
+Function dx_Init(hWnd As HWND, ScreenX As Long, ScreenY As Long, bWindowMode As Long) As Long
+	'COMを初期化
+	CoInitialize(NULL)
+
+	'D3Dデバイスを生成
+	If dx_InitD3D(hWnd,ScreenX,ScreenY,bWindowMode)=0 Then
+		dx_Init=0
+		Exit Function
+	End If
+
+	'フォントを生成
+	If dx_InitFont()=0 Then
+		dx_Init=0
+		Exit Function
+	End If
+
+	'DirectInputを初期化
+	If dx_InitDInput()=0 Then
+		dx_Init=0
+		Exit Function
+	End If
+
+	'DirectMusicを初期化
+	If dx_InitDMusic()=0 Then
+		dx_Init=0
+		Exit Function
+	End If
+
+	dx_Init=1
+End Function
+
+' 各デバイスの終了処理
+Sub dx_Quit()
+	'DirectMusicの終了
+	dx_QuitDMusic()
+
+	'DirectInputの終了
+	dx_QuitDInput()
+
+	If dx_lpD3DXFont Then		dx_lpD3DXFont->Release()
+	If dx_lpD3DDEV Then			dx_lpD3DDEV->Release()
+	If dx_lpD3D Then			dx_lpD3D->Release()
+
+	'COMの終了
+	CoUninitialize()
+End Sub
+
+' デバイスインターフェイスを取得するための関数
+Function dx_GetDevice() As LPDIRECT3DDEVICE9
+	dx_GetDevice=dx_lpD3DDEV
+End Function
+
+' 画面描画の開始
+Sub dx_BeginScene()
+	dx_lpD3DDEV->BeginScene()
+End Sub
+
+' 画面描画の終了
+Sub dx_EndScene()
+	dx_lpD3DDEV->EndScene()
+End Sub
+
+' バックバッファとＺバッファの初期化
+Sub dx_Clear()
+	dx_lpD3DDEV->Clear(0,
+		NULL,
+		D3DCLEAR_TARGET or D3DCLEAR_ZBUFFER,
+		D3DCOLOR_XRGB(0,0,0),
+		1.0,
+		0)
+End Sub
+
+' 文字列を描画
+Sub dx_DrawText(x As Long, y As Long, psz As BytePtr, d3dColor As D3DCOLOR)
+	Dim rc As RECT
+	rc.left=x
+	rc.top=y
+	'DT_NOCLIPフラグを指定するため、rc.right及びrc.bottomは無視される
+
+	dx_lpD3DXFont->DrawText(0,
+		psz,
+		-1,
+		VarPtr(rc),
+		DT_LEFT or DT_NOCLIP or DT_EXPANDTABS,
+		d3dColor)
+End Sub
+
+' 画面を更新
+Function dx_Present() As DWord
+	dx_Present=dx_lpD3DDEV->Present(NULL,NULL,NULL,NULL)
+End Function
+
+'カリングモードの設定
+Sub dx_SetCullMode(CullMode As D3DCULL)
+	dx_lpD3DDEV->SetRenderState(D3DRS_CULLMODE,CullMode)
+End Sub
+
+'カメラの位置、角度の設定
+Sub dx_SetCamera(pVectorEye As *D3DVECTOR, pVectorAt As *D3DVECTOR, pVectorUp As *D3DVECTOR)
+	Dim mView As D3DXMATRIX
+	D3DXMatrixLookAtLH(VarPtr(mView),
+		pVectorEye As *D3DXVECTOR3,			'カメラ位置
+		pVectorAt As *D3DXVECTOR3,			'カメラ注視点
+		pVectorUp As *D3DXVECTOR3			'カメラ上方向
+	)
+	dx_lpD3DDEV->SetTransform(D3DTS_VIEW, VarPtr(mView))
+End Sub
+
+'射影変換行列の設定
+Sub dx_SetProjection(angle As Single, aspect As Single, nearclip As Single, backclip As Single)
+	Dim mProjection As D3DXMATRIX
+	D3DXMatrixPerspectiveFovLH(
+		VarPtr(mProjection),
+		angle,					'視野角
+		aspect,					'アスペクト比
+		nearclip,				'前方投影面
+		backclip)				'後方投影面
+	dx_lpD3DDEV->SetTransform(D3DTS_PROJECTION, VarPtr(mProjection))
+End Sub
+
+' 光源の設定
+Sub dx_SetDefaultLight()
+	' ポイントライトの設定
+	Dim PointLight As D3DLIGHT9
+	ZeroMemory(VarPtr(PointLight), SizeOf(D3DLIGHT9))
+	PointLight.Type_		= D3DLIGHT_POINT			'光源の種類
+	PointLight.Diffuse.r	= 0.0						'ディフューズ Ｒ
+	PointLight.Diffuse.g	= 1.0						'ディフューズ Ｇ
+	PointLight.Diffuse.b	= 0.0						'ディフューズ Ｂ
+	PointLight.Diffuse.a	= 0.0						'ディフューズ Ａ
+	PointLight.Specular.r   = 0.1						'スペキュラー Ｒ
+	PointLight.Specular.g   = 0.1						'スペキュラー Ｇ
+	PointLight.Specular.b   = 0.1						'スペキュラー Ｂ
+	PointLight.Specular.a   = 0.0						'スペキュラー Ａ
+	PointLight.Ambient.r	= 0.5						'アンビエント Ｒ
+	PointLight.Ambient.g	= 0.5						'アンビエント Ｇ
+	PointLight.Ambient.b	= 0.5						'アンビエント Ｂ
+	PointLight.Ambient.a	= 0.0						'アンビエント Ａ
+	PointLight.Position.x	= -5						'光源の位置
+	PointLight.Position.y	= 5
+	PointLight.Position.z	= 0
+	PointLight.Range		= 100.0						'有効範囲
+	PointLight.Attenuation0 = 0.0						'輝度の減衰値
+	PointLight.Attenuation1 = 1.0						'輝度の減衰値
+	PointLight.Attenuation2 = 0.0						'輝度の減衰値
+	dx_lpD3DDEV->SetLight(0, VarPtr(PointLight))
+	dx_lpD3DDEV->LightEnable(0, TRUE)
+
+	'スポットライトの設定
+	Dim SpotLight As D3DLIGHT9
+	ZeroMemory(VarPtr(SpotLight), SizeOf(D3DLIGHT9))
+	SpotLight.Type_			= D3DLIGHT_SPOT				'光源の種類
+	SpotLight.Diffuse.r		= 1.0						'ディフューズ Ｒ
+	SpotLight.Diffuse.g		= 0.0						'ディフューズ Ｇ
+	SpotLight.Diffuse.b		= 0.0						'ディフューズ Ｂ
+	SpotLight.Diffuse.a		= 0.0						'ディフューズ Ａ
+	SpotLight.Specular.r	= 0.1						'スペキュラー Ｒ
+	SpotLight.Specular.g	= 0.1						'スペキュラー Ｇ
+	SpotLight.Specular.b	= 0.1						'スペキュラー Ｂ
+	SpotLight.Specular.a	= 0.0						'スペキュラー Ａ
+	SpotLight.Ambient.r		= 0.5						'アンビエント Ｒ
+	SpotLight.Ambient.g		= 0.5						'アンビエント Ｇ
+	SpotLight.Ambient.b		= 0.5						'アンビエント Ｂ
+	SpotLight.Ambient.a		= 0.0						'アンビエント Ａ
+	SpotLight.Position.x	= 0							'光源の位置
+	SpotLight.Position.y	= 5
+	SpotLight.Position.z	= 0
+	SpotLight.Direction.x	= 0							'光の方向
+	SpotLight.Direction.y	= -1
+	SpotLight.Direction.z	= 0
+	SpotLight.Range			= 100.0						'有効範囲
+	SpotLight.Falloff		= 1.0						'減衰率
+	SpotLight.Attenuation0	= 0.0						'輝度の減衰値
+	SpotLight.Attenuation1	= 1.0						'輝度の減衰値
+	SpotLight.Attenuation2	= 0.0						'輝度の減衰値
+	SpotLight.Theta			= 30.0 * D3DX_PI/180.0		'内部コーン角度
+	SpotLight.Phi			= 60.0 * D3DX_PI/180.0		'外部コーン角度
+	dx_lpD3DDEV->SetLight(1, VarPtr(SpotLight))
+	dx_lpD3DDEV->LightEnable(1, TRUE)
+
+	'ディレクショナルライトの設定
+	Dim DirectionalLight As D3DLIGHT9
+	ZeroMemory(VarPtr(DirectionalLight), SizeOf(D3DLIGHT9))
+	DirectionalLight.Type_		= D3DLIGHT_DIRECTIONAL	'光源の種類
+	DirectionalLight.Diffuse.r	= 0.7					'ディフューズ Ｒ
+	DirectionalLight.Diffuse.g	= 0.7					'ディフューズ Ｇ
+	DirectionalLight.Diffuse.b	= 0.8					'ディフューズ Ｂ
+	DirectionalLight.Diffuse.a	= 0.0					'ディフューズ Ａ
+	DirectionalLight.Specular.r	= 0.1					'スペキュラー Ｒ
+	DirectionalLight.Specular.g	= 0.1					'スペキュラー Ｇ
+	DirectionalLight.Specular.b	= 0.1					'スペキュラー Ｂ
+	DirectionalLight.Specular.a	= 0.0					'スペキュラー Ａ
+	DirectionalLight.Ambient.r	= 0.5					'アンビエント Ｒ
+	DirectionalLight.Ambient.g	= 0.5					'アンビエント Ｇ
+	DirectionalLight.Ambient.b	= 0.5					'アンビエント Ｂ
+	DirectionalLight.Ambient.a	= 0.0					'アンビエント Ａ
+	DirectionalLight.Direction.x=-1						'光の方向
+	DirectionalLight.Direction.y=-1
+	DirectionalLight.Direction.z=-1
+	dx_lpD3DDEV->SetLight(2, VarPtr(DirectionalLight))
+	dx_lpD3DDEV->LightEnable(2, TRUE)
+
+	'ライトの有効化
+	dx_lpD3DDEV->SetRenderState(D3DRS_SPECULARENABLE, TRUE)		'スペキュラー
+	dx_lpD3DDEV->SetRenderState(D3DRS_LIGHTING, TRUE)			'ライト
+End Sub
+
+' ライトをオフにする関数
+Sub dx_SetLightOff()
+	dx_lpD3DDEV->SetRenderState(D3DRS_LIGHTING, FALSE)
+End Sub
+
+' デバイスの復元を行う関数
+'   メモ - Alt+Tabキーでタスクが切り替わるなどのアクションでデバイスが消失した後、
+'          フォーカスが戻ったときに呼び出されます。
+'          別途、OnLostDevice、OnResetDevice及びライトの設定をコーディングしなけれ
+'          ばなりません。
+Function dx_RestoreDevice() As DWord
+	Dim hr As DWord
+
+	hr=dx_lpD3DDEV->TestCooperativeLevel()
+	If hr=D3D_OK Then
+		dx_RestoreDevice=hr
+		Exit Function
+	End If
+
+	If hr=D3DERR_DEVICELOST Then
+		'現在は復元不可能の場合
+		dx_RestoreDevice=hr
+		Exit Function
+	End If
+
+
+	'----------
+	' 復元する
+	'----------
+
+	' TODO: この位置でOnLostDevice関数で解放可能なオブジェクトを解放します。
+	dx_lpD3DXFont->OnLostDevice()
+
+	'デバイスをリセット
+	hr=dx_lpD3DDEV->Reset(VarPtr(dx_d3dpp))
+
+	' TODO: この位置でOnResetDevice関数でリセット可能なオブジェクトをリセットします。
+	dx_lpD3DXFont->OnResetDevice()
+
+	' TODO: この位置でライトをリセットします。
+	dx_SetDefaultLight()
+
+	dx_RestoreDevice=hr
+End Function
+
+
+'--------------------------------------
+' 頂点バッファ2Dポリゴンモデルのクラス
+'--------------------------------------
+
+Type DEFAULTVERTEX2D
+	x As Single
+	y As Single
+	z As Single
+	rhw As Single
+	dwColor As DWord
+	tu As Single
+	tv As Single
+End Type
+
+Const D3DFVF_DEFAULT2D = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX1
+
+Class CImage2D
+	lpD3DTexture As LPDIRECT3DTEXTURE9
+	vertices[ELM(4)] As DEFAULTVERTEX2D
+
+	TextureSize As SIZE
+Public
+	'コンストラクタ
+	Sub CImage2D()
+		vertices[0].z=0
+		vertices[0].rhw=1
+		vertices[0].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[0].tu=0
+		vertices[0].tv=0
+
+		vertices[1].z=0
+		vertices[1].rhw=1
+		vertices[1].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[1].tu=1
+		vertices[1].tv=0
+
+		vertices[2].z=0
+		vertices[2].rhw=1
+		vertices[2].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[2].tu=0
+		vertices[2].tv=1
+
+		vertices[3].z=0
+		vertices[3].rhw=1
+		vertices[3].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[3].tu=1
+		vertices[3].tv=1
+
+		lpD3DTexture=0
+	End Sub
+
+	'デストラクタ
+	Sub ~CImage2D()
+		If lpD3DTexture Then lpD3DTexture->Release()
+	End Sub
+
+	Sub SetColor(dwColor As D3DCOLOR)
+		vertices[0].dwColor=dwColor
+		vertices[1].dwColor=dwColor
+		vertices[2].dwColor=dwColor
+		vertices[3].dwColor=dwColor
+	End Sub
+
+	Function SetTexture(pFileName As BytePtr, TransparentColor As D3DCOLOR) As Long
+		'-----------------------
+		' テクスチャを読み込む
+		'-----------------------
+
+		'画像の幅、高さを取得
+		Dim hBmp As HBITMAP
+		Dim BitmapReport As BITMAP
+		hBmp=LoadImage(NULL,pFileName, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE)
+		If hBmp=0 Then
+			SetTexture=0
+			lpD3DTexture=0
+			Exit Function
+		End If
+		GetObject(hBmp,SizeOf(BITMAP),BitmapReport)
+		DeleteObject(hBmp)
+		TextureSize.cx=BitmapReport.bmWidth
+		TextureSize.cy=BitmapReport.bmHeight
+
+		'テクスチャーの読み込み
+		Dim hr As Long
+		hr=D3DXCreateTextureFromFileEx(dx_lpD3DDEV,
+			pFileName,
+			D3DX_DEFAULT,
+			D3DX_DEFAULT,
+			D3DX_DEFAULT,
+			0,
+			D3DFMT_UNKNOWN,
+			D3DPOOL_MANAGED,
+			D3DX_DEFAULT,
+			D3DX_DEFAULT,
+			TransparentColor,
+			NULL,
+			NULL,
+			VarPtr(lpD3DTexture))
+		If hr<>S_OK Then
+			SetTexture=0
+			lpD3DTexture=0
+			Exit Function
+		End If
+
+		SetTexture=1
+	End Function
+
+	Sub Draw(x As Single, y As Single, width As Single, height As Single)
+		'テクスチャーブレンディングの設定
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE)
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE)
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE)
+
+		'アルファブレンディングの設定
+		dx_lpD3DDEV->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE)
+		dx_lpD3DDEV->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA)
+		dx_lpD3DDEV->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA)
+
+		'テクスチャー設定
+		dx_lpD3DDEV->SetTexture(0, lpD3DTexture)
+
+		dx_lpD3DDEV->SetFVF(D3DFVF_DEFAULT2D)									'頂点フォーマット設定
+
+		vertices[0].x=x
+		vertices[0].y=y
+		vertices[0].tu=0
+		vertices[0].tv=0
+
+		vertices[1].x=x+width
+		vertices[1].y=y
+		vertices[1].tu=1
+		vertices[1].tv=0
+
+		vertices[2].x=x+width
+		vertices[2].y=y+height
+		vertices[2].tu=1
+		vertices[2].tv=1
+
+		vertices[3].x=x
+		vertices[3].y=y+height
+		vertices[3].tu=0
+		vertices[3].tv=1
+
+		dx_lpD3DDEV->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, SizeOf(DEFAULTVERTEX2D))					'ポリゴン描画
+
+		'アルファブレンディングの無効化
+		dx_lpD3DDEV->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE)
+	End Sub
+
+	Sub DrawStretch(x As Single, y As Single, width As Single, height As Single,
+		ImageX As Single, ImageY As Single, ImageWidth As Single, ImageHeight As Single)
+
+		'テクスチャーブレンディングの設定
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE)
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE)
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE)
+
+		'アルファブレンディングの設定
+		dx_lpD3DDEV->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE)
+		dx_lpD3DDEV->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA)
+		dx_lpD3DDEV->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA)
+
+		'テクスチャー設定
+		dx_lpD3DDEV->SetTexture(0, lpD3DTexture)
+
+		dx_lpD3DDEV->SetFVF(D3DFVF_DEFAULT2D)									'頂点フォーマット設定
+
+		ImageX=ImageX+0.5
+		ImageY=ImageY+0.5
+
+		vertices[0].x=x
+		vertices[0].y=y
+		vertices[0].tu=ImageX/TextureSize.cx
+		vertices[0].tv=ImageY/TextureSize.cy
+
+		vertices[1].x=x+width
+		vertices[1].y=y
+		vertices[1].tu=(ImageX+ImageWidth)/TextureSize.cx
+		vertices[1].tv=ImageY/TextureSize.cy
+
+		vertices[2].x=x+width
+		vertices[2].y=y+height
+		vertices[2].tu=(ImageX+ImageWidth)/TextureSize.cx
+		vertices[2].tv=(ImageY+ImageHeight)/TextureSize.cy
+
+		vertices[3].x=x
+		vertices[3].y=y+height
+		vertices[3].tu=ImageX/TextureSize.cx
+		vertices[3].tv=(ImageY+ImageHeight)/TextureSize.cy
+
+		dx_lpD3DDEV->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, SizeOf(DEFAULTVERTEX2D))					'ポリゴン描画
+
+		'アルファブレンディングの無効化
+		dx_lpD3DDEV->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE)
+	End Sub
+End Class
+
+
+'--------------------------------------
+' 頂点バッファ3Dポリゴンモデルのクラス
+'--------------------------------------
+
+Type DEFAULTVERTEX3D
+	x As Single
+	y As Single
+	z As Single
+	dwColor As DWord
+	tu As Single
+	tv As Single
+End Type
+
+Const D3DFVF_DEFAULT3D = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_TEX1
+
+Class CRectPolygon
+	lpD3DVB As LPDIRECT3DVERTEXBUFFER9
+	lpD3DTexture As LPDIRECT3DTEXTURE9
+	vertices[3] As DEFAULTVERTEX3D
+Public
+
+	'コンストラクタ
+	Sub CRectPolygon()
+		vertices[0].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[0].tu=0
+		vertices[0].tv=0
+
+		vertices[1].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[1].tu=1
+		vertices[1].tv=0
+
+		vertices[2].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[2].tu=0
+		vertices[2].tv=1
+
+		vertices[3].dwColor=D3DCOLOR_RGBA(&HFF, &HFF, &HFF, &HFF)
+		vertices[3].tu=1
+		vertices[3].tv=1
+
+
+		'頂点バッファの生成
+		Dim hr As DWord
+		hr = dx_lpD3DDEV->CreateVertexBuffer(SizeOf(DEFAULTVERTEX3D)*4, 0,
+			D3DFVF_DEFAULT3D, D3DPOOL_DEFAULT, VarPtr(lpD3DVB), NULL)
+		If hr Then
+			lpD3DVB=0
+			Exit Sub
+		End If
+
+		lpD3DTexture=0
+	End Sub
+
+	'デストラクタ
+	Sub ~CRectPolygon()
+		If lpD3DVB Then lpD3DVB->Release()
+		If lpD3DTexture Then lpD3DTexture->Release()
+	End Sub
+
+	Sub SetVertices(pVertices As *D3DVECTOR)
+		vertices[0].x=pVertices[0].x
+		vertices[0].y=pVertices[0].y
+		vertices[0].z=pVertices[0].z
+
+		vertices[1].x=pVertices[1].x
+		vertices[1].y=pVertices[1].y
+		vertices[1].z=pVertices[1].z
+
+		vertices[2].x=pVertices[2].x
+		vertices[2].y=pVertices[2].y
+		vertices[2].z=pVertices[2].z
+
+		vertices[3].x=pVertices[3].x
+		vertices[3].y=pVertices[3].y
+		vertices[3].z=pVertices[3].z
+
+		'頂点バッファのコピー
+		Dim hr As Long
+		Dim pBufferOfVertices As VoidPtr
+		hr = lpD3DVB->Lock(0, SizeOf(DEFAULTVERTEX3D)*4, VarPtr(pBufferOfVertices), 0)
+		If hr Then Exit Sub
+		memcpy(pBufferOfVertices, vertices, SizeOf(DEFAULTVERTEX3D)*4)
+		lpD3DVB->Unlock()
+	End Sub
+
+	Sub SetColor(dwColor As D3DCOLOR)
+		vertices[0].dwColor=dwColor
+		vertices[1].dwColor=dwColor
+		vertices[2].dwColor=dwColor
+		vertices[3].dwColor=dwColor
+	End Sub
+
+	Function SetTexture(pFileName As BytePtr, TransparentColor As D3DCOLOR) As Long
+		'テクスチャーの読み込み
+		Dim hr As Long
+		hr=D3DXCreateTextureFromFileEx(dx_lpD3DDEV,
+			pFileName,
+			D3DX_DEFAULT,
+			D3DX_DEFAULT,
+			D3DX_DEFAULT,
+			0,
+			D3DFMT_UNKNOWN,
+			D3DPOOL_MANAGED,
+			D3DX_DEFAULT,
+			D3DX_DEFAULT,
+			TransparentColor,
+			NULL,
+			NULL,
+			VarPtr(lpD3DTexture))
+		If hr<>S_OK Then
+			SetTexture=0
+			lpD3DTexture=0
+			Exit Function
+		End If
+
+		SetTexture=1
+	End Function
+
+	Sub Draw(VectorPosition As *D3DVECTOR, VectorDirection As *D3DVECTOR)
+		Dim i As Long
+
+		'ワールド変換行列の設定
+		Dim mWorld As D3DXMATRIX
+		Dim mRotX As D3DXMATRIX
+		Dim mRotY As D3DXMATRIX
+		Dim mRotZ As D3DXMATRIX
+		Dim mTrans As D3DXMATRIX
+		Dim mScale As D3DXMATRIX
+		D3DXMatrixRotationX(VarPtr(mRotX), VectorDirection->x)	'Ｘ軸回転行列
+		D3DXMatrixRotationY(VarPtr(mRotY), VectorDirection->y)	'Ｙ軸回転行列
+		D3DXMatrixRotationZ(VarPtr(mRotZ), VectorDirection->z)	'Ｚ軸回転行列
+
+		'平行移動行列
+		D3DXMatrixTranslation(VarPtr(mTrans),VectorPosition->x,VectorPosition->y,VectorPosition->z)
+
+		'スケーリング行列
+		D3DXMatrixScaling(VarPtr(mScale),1,1,1)
+
+		Dim mTemp As D3DXMATRIX
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mRotZ),VarPtr(mRotX))
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mWorld),VarPtr(mRotY))
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mWorld),VarPtr(mTrans))
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mWorld),VarPtr(mScale))
+
+		dx_lpD3DDEV->SetTransform(D3DTS_WORLD, VarPtr(mWorld))
+
+
+		'テクスチャーブレンディングの設定
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE)
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE)
+		dx_lpD3DDEV->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE)
+
+		'アルファブレンディングの設定
+		dx_lpD3DDEV->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE)
+		dx_lpD3DDEV->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA)
+		dx_lpD3DDEV->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA)
+
+		'テクスチャー設定
+		dx_lpD3DDEV->SetTexture(0, lpD3DTexture)
+
+		dx_lpD3DDEV->SetStreamSource(0, lpD3DVB, 0, SizeOf(DEFAULTVERTEX3D))	'頂点バッファ設定
+		dx_lpD3DDEV->SetFVF(D3DFVF_DEFAULT3D)									'頂点フォーマット設定
+		dx_lpD3DDEV->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2)					'ポリゴン描画
+
+		'アルファブレンディングの無効化
+		dx_lpD3DDEV->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE)
+	End Sub
+End Class
+
+
+'-------------------------------------
+' メッシュモデル（Xファイル）のクラス
+'-------------------------------------
+Class CMeshModel
+	pD3DXMesh As LPD3DXMESH				'メッシュ
+	D3DMaterial As *D3DMATERIAL9		'質感
+	ppD3DTexture As *LPDIRECT3DTEXTURE9	'テクスチャ
+	dwNumMaterials As DWord				'マテリアル数
+Public
+	'コンストラクタ
+	Sub CMeshModel(pszFileName_xfile As BytePtr)
+		Dim i As Long
+		Dim hr As DWord
+		Dim lpD3DXBuffer As LPD3DXBUFFER
+
+		'Ｘファイルの読み込み
+		D3DXLoadMeshFromX(pszFileName_xfile,
+			D3DXMESH_SYSTEMMEM,
+			dx_lpD3DDEV,
+			NULL,
+			VarPtr(lpD3DXBuffer),
+			NULL,
+			VarPtr(dwNumMaterials),
+			VarPtr(pD3DXMesh))
+
+
+		'質感・テクスチャーの読み込み
+		D3DMaterial=malloc(SizeOf(D3DMATERIAL9)*dwNumMaterials)
+		ppD3DTexture=malloc(SizeOf(DWord)*dwNumMaterials)
+
+		Dim d3dxMaterials As *D3DXMATERIAL
+		d3dxMaterials = lpD3DXBuffer->GetBufferPointer()
+
+		Dim a[255] As Byte
+		For i=0 To dwNumMaterials-1
+			'質感
+			memcpy(VarPtr(D3DMaterial[i]),VarPtr(d3dxMaterials[i].MatD3D),SizeOf(D3DMATERIAL9))
+			memcpy(VarPtr(D3DMaterial[i].Ambient),VarPtr(D3DMaterial[i].Diffuse),SizeOf(D3DCOLORVALUE))
+
+			'テクスチャー
+			hr = D3DXCreateTextureFromFile(dx_lpD3DDEV,
+				d3dxMaterials[i].pTextureFilename, VarPtr(ppD3DTexture[i]))
+			If hr Then
+				ppD3DTexture[i] = NULL
+			End If
+		Next
+
+
+		'マテリアル情報の開放
+		lpD3DXBuffer->Release()
+	End Sub
+
+	'デストラクタ
+	Sub ~CMeshModel()
+		'各種メモリを解放
+		Dim i As Long
+		Dim lpTex As LPDIRECT3DTEXTURE9
+
+		If ppD3DTexture Then
+			For i=0 To dwNumMaterials-1
+				If ppD3DTexture[i] Then
+					lpTex=ppD3DTexture[i] As LPDIRECT3DTEXTURE9
+					lpTex->Release()
+					ppD3DTexture[i]=0
+				End If
+			Next
+			free(ppD3DTexture)
+		End If
+
+		If D3DMaterial Then
+			free(D3DMaterial)
+		End If
+
+		pD3DXMesh->Release()
+	End Sub
+
+	'メッシュを描画
+	Sub Draw(VectorPosition As *D3DVECTOR, VectorDirection As *D3DVECTOR)
+		Dim i As Long
+
+		'ワールド変換行列の設定
+		Dim mWorld As D3DXMATRIX
+		Dim mRotX As D3DXMATRIX
+		Dim mRotY As D3DXMATRIX
+		Dim mRotZ As D3DXMATRIX
+		Dim mTrans As D3DXMATRIX
+		Dim mScale As D3DXMATRIX
+		D3DXMatrixRotationX(VarPtr(mRotX), VectorDirection->x)	'Ｘ軸回転行列
+		D3DXMatrixRotationY(VarPtr(mRotY), VectorDirection->y)	'Ｙ軸回転行列
+		D3DXMatrixRotationZ(VarPtr(mRotZ), VectorDirection->z)	'Ｚ軸回転行列
+
+		'平行移動行列
+		D3DXMatrixTranslation(VarPtr(mTrans),VectorPosition->x,VectorPosition->y,VectorPosition->z)
+
+		'スケーリング行列
+		D3DXMatrixScaling(VarPtr(mScale),1,1,1)
+
+		Dim mTemp As D3DXMATRIX
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mRotZ),VarPtr(mRotX))
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mWorld),VarPtr(mRotY))
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mWorld),VarPtr(mTrans))
+		D3DXMatrixMultiply(VarPtr(mWorld),VarPtr(mWorld),VarPtr(mScale))
+
+		dx_lpD3DDEV->SetTransform(D3DTS_WORLD, VarPtr(mWorld))
+
+
+		'Ｘファイルの表示
+		For i=0 To dwNumMaterials-1
+			dx_lpD3DDEV->SetMaterial(VarPtr(D3DMaterial[i]))
+			dx_lpD3DDEV->SetTexture(0, ppD3DTexture[i] As *IDirect3DBaseTexture9)
+			pD3DXMesh->DrawSubset(i)
+		Next
+	End Sub
+End Class

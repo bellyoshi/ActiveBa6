@@ -1,0 +1,262 @@
+'d3dx9math.sbp
+
+
+'---------------------------
+' General purpose utilities
+'---------------------------
+
+Const D3DX_PI    = 3.141592654
+Const D3DX_1BYPI = 0.318309886
+
+Const D3DXToRadian(degree) = degree * (D3DX_PI / 180.0)
+Const D3DXToDegree(radian) = radian * (180.0 / D3DX_PI)
+
+
+Type D3DXVECTOR2
+	x As Single
+	y As Single
+End Type
+
+Type D3DXVECTOR3
+	x As Single
+	y As Single
+	z As Single
+End Type
+
+Type D3DXVECTOR4
+	x As Single
+	y As Single
+	z As Single
+	w As Single
+End Type
+
+Type D3DXMATRIX
+    m[3,3] As Single
+End Type
+
+Type D3DXQUATERNION
+	x As Single
+	y As Single
+	z As Single
+	w As Single
+End Type
+
+Type D3DXPLANE
+	a As Single
+	b As Single
+	c As Single
+	d As Single
+End Type
+
+Type D3DXCOLOR
+	r As Single
+	g As Single
+	b As Single
+	a As Single
+End Type
+
+
+'-----------
+' 2D Vector
+'-----------
+Declare Function D3DXVec2Length Lib "dx9abm" Alias "D3DXVec2Length_abm" (pV As *D3DXVECTOR2) As Single
+Declare Function D3DXVec2LengthSq Lib "dx9abm" Alias "D3DXVec2LengthSq_abm" (pV As *D3DXVECTOR2) As Single
+Declare Function D3DXVec2Dot Lib "dx9abm" Alias "D3DXVec2Dot_abm" (pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2) As Single
+Declare Function D3DXVec2CCW Lib "dx9abm" Alias "D3DXVec2CCW_abm" (pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2) As Single
+Declare Function D3DXVec2Add Lib "dx9abm" Alias "D3DXVec2Add_abm" (pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2) As *D3DXVECTOR2
+Declare Function D3DXVec2Subtract Lib "dx9abm" Alias "D3DXVec2Subtract_abm" (pOut As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2) As *D3DXVECTOR2
+Declare Function D3DXVec2Minimize Lib "dx9abm" Alias "D3DXVec2Minimize_abm" (pOut As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2) As *D3DXVECTOR2
+Declare Function D3DXVec2Maximize Lib "dx9abm" Alias "D3DXVec2Maximize_abm" (pOut As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2) As *D3DXVECTOR2
+Declare Function D3DXVec2Scale Lib "dx9abm" Alias "D3DXVec2Scale_abm" (pOut As *D3DXVECTOR2, pV As *D3DXVECTOR2, s As Single) As *D3DXVECTOR2
+Declare Function D3DXVec2Lerp Lib "dx9abm" Alias "D3DXVec2Lerp_abm" (pOut As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2, s As Single) As *D3DXVECTOR2
+
+Declare Function D3DXVec2Normalize Lib "dx9abm" Alias "D3DXVec2Normalize_abm" (pOut As *D3DXVECTOR2, pV As *D3DXVECTOR2) As *D3DXVECTOR2
+Declare Function D3DXVec2Hermite Lib "dx9abm" Alias "D3DXVec2Hermite_abm" (pOut As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pT1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2, pT2 As *D3DXVECTOR2, s As Single) As *D3DXVECTOR2
+Declare Function D3DXVec2CatmullRom Lib "dx9abm" Alias "D3DXVec2CatmullRom_abm" (pOut As *D3DXVECTOR2, pV0 As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2, pV3 As *D3DXVECTOR2, s As Single) As *D3DXVECTOR2
+Declare Function D3DXVec2BaryCentric Lib "dx9abm" Alias "D3DXVec2BaryCentric_abm" (pOut As *D3DXVECTOR2, pV1 As *D3DXVECTOR2, pV2 As *D3DXVECTOR2, pV3 As *D3DXVECTOR2, f As Single, g As Single) As *D3DXVECTOR2
+Declare Function D3DXVec2Transform Lib "dx9abm" Alias "D3DXVec2Transform_abm" (pOut As *D3DXVECTOR4, pV As *D3DXVECTOR2, pM As *D3DXMATRIX) As *D3DXVECTOR4
+Declare Function D3DXVec2TransformCoord Lib "dx9abm" Alias "D3DXVec2TransformCoord_abm" (pOut As *D3DXVECTOR2, pV As *D3DXVECTOR2, pM As *D3DXMATRIX) As *D3DXVECTOR2
+Declare Function D3DXVec2TransformNormal Lib "dx9abm" Alias "D3DXVec2TransformNormal_abm" (pOut As *D3DXVECTOR2, pV As *D3DXVECTOR2, pM As *D3DXMATRIX) As *D3DXVECTOR2
+Declare Function D3DXVec2TransformArray Lib "dx9abm" Alias "D3DXVec2TransformArray_abm" (pOut As *D3DXVECTOR4, OutStride As DWord, pV As *D3DXVECTOR2, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR4
+Declare Function D3DXVec2TransformCoordArray Lib "dx9abm" Alias "D3DXVec2TransformCoordArray_abm" (pOut As *D3DXVECTOR2, OutStride As DWord, pV As *D3DXVECTOR2, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR2
+Declare Function D3DXVec2TransformNormalArray Lib "dx9abm" Alias "D3DXVec2TransformNormalArray_abm" (pOut As *D3DXVECTOR2, OutStride As DWord, pV As *D3DXVECTOR2, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR2
+
+
+'-----------
+' 3D Vector
+'-----------
+Declare Function D3DXVec3Length Lib "dx9abm" Alias "D3DXVec3Length_abm" (pV As *D3DXVECTOR3) As Single
+Declare Function D3DXVec3LengthSq Lib "dx9abm" Alias "D3DXVec3LengthSq_abm" (pV As *D3DXVECTOR3) As Single
+Declare Function D3DXVec3Dot Lib "dx9abm" Alias "D3DXVec3Dot_abm" (pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As Single
+Declare Function D3DXVec3Cross Lib "dx9abm" Alias "D3DXVec3Cross_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXVec3Add Lib "dx9abm" Alias "D3DXVec3Add_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXVec3Subtract Lib "dx9abm" Alias "D3DXVec3Subtract_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXVec3Minimize Lib "dx9abm" Alias "D3DXVec3Minimize_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXVec3Maximize Lib "dx9abm" Alias "D3DXVec3Maximize_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXVec3Scale Lib "dx9abm" Alias "D3DXVec3Scale_abm" (pOut As *D3DXVECTOR3, pV As *D3DXVECTOR3, s As Single) As *D3DXVECTOR3
+Declare Function D3DXVec3Lerp Lib "dx9abm" Alias "D3DXVec3Lerp_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3, s As Single) As *D3DXVECTOR3
+
+Declare Function D3DXVec3Normalize Lib "dx9abm" Alias "D3DXVec3Normalize_abm" (pOut As *D3DXVECTOR3, pV As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXVec3Hermite Lib "dx9abm" Alias "D3DXVec3Hermite_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pT1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3, pT2 As *D3DXVECTOR3, s As Single) As *D3DXVECTOR3
+Declare Function D3DXVec3CatmullRom Lib "dx9abm" Alias "D3DXVec3CatmullRom_abm" (pOut As *D3DXVECTOR3, pV0 As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3, pV3 As *D3DXVECTOR3, s As Single) As *D3DXVECTOR3
+Declare Function D3DXVec3BaryCentric Lib "dx9abm" Alias "D3DXVec3BaryCentric_abm" (pOut As *D3DXVECTOR3, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3, pV3 As *D3DXVECTOR3, f As Single, g As Single) As *D3DXVECTOR3
+Declare Function D3DXVec3Transform Lib "dx9abm" Alias "D3DXVec3Transform_abm" (pOut As *D3DXVECTOR4, pV As *D3DXVECTOR3, pM As *D3DXMATRIX) As *D3DXVECTOR4
+Declare Function D3DXVec3TransformCoord Lib "dx9abm" Alias "D3DXVec3TransformCoord_abm" (pOut As *D3DXVECTOR3, pV As *D3DXVECTOR3, pM As *D3DXMATRIX) As *D3DXVECTOR3
+Declare Function D3DXVec3TransformNormal Lib "dx9abm" Alias "D3DXVec3TransformNormal_abm" (pOut As *D3DXVECTOR3, pV As *D3DXVECTOR3, pM As *D3DXMATRIX) As *D3DXVECTOR3
+Declare Function D3DXVec3TransformArray Lib "dx9abm" Alias "D3DXVec3TransformArray_abm" (pOut As *D3DXVECTOR4, OutStride As DWord, pV As *D3DXVECTOR3, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR4
+Declare Function D3DXVec3TransformCoordArray Lib "dx9abm" Alias "D3DXVec3TransformCoordArray_abm" (pOut As *D3DXVECTOR3, OutStride As DWord, pV As *D3DXVECTOR3, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR3
+Declare Function D3DXVec3TransformNormalArray Lib "dx9abm" Alias "D3DXVec3TransformNormalArray_abm" (pOut As *D3DXVECTOR3, OutStride As DWord, pV As *D3DXVECTOR3, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR3
+Declare Function D3DXVec3Project Lib "dx9abm" Alias "D3DXVec3Project_abm" (pOut As *D3DXVECTOR3, pV As *D3DXVECTOR3, pViewport As *D3DVIEWPORT9, pProjection As *D3DXMATRIX, pView As *D3DXMATRIX, pWorld As *D3DXMATRIX) As *D3DXVECTOR3
+Declare Function D3DXVec3Unproject Lib "dx9abm" Alias "D3DXVec3Unproject_abm" (pOut As *D3DXVECTOR3, pV As *D3DXVECTOR3, pViewport As *D3DVIEWPORT9, pProjection As *D3DXMATRIX, pView As *D3DXMATRIX, pWorld As *D3DXMATRIX) As *D3DXVECTOR3
+Declare Function D3DXVec3ProjectArray Lib "dx9abm" Alias "D3DXVec3ProjectArray_abm" (pOut As *D3DXVECTOR3, OutStride As DWord, pV As *D3DXVECTOR3, VStride As DWord, pViewport As *D3DVIEWPORT9, pProjection As *D3DXMATRIX, pView As *D3DXMATRIX, pWorld As *D3DXMATRIX, n As DWord) As *D3DXVECTOR3
+Declare Function D3DXVec3UnprojectArray Lib "dx9abm" Alias "D3DXVec3UnprojectArray_abm" (pOut As *D3DXVECTOR3, OutStride As DWord, pV As *D3DXVECTOR3, VStride As DWord, pViewport As *D3DVIEWPORT9, pProjection As *D3DXMATRIX, pView As *D3DXMATRIX, pWorld As *D3DXMATRIX, n As DWord) As *D3DXVECTOR3
+
+
+'-----------
+' 4D Vector
+'-----------
+Declare Function D3DXVec4Length Lib "dx9abm" Alias "D3DXVec4Length_abm" (pV As *D3DXVECTOR4) As Single
+Declare Function D3DXVec4LengthSq Lib "dx9abm" Alias "D3DXVec4LengthSq_abm" (pV As *D3DXVECTOR4) As Single
+Declare Function D3DXVec4Dot Lib "dx9abm" Alias "D3DXVec4Dot_abm" (pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4) As Single
+Declare Function D3DXVec4Add Lib "dx9abm" Alias "D3DXVec4Add_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4) As *D3DXVECTOR4
+Declare Function D3DXVec4Subtract Lib "dx9abm" Alias "D3DXVec4Subtract_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4) As *D3DXVECTOR4
+Declare Function D3DXVec4Minimize Lib "dx9abm" Alias "D3DXVec4Minimize_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4) As *D3DXVECTOR4
+Declare Function D3DXVec4Maximize Lib "dx9abm" Alias "D3DXVec4Maximize_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4) As *D3DXVECTOR4
+Declare Function D3DXVec4Scale Lib "dx9abm" Alias "D3DXVec4Scale_abm" (pOut As *D3DXVECTOR4, pV As *D3DXVECTOR4, s As Single) As *D3DXVECTOR4
+Declare Function D3DXVec4Lerp Lib "dx9abm" Alias "D3DXVec4Lerp_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4, s As Single) As *D3DXVECTOR4
+
+Declare Function D3DXVec4Cross Lib "dx9abm" Alias "D3DXVec4Cross_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4, pV3 As *D3DXVECTOR4) As *D3DXVECTOR4
+Declare Function D3DXVec4Normalize Lib "dx9abm" Alias "D3DXVec4Normalize_abm" (pOut As *D3DXVECTOR4, pV As *D3DXVECTOR4) As *D3DXVECTOR4
+Declare Function D3DXVec4Hermite Lib "dx9abm" Alias "D3DXVec4Hermite_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pT1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4, pT2 As *D3DXVECTOR4, s As Single) As *D3DXVECTOR4
+Declare Function D3DXVec4CatmullRom Lib "dx9abm" Alias "D3DXVec4CatmullRom_abm" (pOut As *D3DXVECTOR4, pV0 As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4, pV3 As *D3DXVECTOR4, s As Single) As *D3DXVECTOR4
+Declare Function D3DXVec4BaryCentric Lib "dx9abm" Alias "D3DXVec4BaryCentric_abm" (pOut As *D3DXVECTOR4, pV1 As *D3DXVECTOR4, pV2 As *D3DXVECTOR4, pV3 As *D3DXVECTOR4, f As Single, g As Single) As *D3DXVECTOR4
+Declare Function D3DXVec4Transform Lib "dx9abm" Alias "D3DXVec4Transform_abm" (pOut As *D3DXVECTOR4, pV As *D3DXVECTOR4, pM As *D3DXMATRIX) As *D3DXVECTOR4
+Declare Function D3DXVec4TransformArray Lib "dx9abm" Alias "D3DXVec4TransformArray_abm" (pOut As *D3DXVECTOR4, OutStride As DWord, pV As *D3DXVECTOR4, VStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXVECTOR4
+
+
+'-----------
+' 4D Matrix
+'-----------
+Declare Function D3DXMatrixIdentity Lib "dx9abm" Alias "D3DXMatrixIdentity_abm" (pOut As *D3DXMATRIX) As *D3DXMATRIX
+Declare Function D3DXMatrixIsIdentity Lib "dx9abm" Alias "D3DXMatrixIsIdentity_abm" (pM As *D3DXMATRIX) As Long
+
+Declare Function D3DXMatrixDeterminant Lib "dx9abm" Alias "D3DXMatrixDeterminant_abm" (pM As *D3DXMATRIX) As Single
+Declare Function D3DXMatrixDecompose Lib "dx9abm" Alias "D3DXMatrixDecompose_abm" (pOutScale As *D3DXVECTOR3, pOutRotation As *D3DXQUATERNION, pOutTranslation As *D3DXVECTOR3, pM As *D3DXMATRIX) As DWord
+Declare Function D3DXMatrixTranspose Lib "dx9abm" Alias "D3DXMatrixTranspose_abm" (pOut As *D3DXMATRIX, pM As *D3DXMATRIX) As *D3DXMATRIX
+Declare Function D3DXMatrixMultiply Lib "dx9abm" Alias "D3DXMatrixMultiply_abm" (pOut As *D3DXMATRIX, pM1 As *D3DXMATRIX, pM2 As *D3DXMATRIX) As *D3DXMATRIX
+Declare Function D3DXMatrixMultiplyTranspose Lib "dx9abm" Alias "D3DXMatrixMultiplyTranspose_abm" (pOut As *D3DXMATRIX, pM1 As *D3DXMATRIX, pM2 As *D3DXMATRIX) As *D3DXMATRIX
+Declare Function D3DXMatrixInverse Lib "dx9abm" Alias "D3DXMatrixInverse_abm" (pOut As *D3DXMATRIX, pDeterminant As SinglePtr, pM As *D3DXMATRIX) As *D3DXMATRIX
+Declare Function D3DXMatrixScaling Lib "dx9abm" Alias "D3DXMatrixScaling_abm" (pOut As *D3DXMATRIX, sx As Single, sy As Single, sz As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixTranslation Lib "dx9abm" Alias "D3DXMatrixTranslation_abm" (pOut As *D3DXMATRIX, x As Single, y As Single, z As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixRotationX Lib "dx9abm" Alias "D3DXMatrixRotationX_abm" (pOut As *D3DXMATRIX, Angle As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixRotationY Lib "dx9abm" Alias "D3DXMatrixRotationY_abm" (pOut As *D3DXMATRIX, Angle As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixRotationZ Lib "dx9abm" Alias "D3DXMatrixRotationZ_abm" (pOut As *D3DXMATRIX, Angle As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixRotationAxis Lib "dx9abm" Alias "D3DXMatrixRotationAxis_abm" (pOut As *D3DXMATRIX, pV As *D3DXVECTOR3, Angle As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixRotationQuaternion Lib "dx9abm" Alias "D3DXMatrixRotationQuaternion_abm" (pOut As *D3DXMATRIX, pQ As *D3DXQUATERNION) As *D3DXMATRIX
+Declare Function D3DXMatrixRotationYawPitchRoll Lib "dx9abm" Alias "D3DXMatrixRotationYawPitchRoll_abm" (pOut As *D3DXMATRIX, Yaw As Single, Pitch As Single, Roll As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixTransformation Lib "dx9abm" Alias "D3DXMatrixTransformation_abm" (pOut As *D3DXMATRIX, pScalingCenter As *D3DXVECTOR3, pScalingRotation As *D3DXQUATERNION, pScaling As *D3DXVECTOR3, pRotationCenter As *D3DXVECTOR3, pRotation As *D3DXQUATERNION, pTranslation As *D3DXVECTOR3) As *D3DXMATRIX
+Declare Function D3DXMatrixTransformation2D Lib "dx9abm" Alias "D3DXMatrixTransformation2D_abm" (pOut As *D3DXMATRIX, pScalingCenter As *D3DXVECTOR2, ScalingRotation As Single, pScaling As *D3DXVECTOR2, pRotationCenter As *D3DXVECTOR2, Rotation As Single, pTranslation As *D3DXVECTOR2) As *D3DXMATRIX
+Declare Function D3DXMatrixAffineTransformation Lib "dx9abm" Alias "D3DXMatrixAffineTransformation_abm" (pOut As *D3DXMATRIX, Scaling As Single, pRotationCenter As *D3DXVECTOR3, pRotation As *D3DXQUATERNION, pTranslation As *D3DXVECTOR3) As *D3DXMATRIX
+Declare Function D3DXMatrixAffineTransformation2D Lib "dx9abm" Alias "D3DXMatrixAffineTransformation2D_abm" (pOut As *D3DXMATRIX, Scaling As Single, pRotationCenter As *D3DXVECTOR2, Rotation As Single, pTranslation As *D3DXVECTOR2) As *D3DXMATRIX
+Declare Function D3DXMatrixLookAtRH Lib "dx9abm" Alias "D3DXMatrixLookAtRH_abm" (pOut As *D3DXMATRIX, pEye As *D3DXVECTOR3, pAt As *D3DXVECTOR3, pUp As *D3DXVECTOR3) As *D3DXMATRIX
+Declare Function D3DXMatrixLookAtLH Lib "dx9abm" Alias "D3DXMatrixLookAtLH_abm" (pOut As *D3DXMATRIX, pEye As *D3DXVECTOR3, pAt As *D3DXVECTOR3, pUp As *D3DXVECTOR3) As *D3DXMATRIX
+Declare Function D3DXMatrixPerspectiveRH Lib "dx9abm" Alias "D3DXMatrixPerspectiveRH_abm" (pOut As *D3DXMATRIX, w As Single, h As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixPerspectiveLH Lib "dx9abm" Alias "D3DXMatrixPerspectiveLH_abm" (pOut As *D3DXMATRIX, w As Single, h As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixPerspectiveFovRH Lib "dx9abm" Alias "D3DXMatrixPerspectiveFovRH_abm" (pOut As *D3DXMATRIX, fovy As Single, Aspect As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixPerspectiveFovLH Lib "dx9abm" Alias "D3DXMatrixPerspectiveFovLH_abm" (pOut As *D3DXMATRIX, fovy As Single, Aspect As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixPerspectiveOffCenterRH Lib "dx9abm" Alias "D3DXMatrixPerspectiveOffCenterRH_abm" (pOut As *D3DXMATRIX, l As Single, r As Single, b AS Single, t As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixPerspectiveOffCenterLH Lib "dx9abm" Alias "D3DXMatrixPerspectiveOffCenterLH_abm" (pOut As *D3DXMATRIX, l As Single, r As Single, b As Single, t As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixOrthoRH Lib "dx9abm" Alias "D3DXMatrixOrthoRH_abm" (pOut As *D3DXMATRIX, w As Single, h As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixOrthoLH Lib "dx9abm" Alias "D3DXMatrixOrthoLH_abm" (pOut As *D3DXMATRIX, w As Single, h As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixOrthoOffCenterRH Lib "dx9abm" Alias "D3DXMatrixOrthoOffCenterRH_abm" (pOut As *D3DXMATRIX, l As Single, r As Single, b As Single, t As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixOrthoOffCenterLH Lib "dx9abm" Alias "D3DXMatrixOrthoOffCenterLH_abm" (pOut As *D3DXMATRIX, l As Single, r As Single, b As Single, t As Single, zn As Single, zf As Single) As *D3DXMATRIX
+Declare Function D3DXMatrixShadow Lib "dx9abm" Alias "D3DXMatrixShadow_abm" (pOut As *D3DXMATRIX, pLight As *D3DXVECTOR4, pPlane As *D3DXPLANE) As *D3DXMATRIX
+Declare Function D3DXMatrixReflect Lib "dx9abm" Alias "D3DXMatrixReflect_abm" (pOut As *D3DXMATRIX, pPlane As *D3DXPLANE) As *D3DXMATRIX
+
+
+'------------
+' Quaternion
+'------------
+Declare Function D3DXQuaternionLength Lib "dx9abm" Alias "D3DXQuaternionLength_abm" (pQ As *D3DXQUATERNION) As Single
+Declare Function D3DXQuaternionLengthSq Lib "dx9abm" Alias "D3DXQuaternionLengthSq_abm" (pQ As *D3DXQUATERNION) As Single
+Declare Function D3DXQuaternionDot Lib "dx9abm" Alias "D3DXQuaternionDot_abm" (pQ1 As *D3DXQUATERNION, pQ2 As *D3DXQUATERNION) As Single
+Declare Function D3DXQuaternionIdentity Lib "dx9abm" Alias "D3DXQuaternionIdentity_abm" (pOut As *D3DXQUATERNION) As *D3DXQUATERNION
+Declare Function D3DXQuaternionIsIdentity Lib "dx9abm" Alias "D3DXQuaternionIsIdentity_abm" (pQ As *D3DXQUATERNION) As Long
+Declare Function D3DXQuaternionConjugate Lib "dx9abm" Alias "D3DXQuaternionConjugate_abm" (pOut As *D3DXQUATERNION, pQ As *D3DXQUATERNION) As *D3DXQUATERNION
+
+Declare Sub D3DXQuaternionToAxisAngle Lib "dx9abm" Alias "D3DXQuaternionToAxisAngle_abm" (pQ As *D3DXQUATERNION, pAxis As *D3DXVECTOR3, pAngle As SinglePtr)
+Declare Function D3DXQuaternionRotationMatrix Lib "dx9abm" Alias "D3DXQuaternionRotationMatrix_abm" (pOut As *D3DXQUATERNION, pM As *D3DXMATRIX) As *D3DXQUATERNION
+Declare Function D3DXQuaternionRotationAxis Lib "dx9abm" Alias "D3DXQuaternionRotationAxis_abm" (pOut As *D3DXQUATERNION, pV As *D3DXVECTOR3, Angle As Single) As *D3DXQUATERNION
+Declare Function D3DXQuaternionRotationYawPitchRoll Lib "dx9abm" Alias "D3DXQuaternionRotationYawPitchRoll_abm" (pOut As *D3DXQUATERNION, Yaw As Single, Pitch As Single, Roll As Single) As *D3DXQUATERNION
+Declare Function D3DXQuaternionMultiply Lib "dx9abm" Alias "D3DXQuaternionMultiply_abm" (pOut As *D3DXQUATERNION, pQ1 As *D3DXQUATERNION, pQ2 As *D3DXQUATERNION) As *D3DXQUATERNION
+Declare Function D3DXQuaternionNormalize Lib "dx9abm" Alias "D3DXQuaternionNormalize_abm" (pOut As *D3DXQUATERNION, pQ As *D3DXQUATERNION) As *D3DXQUATERNION
+Declare Function D3DXQuaternionInverse Lib "dx9abm" Alias "D3DXQuaternionInverse_abm" (pOut As *D3DXQUATERNION, pQ As *D3DXQUATERNION) As *D3DXQUATERNION
+Declare Function D3DXQuaternionLn Lib "dx9abm" Alias "D3DXQuaternionLn_abm" (pOut As *D3DXQUATERNION, pQ As *D3DXQUATERNION) As *D3DXQUATERNION
+Declare Function D3DXQuaternionExp Lib "dx9abm" Alias "D3DXQuaternionExp_abm" (pOut As *D3DXQUATERNION, pQ As *D3DXQUATERNION) As *D3DXQUATERNION
+Declare Function D3DXQuaternionSlerp Lib "dx9abm" Alias "D3DXQuaternionSlerp_abm" (pOut As *D3DXQUATERNION, pQ1 As *D3DXQUATERNION, pQ2 As *D3DXQUATERNION, t As Single) As *D3DXQUATERNION
+Declare Function D3DXQuaternionSquad Lib "dx9abm" Alias "D3DXQuaternionSquad_abm" (pOut As *D3DXQUATERNION, pQ1 As *D3DXQUATERNION, pA As *D3DXQUATERNION, pB As *D3DXQUATERNION, pC As *D3DXQUATERNION, t As Single) As *D3DXQUATERNION
+Declare Sub D3DXQuaternionSquadSetup Lib "dx9abm" Alias "D3DXQuaternionSquadSetup_abm" (pAOut As *D3DXQUATERNION, pBOut As *D3DXQUATERNION, pCOut As *D3DXQUATERNION, pQ0 As *D3DXQUATERNION, pQ1 As *D3DXQUATERNION, pQ2 As *D3DXQUATERNION, pQ3 As *D3DXQUATERNION)
+Declare Function D3DXQuaternionBaryCentric Lib "dx9abm" Alias "D3DXQuaternionBaryCentric_abm" (pOut As *D3DXQUATERNION, pQ1 As *D3DXQUATERNION, pQ2 As *D3DXQUATERNION, pQ3 As *D3DXQUATERNION, f As Single, g As Single) As *D3DXQUATERNION
+
+
+'-------
+' Plane
+'-------
+Declare Function D3DXPlaneDot Lib "dx9abm" Alias "D3DXPlaneDot_abm" (pP As *D3DXPLANE, pV As *D3DXVECTOR4) As Single
+Declare Function D3DXPlaneDotCoord Lib "dx9abm" Alias "D3DXPlaneDotCoord_abm" (pP As *D3DXPLANE, pV As *D3DXVECTOR3) As Single
+Declare Function D3DXPlaneDotNormal Lib "dx9abm" Alias "D3DXPlaneDotNormal_abm" (pP As *D3DXPLANE, pV As *D3DXVECTOR3) As Single
+Declare Function D3DXPlaneScale Lib "dx9abm" Alias "D3DXPlaneScale_abm" (pOut As *D3DXPLANE, pP As *D3DXPLANE, s As Single) As *D3DXPLANE
+
+Declare Function D3DXPlaneNormalize Lib "dx9abm" Alias "D3DXPlaneNormalize_abm" (pOut As *D3DXPLANE, pP As *D3DXPLANE) As *D3DXPLANE
+Declare Function D3DXPlaneIntersectLine Lib "dx9abm" Alias "D3DXPlaneIntersectLine_abm" (pOut As *D3DXVECTOR3, pP As *D3DXPLANE, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3) As *D3DXVECTOR3
+Declare Function D3DXPlaneFromPointNormal Lib "dx9abm" Alias "D3DXPlaneFromPointNormal_abm" (pOut As *D3DXPLANE, pPoint As *D3DXVECTOR3, pNormal As *D3DXVECTOR3) As *D3DXPLANE
+Declare Function D3DXPlaneFromPoints Lib "dx9abm" Alias "D3DXPlaneFromPoints_abm" (pOut As *D3DXPLANE, pV1 As *D3DXVECTOR3, pV2 As *D3DXVECTOR3, pV3 As *D3DXVECTOR3) As *D3DXPLANE
+Declare Function D3DXPlaneTransform Lib "dx9abm" Alias "D3DXPlaneTransform_abm" (pOut As *D3DXPLANE, pP As *D3DXPLANE, pM As *D3DXMATRIX) As *D3DXPLANE
+Declare Function D3DXPlaneTransformArray Lib "dx9abm" Alias "D3DXPlaneTransformArray_abm" (pOut As *D3DXPLANE, OutStride As DWord, pP As *D3DXPLANE, PStride As DWord, pM As *D3DXMATRIX, n As DWord) As *D3DXPLANE
+
+
+'-------
+' Color
+'-------
+Declare Function D3DXColorNegative Lib "dx9abm" Alias "D3DXColorNegative_abm" (pOut As *D3DXCOLOR, pC As *D3DXCOLOR) As *D3DXCOLOR
+Declare Function D3DXColorAdd Lib "dx9abm" Alias "D3DXColorAdd_abm" (pOut As *D3DXCOLOR, pC1 As *D3DXCOLOR, pC2 As *D3DXCOLOR) As *D3DXCOLOR
+Declare Function D3DXColorSubtract Lib "dx9abm" Alias "D3DXColorSubtract_abm" (pOut As *D3DXCOLOR, pC1 As *D3DXCOLOR, pC2 As *D3DXCOLOR) As *D3DXCOLOR
+Declare Function D3DXColorScale Lib "dx9abm" Alias "D3DXColorScale_abm" (pOut As *D3DXCOLOR, pC As *D3DXCOLOR, s As Single) As *D3DXCOLOR
+Declare Function D3DXColorModulate Lib "dx9abm" Alias "D3DXColorModulate_abm" (pOut As *D3DXCOLOR, pC1 As *D3DXCOLOR, pC2 As *D3DXCOLOR) As *D3DXCOLOR
+Declare Function D3DXColorLerp Lib "dx9abm" Alias "D3DXColorLerp_abm" (pOut As *D3DXCOLOR, pC1 As *D3DXCOLOR, pC2 As *D3DXCOLOR, s As Single) As *D3DXCOLOR
+
+Declare Function D3DXColorAdjustSaturation Lib "dx9abm" Alias "D3DXColorAdjustSaturation_abm" (pOut As *D3DXCOLOR, pC As *D3DXCOLOR, s As Single) As *D3DXCOLOR
+Declare Function D3DXColorAdjustContrast Lib "dx9abm" Alias "D3DXColorAdjustContrast_abm" (pOut As *D3DXCOLOR, pC As *D3DXCOLOR, c As Single) As *D3DXCOLOR
+
+
+'------
+' Misc
+'------
+Declare Function D3DXFresnelTerm Lib "dx9abm" Alias "D3DXFresnelTerm_abm" (CosTheta As Single, RefractionIndex As Single) As Single
+
+
+'--------------
+' Matrix Stack
+'--------------
+Class ID3DXMatrixStack
+	Inherits IUnknown
+Public
+    'ID3DXMatrixStack methods
+	Virtual Function Pop() As DWord
+	Virtual Function Push() As DWord
+	Virtual Function LoadIdentity() As DWord
+	Virtual Function LoadMatrix(pM As *D3DXMATRIX) As DWord
+	Virtual Function MultMatrix(pM As *D3DXMATRIX) As DWord
+	Virtual Function MultMatrixLocal(pM As *D3DXMATRIX) As DWord
+	Virtual Function RotateAxis(pV As *D3DXVECTOR3, Angle As Single) As DWord
+	Virtual Function RotateAxisLocal(pV As *D3DXVECTOR3, Angle As Single) As DWord
+	Virtual Function RotateYawPitchRoll(Yaw As Single, Pitch As Single, Roll As Single) As DWord
+	Virtual Function RotateYawPitchRollLocal(Yaw As Single, Pitch As Single, Roll As Single) As DWord
+	Virtual Function Scale(x As Single, y As Single, z As Single) As DWord
+	Virtual Function ScaleLocal(x As Single, y As Single, z As Single) As DWord
+	Virtual Function Translate(x As Single, y As Single, z As Single) As DWord
+	Virtual Function TranslateLocal(x As Single, y As Single, z As Single) As DWord
+	Virtual Function GetTop() As *D3DXMATRIX
+End Class
+
+Declare Function D3DXCreateMatrixStack Lib "dx9abm" Alias "D3DXCreateMatrixStack_abm" (Flags As DWord, ppStack As **ID3DXMatrixStack) As DWord

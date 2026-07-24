@@ -1,0 +1,78 @@
+' objbase.sbp
+
+
+'-------------------
+' Unknown Interface
+'-------------------
+
+Class IUnknown
+Public
+	'IUnknown
+	Virtual Function QueryInterface(riid As *GUID, ppvObj As DWordPtr) As DWord
+	Virtual Function AddRef() As DWord
+	Virtual Function Release() As DWord
+End Class
+TypeDef LPUNKNOWN = *IUnknown
+
+
+'-------------------
+' IStream Interface
+'-------------------
+
+Type STATSTG
+	pwcsName As BytePtr
+	dwType As DWord
+	cbSize As ULARGE_INTEGER
+	ntime As FILETIME
+	ctime As FILETIME
+	atime As FILETIME
+	grfMode As DWord
+	grfLocksSupported As DWord
+	clsid As GUID
+	grfStateBits As DWord
+	reserved As DWord
+End Type
+
+Class ISequentialStream
+	Inherits IUnknown
+Public
+	Virtual Function Read(pv As VoidPtr, cb As DWord, pcbRead As DWordPtr) As DWord
+	Virtual Function Write(pv As VoidPtr, cb As DWord, pcbWritten As DWordPtr) As DWord
+End Class
+
+Class IStream
+	Inherits ISequentialStream
+Public
+	Virtual Function Seek(dlibMove_LowPart As DWord, dlibMove_HighPart As Long, dwOrigin As DWord, plibNewPosition As *ULARGE_INTEGER) As DWord
+	Virtual Function SetSize(libNewSize_LowPart As DWord, libNewSize_HighPart As DWord) As DWord
+	Virtual Function CopyTo(pstm As *IStream, cb_LowPart As DWord, cb_HighPart As DWord, pcbRead As *ULARGE_INTEGER, pcbWritten As *ULARGE_INTEGER) As DWord
+	Virtual Function Commit(grfCommitFlags As DWord) As DWord
+	Virtual Function Revert() As DWord
+	Virtual Function LockRegion(libOffset_LowPart As DWord, libOffset_HighPart As DWord, cb_LowPart As DWord, cb_HighPart As DWord, dwLockType As DWord) As DWord
+	Virtual Function UnlockRegion(libOffset_LowPart As DWord, libOffset_HighPart As DWord, cb_LowPart As DWord, cb_HighPart As DWord, dwLockType As DWord) As DWord
+	Virtual Function Stat(pstatstg As *STATSTG, grfStatFlag As DWord) As DWord
+	Virtual Function Clone(ppstm As VoidPtr) As DWord
+End Class
+TypeDef LPSTREAM = *IStream
+
+
+Const CLSCTX_INPROC_SERVER     = &H01
+Const CLSCTX_INPROC_HANDLER    = &H02
+Const CLSCTX_LOCAL_SERVER      = &H4,
+Const CLSCTX_INPROC_SERVER16   = &H8,
+Const CLSCTX_REMOTE_SERVER     = &H10,
+Const CLSCTX_INPROC_HANDLER16  = &H20,
+Const CLSCTX_INPROC_SERVERX86  = &H40,
+Const CLSCTX_INPROC_HANDLERX86 = &H80,
+Const CLSCTX_ESERVER_HANDLER   = &H100
+
+Const CLSCTX_INPROC = CLSCTX_INPROC_SERVER or CLSCTX_INPROC_HANDLER
+Const CLSCTX_ALL    = CLSCTX_INPROC_SERVER or CLSCTX_INPROC_HANDLER or CLSCTX_LOCAL_SERVER or CLSCTX_REMOTE_SERVER
+Const CLSCTX_SERVER = CLSCTX_INPROC_SERVER or CLSCTX_LOCAL_SERVER or CLSCTX_REMOTE_SERVER
+
+Declare Function CoCreateInstance Lib "ole32" (ByRef CLSID As GUID, lpUnknown As Long, dwClsContext As Long, ByRef REFIID As GUID, pObj As VoidPtr) As DWord
+Declare Function CoInitialize Lib "ole32" (pvReserved As VoidPtr) As DWord
+Declare Sub CoUninitialize Lib "ole32" ()
+
+
+Dim GUID_NULL = [0, 0, 0, [0, 0, 0, 0, 0, 0, 0, 0]] As GUID

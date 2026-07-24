@@ -1,0 +1,783 @@
+' api_gdi.sbp - Graphics Device Integerface API
+
+
+Const CLR_INVALID =   &HFFFFFFFF
+Const GDI_ERROR =     &HFFFFFFFF
+
+
+' Point/Rectangle/Size struct
+Type POINTAPI
+	x As Long
+	y As Long
+End Type
+Type RECT
+	left As Long
+	top As Long
+	right As Long
+	bottom As Long
+End Type
+Type SIZE
+	cx As Long
+	cy As Long
+End Type
+
+
+Const RGB(r, g, b) = ((r) As Long) Or (((g) As Long) <<8) Or (((b) As Long) <<16)
+Type RGBQUAD
+	rgbBlue As Byte
+	rgbGreen As Byte
+	rgbRed As Byte
+	rgbReserved As Byte
+End Type
+
+
+' raster operations
+Const SRCCOPY =           &H00CC0020
+Const SRCPAINT =          &H00EE0086
+Const SRCAND =            &H008800C6
+Const SRCINVERT =         &H00660046
+Const SRCERASE =          &H00440328
+Const NOTSRCCOPY =        &H00330008
+Const NOTSRCERASE =       &H001100A6
+Const MERGECOPY =         &H00C000CA
+Const MERGEPAINT =        &H00BB0226
+Const PATCOPY =           &H00F00021
+Const PATPAINT =          &H00FB0A09
+Const PATINVERT =         &H005A0049
+Const DSTINVERT =         &H00550009
+Const BLACKNESS =         &H00000042
+Const WHITENESS =         &H00FF0062
+
+
+' Object types
+Const OBJ_PEN =           1
+Const OBJ_BRUSH =         2
+Const OBJ_DC =            3
+Const OBJ_METADC =        4
+Const OBJ_PAL =           5
+Const OBJ_FONT =          6
+Const OBJ_BITMAP =        7
+Const OBJ_REGION =        8
+Const OBJ_METAFILE =      9
+Const OBJ_MEMDC =         10
+Const OBJ_EXTPEN =        11
+Const OBJ_ENHMETADC =     12
+Const OBJ_ENHMETAFILE =   13
+
+
+' Bitmap Header Definition
+Type BITMAP
+	bmType As Long
+	bmWidth As Long
+	bmHeight As Long
+	bmWidthBytes As Long
+	bmPlanes As Integer
+	bmBitsPixel As Integer
+	bmBits As Long
+End Type
+
+
+' structures for defining DIBs
+Const BI_RGB =       0
+Const BI_RLE8 =      1
+Const BI_RLE4 =      2
+Const BI_BITFIELDS = 3
+Const BI_JPEG =      4
+Const BI_PNG =       5
+Type BITMAPINFOHEADER
+	biSize As Long
+	biWidth As Long
+	biHeight As Long
+	biPlanes As Integer
+	biBitCount As Integer
+	biCompression As Long
+	biSizeImage As Long
+	biXPelsPerMeter As Long
+	biYPelsPerMeter As Long
+	biClrUsed As Long
+	biClrImportant As Long
+End Type
+Type BITMAPINFO
+	bmiHeader As BITMAPINFOHEADER
+	bmpColors(255) As RGBQUAD
+End Type
+
+
+' Bitmap file header struct
+Type Align(2) BITMAPFILEHEADER
+	bfType As Integer
+	bfSize As Long
+	bfReserved1 As Integer
+	bfReserved2 As Integer
+	bfOffBits As Long
+End Type
+
+
+' Region flags
+Const NULLREGION =    1
+Const SIMPLEREGION =  2
+Const COMPLEXREGION = 3
+
+
+' Poly fill mode
+Const ALTERNATE = 1
+Const WINDING   = 2
+
+
+' Device mode
+Const DM_ORIENTATION =      &H00000001
+Const DM_PAPERSIZE =        &H00000002
+Const DM_PAPERLENGTH =      &H00000004
+Const DM_PAPERWIDTH =       &H00000008
+Const DM_SCALE =            &H00000010
+Const DM_POSITION =         &H00000020
+Const DM_COPIES =           &H00000100
+Const DM_DEFAULTSOURCE =    &H00000200
+Const DM_PRINTQUALITY =     &H00000400
+Const DM_COLOR =            &H00000800
+Const DM_DUPLEX =           &H00001000
+Const DM_YRESOLUTION =      &H00002000
+Const DM_TTOPTION =         &H00004000
+Const DM_COLLATE =          &H00008000
+Const DM_FORMNAME =         &H00010000
+Const DM_LOGPIXELS =        &H00020000
+Const DM_BITSPERPEL =       &H00040000
+Const DM_PELSWIDTH =        &H00080000
+Const DM_PELSHEIGHT =       &H00100000
+Const DM_DISPLAYFLAGS =     &H00200000
+Const DM_DISPLAYFREQUENCY = &H00400000
+Const DMORIENT_PORTRAIT =   1
+Const DMORIENT_LANDSCAPE =  2
+Const DMPAPER_LETTER =              1
+Const DMPAPER_LETTERSMALL =         2
+Const DMPAPER_TABLOID =             3
+Const DMPAPER_LEDGER =              4
+Const DMPAPER_LEGAL =               5
+Const DMPAPER_STATEMENT =           6
+Const DMPAPER_EXECUTIVE =           7
+Const DMPAPER_A3 =                  8
+Const DMPAPER_A4 =                  9
+Const DMPAPER_A4SMALL =            10
+Const DMPAPER_A5 =                 11
+Const DMPAPER_B4 =                 12
+Const DMPAPER_B5 =                 13
+Const DMPAPER_FOLIO =              14
+Const DMPAPER_QUARTO =             15
+Const DMPAPER_10X14 =              16
+Const DMPAPER_11X17 =              17
+Const DMPAPER_NOTE =               18
+Const DMPAPER_ENV_9 =              19
+Const DMPAPER_ENV_10 =             20
+Const DMPAPER_ENV_11 =             21
+Const DMPAPER_ENV_12 =             22
+Const DMPAPER_ENV_14 =             23
+Const DMPAPER_CSHEET =             24
+Const DMPAPER_DSHEET =             25
+Const DMPAPER_ESHEET =             26
+Const DMPAPER_ENV_DL =             27
+Const DMPAPER_ENV_C5 =             28
+Const DMPAPER_ENV_C3 =             29
+Const DMPAPER_ENV_C4 =             30
+Const DMPAPER_ENV_C6 =             31
+Const DMPAPER_ENV_C65 =            32
+Const DMPAPER_ENV_B4 =             33
+Const DMPAPER_ENV_B5 =             34
+Const DMPAPER_ENV_B6 =             35
+Const DMPAPER_ENV_ITALY =          36
+Const DMPAPER_ENV_MONARCH =        37
+Const DMPAPER_ENV_PERSONAL =       38
+Const DMPAPER_FANFOLD_US =         39
+Const DMPAPER_FANFOLD_STD_GERMAN = 40
+Const DMPAPER_FANFOLD_LGL_GERMAN = 41
+Const DMRES_DRAFT =  -1
+Const DMRES_LOW =    -2
+Const DMRES_MEDIUM = -3
+Const DMRES_HIGH =   -4
+Const DMCOLOR_MONOCHROME = 1
+Const DMCOLOR_COLOR =      2
+Const DMDUP_SIMPLEX =    1
+Const DMDUP_VERTICAL =   2
+Const DMDUP_HORIZONTAL = 3
+Const DMTT_BITMAP =   1
+Const DMTT_DOWNLOAD = 2
+Const DMTT_SUBDEV =   3
+Const DMCOLLATE_FALSE = 0
+Const DMCOLLATE_TRUE =  1
+
+Const CCHDEVICENAME = 32
+Const CCHFORMNAME = 32
+Type _devicemodeA
+	dmDeviceName[ELM(CCHDEVICENAME)] As Byte
+	dmSpecVersion As Word
+	dmDriverVersion As Word
+	dmSize As Word
+	dmDriverExtra As Word
+	dmFields As DWord
+	dmOrientation As Integer
+	dmPaperSize As Integer
+	dmPaperLength As Integer
+	dmPaperWidth As Integer
+	dmScale As Integer
+	dmCopies As Integer
+	dmDefaultSource As Integer
+	dmPrintQuality As Integer
+	dmColor As Integer
+	dmDuplex As Integer
+	dmYResolution As Integer
+	dmTTOption As Integer
+	dmCollate As Integer
+	dmFormName[ELM(CCHFORMNAME)] As Byte
+	dmLogPixels As Word
+	dmBitsPerPel As DWord
+	dmPelsWidth As DWord
+	dmPelsHeight As DWord
+	dmDisplayFlags As DWord
+	dmDisplayFrequency As DWord
+	dmICMMethod As DWord
+	dmICMIntent As DWord
+	dmMediaType As DWord
+	dmDitherType As DWord
+	dmReserved1 As DWord
+	dmReserved2 As DWord
+	dmPanningWidth As DWord
+	dmPanningHeight As DWord
+End Type
+TypeDef DEVMODEA = _devicemodeA
+TypeDef DEVMODE = DEVMODEA
+
+
+' Binary raster ops
+Const R2_BLACK =       1
+Const R2_NOTMERGEPEN = 2
+Const R2_MASKNOTPEN =  3
+Const R2_NOTCOPYPEN =  4
+Const R2_MASKPENNOT =  5
+Const R2_NOT =         6
+Const R2_XORPEN =      7
+Const R2_NOTMASKPEN =  8
+Const R2_MASKPEN =     9
+Const R2_NOTXORPEN =   10
+Const R2_NOP =         11
+Const R2_MERGENOTPEN = 12
+Const R2_COPYPEN =     13
+Const R2_MERGEPENNOT = 14
+Const R2_MERGEPEN =    15
+Const R2_WHITE =       16
+
+
+Type RGNDATAHEADER
+	dwSize As DWord
+	iType As DWord
+	nCount As DWord
+	nRgnSize As DWord
+	rcBound As RECT
+End Type
+Type RGNDATA
+	rdh As RGNDATAHEADER
+	Buffer As Byte
+End Type
+
+Type PALETTEENTRY
+	peRed As Byte
+	peGreen As Byte
+	peBlue As Byte
+	peFlags As Byte
+End Type
+
+
+'-------------------
+' GDI API Functions
+'-------------------
+
+Declare Function AbortPath Lib "gdi32" (hdc As HDC) As Long
+Declare Function Arc Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long, nXStartArc As Long, nYStartArc As Long, nXEndArc As Long, nYEndArc As Long) As Long
+Declare Function BeginPath Lib "gdi32" (hdc As HDC) As Long
+Declare Function BitBlt Lib "gdi32" (hdcDest As HDC, nXDest As Long, nYDest As Long, nWidth As Long, nHeight As Long, hdcSrc As HDC, nXSrc As Long, nYSrc As Long, dwRop As DWord) As Long
+Declare Function CancelDC Lib "gdi32" (hdc As HDC) As Long
+Declare Function Chord Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long, nXRadial1 As Long, nYRadial1 As Long, nXRadial2 As Long, nYRadial2 As Long) As Long
+Declare Function CloseFigure Lib "gdi32" (hdc As HDC) As Long
+
+Const RGN_AND =  1
+Const RGN_OR =   2
+Const RGN_XOR =  3
+Const RGN_DIFF = 4
+Const RGN_COPY = 5
+Declare Function CombineRgn Lib "gdi32" (hrgnDest As HRGN, hrgnSrc1 As HRGN, hrgnSrc2 As HRGN, fnCombineMode As Long) As Long
+
+Declare Function CreateBitmap Lib "gdi32" (nWidth As Long, nHeight As Long, cPlanes As Long, cBitsPerPel As Long, lpvBits As VoidPtr) As HBITMAP
+Declare Function CreateBitmapIndirect Lib "gdi32" (ByRef lpbm As BITMAP) As HBITMAP
+
+Const BS_SOLID =          0
+Const BS_NULL =           1
+Const BS_HOLLOW =         BS_NULL
+Const BS_HATCHED =        2
+Const BS_PATTERN =        3
+Const BS_INDEXED =        4
+Const BS_DIBPATTERN =     5
+Const BS_DIBPATTERNPT =   6
+Const BS_PATTERN8X8 =     7
+Const BS_DIBPATTERN8X8 =  8
+Const BS_MONOPATTERN =    9
+Const DIB_RGB_COLORS =    0
+Const DIB_PAL_COLORS =    1
+Const HS_HORIZONTAL =     0
+Const HS_VERTICAL =       1
+Const HS_FDIAGONAL =      2
+Const HS_BDIAGONAL =      3
+Const HS_CROSS =          4
+Const HS_DIAGCROSS =      5
+Type LOGBRUSH
+	lbStyle As Long
+	lbColor As Long
+	lbHatch As Long
+End Type
+Declare Function CreateBrushIndirect Lib "gdi32" (ByRef lplb As LOGBRUSH) As HBRUSH
+
+Declare Function CreateCompatibleBitmap Lib "gdi32" (hdc As HDC, nWidth As Long, nHeight As Long) As HBITMAP
+Declare Function CreateCompatibleDC Lib "gdi32" (hdc As HDC) As HDC
+Declare Function CreateDC Lib "gdi32" Alias "CreateDCA" (lpszDriver As BytePtr, lpszDevice As BytePtr, lpszOutput As Long, ByRef lpInitData As DEVMODE) As HDC
+
+Const CBM_INIT = &H04
+Declare Function CreateDIBitmap Lib "gdi32" (hdc As HDC, ByRef lpbmih As BITMAPINFOHEADER, fdwInit As Long, lpbInit As VoidPtr, ByRef lpbmi As BITMAPINFO, fuUsage As Long) As HBITMAP
+
+Declare Function CreateDIBPatternBrushPt Lib "gdi32" (lpPackedDIB As VoidPtr, iUsage As Long) As HBRUSH
+Declare Function CreateEllipticRgn Lib "gdi32" (nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long) As HRGN
+Declare Function CreateEllipticRgnIndirect Lib "gdi32" (ByRef lpRect As RECT) As HRGN
+
+Const FW_DONTCARE =       0
+Const FW_THIN =           100
+Const FW_EXTRALIGHT =     200
+Const FW_LIGHT =          300
+Const FW_NORMAL =         400
+Const FW_MEDIUM =         500
+Const FW_SEMIBOLD =       600
+Const FW_BOLD =           700
+Const FW_EXTRABOLD =      800
+Const FW_HEAVY =          900
+Const FW_ULTRALIGHT =     FW_EXTRALIGHT
+Const FW_REGULAR =        FW_NORMAL
+Const FW_DEMIBOLD =       FW_SEMIBOLD
+Const FW_ULTRABOLD =      FW_EXTRABOLD
+Const FW_BLACK =          FW_HEAVY
+
+Const ANSI_CHARSET =          0
+Const DEFAULT_CHARSET =       1
+Const SYMBOL_CHARSET =        2
+Const SHIFTJIS_CHARSET =      128
+Const HANGEUL_CHARSET =       129
+Const HANGUL_CHARSET =        129
+Const GB2312_CHARSET =        134
+Const CHINESEBIG5_CHARSET =   136
+Const OEM_CHARSET =           255
+Const JOHAB_CHARSET =         130
+Const HEBREW_CHARSET =        177
+Const ARABIC_CHARSET =        178
+Const GREEK_CHARSET =         161
+Const TURKISH_CHARSET =       162
+Const VIETNAMESE_CHARSET =    163
+Const THAI_CHARSET =          222
+Const EASTEUROPE_CHARSET =    238
+Const RUSSIAN_CHARSET =       204
+Const MAC_CHARSET =           77
+Const BALTIC_CHARSET =        186
+
+Const OUT_DEFAULT_PRECIS =        0
+Const OUT_STRING_PRECIS =         1
+Const OUT_CHARACTER_PRECIS =      2
+Const OUT_STROKE_PRECIS =         3
+Const OUT_TT_PRECIS =             4
+Const OUT_DEVICE_PRECIS =         5
+Const OUT_RASTER_PRECIS =         6
+Const OUT_TT_ONLY_PRECIS =        7
+Const OUT_OUTLINE_PRECIS =        8
+Const OUT_SCREEN_OUTLINE_PRECIS = 9
+
+Const CLIP_DEFAULT_PRECIS =   0
+Const CLIP_CHARACTER_PRECIS = 1
+Const CLIP_STROKE_PRECIS =    2
+Const CLIP_MASK =             &Hf
+Const CLIP_LH_ANGLES =        &H00010000
+Const CLIP_TT_ALWAYS =        &H00020000
+Const CLIP_EMBEDDED =         &H00080000
+
+Const DEFAULT_QUALITY =       0
+Const DRAFT_QUALITY =         1
+Const PROOF_QUALITY =         2
+Const NONANTIALIASED_QUALITY =3
+Const ANTIALIASED_QUALITY =   4
+
+Const DEFAULT_PITCH =         0
+Const FIXED_PITCH =           1
+Const VARIABLE_PITCH =        2
+
+Const FF_DONTCARE =       0
+Const FF_ROMAN =          &H00010000
+Const FF_SWISS =          &H00020000
+Const FF_MODERN =         &H00030000
+Const FF_SCRIPT =         &H00040000
+Const FF_DECORATIVE =     &H00050000
+Declare Function CreateFont Lib "gdi32" Alias "CreateFontA" (nHeight As Long, nWidth As Long, nEscapement As Long, nOrientation As Long, fnWeight As Long, fdwItalic As Long, fdwUnderline As Long, fdwStrikeOut As Long, fdwCharSet As Long, fdwOutputPrecision As Long, fdwClipPrecision As Long, fdwQuality As Long, fdwPitchAndFamily As Long, lpszFace As BytePtr) As HFONT
+
+Const LF_FACESIZE = 32
+Type LOGFONT
+	lfHeight As Long
+	lfWidth As Long
+	lfEscapement As Long
+	lfOrientation As Long
+	lfWeight As Long
+	lfItalic As Byte
+	lfUnderline As Byte
+	lfStrikeOut As Byte
+	lfCharSet As Byte
+	lfOutPrecision As Byte
+	lfClipPrecision As Byte
+	lfQuality As Byte
+	lfPitchAndFamily As Byte
+	lfFaceName(LF_FACESIZE-1) As Byte
+End Type
+Declare Function CreateFontIndirect Lib "gdi32" Alias "CreateFontIndirectA" (ByRef lplf As LOGFONT) As HFONT
+
+Declare Function CreateHatchBrush Lib "gdi32" (fnStyle As Long, clrref As DWord) As HBRUSH
+Declare Function CreatePatternBrush Lib "gdi32" (hbmp As HBITMAP) As HBRUSH
+
+Const PS_SOLID =       0
+Const PS_DASH =        1
+Const PS_DOT =         2
+Const PS_DASHDOT =     3
+Const PS_DASHDOTDOT =  4
+Const PS_NULL =        5
+Const PS_INSIDEFRAME = 6
+Const PS_USERSTYLE =   7
+Const PS_ALTERNATE =   8
+Declare Function CreatePen Lib "gdi32" (nPenStyle As Long, nWidth As Long, crColor As DWord) As HPEN
+
+Type LOGPEN
+	lopnStyle As Long
+	lopnWidth As POINTAPI
+	lopnColor As Long
+End Type
+Declare Function CreatePenIndirect Lib "gdi32" (ByRef lplgpn As LOGPEN) As HPEN
+
+Declare Function CreatePolygonRgn Lib "gdi32" (ByRef lpPoints As POINTAPI, cPoints As Long, fnPolyFillMode As Long) As HRGN
+Declare Function CreateRectRgn Lib "gdi32" (nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long) As HRGN
+Declare Function CreateRectRgnIndirect Lib "gdi32" (ByRef lpRect As RECT) As HRGN
+Declare Function CreateRoundRectRgn Lib "gdi32" (nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long, nWidthEllipse As Long, nHeightEllipse As Long) As HRGN
+Declare Function CreateSolidBrush Lib "gdi32" (crColor As DWord) As HBRUSH
+Declare Function DeleteDC Lib "gdi32" (hdc As HDC) As Long
+Declare Function DeleteObject Lib "gdi32" (hObject As HANDLE) As Long
+Declare Function DPtoLP Lib "gdi32" (hdc As HDC, ByRef lpPoints As POINTAPI, nCount As Long) As Long
+Declare Function Ellipse Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, RightRect As Long, nBottomRect As Long) As Long
+Declare Function EndPath Lib "gdi32" (hdc As HDC) As Long
+Declare Function EqualRgn Lib "gdi32" (hSrcRgn1 As HRGN, hSrcRgn2 As HRGN) As Long
+Declare Function ExcludeClipRect Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long) As Long
+
+Const  FLOODFILLBORDER =  0
+Const  FLOODFILLSURFACE = 1
+Declare Function ExtFloodFill Lib "gdi32" (hdc As HDC, nXStart As Long, nYStart As Long, crColor As DWord, fuFillType As Long) As Long
+
+Const PS_COSMETIC  =     &H00000000
+Const PS_GEOMETRIC =     &H00010000
+Const PS_ENDCAP_ROUND =  &H00000000
+Const PS_ENDCAP_SQUARE = &H00000100
+Const PS_ENDCAP_FLAT =   &H00000200
+Const PS_JOIN_ROUND =    &H00000000
+Const PS_JOIN_BEVEL =    &H00001000
+Const PS_JOIN_MITER =    &H00002000
+Declare Function ExtCreatePen Lib "gdi32" (dwPenStyle As DWord, dwWidth As DWord, ByRef lplb As LOGBRUSH, dwStyleCount As DWord, lpStyle As DWordPtr) As HPEN
+
+Declare Function ExtSelectClipRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN, fnMode As Long) As Long
+Declare Function FillPath Lib "gdi32" (hdc As HDC) As Long
+Declare Function FillRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN, hBrush As HBRUSH) As Long
+Declare Function FrameRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN, hBrush As HBRUSH, nWidth As Long, nHeight As Long) As Long
+Declare Function GetBitmapBits Lib "gdi32" (hbmp As HBITMAP,  cbBuffer As Long, lpvBits As VoidPtr) As Long
+Declare Function GetBkColor Lib "gdi32" (hdc As HDC) As DWord
+Declare Function GetBkMode Lib "gdi32" (hdc As HDC) As Long
+Declare Function GetBrushOrgEx Lib "gdi32" (hdc As HDC, ByRef lppt As POINTAPI) As Long
+Declare Function GetCharWidth32 Lib "gdi32" Alias "GetCharWidth32A" (hdc As HDC, iFirstChar As Long, iLastChar As Long, lpBuffer As DWordPtr) As Long
+Declare Function GetClipBox Lib "gdi32" (hdc As HDC, ByRef lpRect As RECT) As Long
+Declare Function GetClipRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN) As Long
+Declare Function GetCurrentObject Lib "gdi32" (hdc As HDC, dwObjectType As DWord) As HANDLE
+Declare Function GetCurrentPositionEx Lib "gdi32" (hdc As HDC, ByRef lpPoint As POINTAPI) As Long
+
+Const DRIVERVERSION =   0
+Const TECHNOLOGY =      2
+Const HORZSIZE =        4
+Const VERTSIZE =        6
+Const HORZRES =         8
+Const VERTRES =         10
+Const BITSPIXEL =       12
+Const PLANES =          14
+Const NUMBRUSHES =      16
+Const NUMPENS =         18
+Const NUMMARKERS =      20
+Const NUMFONTS =        22
+Const NUMCOLORS =       24
+Const PDEVICESIZE =     26
+Const CURVECAPS =       28
+Const LINECAPS =        30
+Const POLYGONALCAPS =   32
+Const TEXTCAPS =        34
+Const CLIPCAPS =        36
+Const RASTERCAPS =      38
+Const ASPECTX =         40
+Const ASPECTY =         42
+Const ASPECTXY =        44
+Const SHADEBLENDCAPS =  45
+Const LOGPIXELSX =      88
+Const LOGPIXELSY =      90
+Const SIZEPALETTE =     104
+Const NUMRESERVED =     106
+Const COLORRES =        108
+Const PHYSICALWIDTH =   110
+Const PHYSICALHEIGHT =  111
+Const PHYSICALOFFSETX = 112
+Const PHYSICALOFFSETY = 113
+Const SCALINGFACTORX =  114
+Const SCALINGFACTORY =  115
+Const VREFRESH =        116
+Const DESKTOPVERTRES =  117
+Const DESKTOPHORZRES =  118
+Const BLTALIGNMENT =    119
+Const DT_PLOTTER =        0            ' Device Technologies
+Const DT_RASDISPLAY =     1
+Const DT_RASPRINTER =     2
+Const DT_RASCAMERA =      3
+Const DT_CHARSTREAM =     4
+Const DT_METAFILE =       5
+Const DT_DISPFILE =       6
+Const CC_NONE =           0            ' Curve Capabilities
+Const CC_CIRCLES =        1
+Const CC_PIE =            2
+Const CC_CHORD =          4
+Const CC_ELLIPSES =       8
+Const CC_WIDE =           16
+Const CC_STYLED =         32
+Const CC_WIDESTYLED =     64
+Const CC_INTERIORS =      128
+Const CC_ROUNDRECT =      256
+Const LC_NONE =           0            ' Line Capabilities
+Const LC_POLYLINE =       2
+Const LC_MARKER =         4
+Const LC_POLYMARKER =     8
+Const LC_WIDE =           16
+Const LC_STYLED =         32
+Const LC_WIDESTYLED =     64
+Const LC_INTERIORS =      128
+Const PC_NONE =           0            ' Polygonal Capabilities
+Const PC_POLYGON =        1
+Const PC_RECTANGLE =      2
+Const PC_WINDPOLYGON =    4
+Const PC_TRAPEZOID =      4
+Const PC_SCANLINE =       8
+Const PC_WIDE =           16
+Const PC_STYLED =         32
+Const PC_WIDESTYLED =     64
+Const PC_INTERIORS =      128
+Const PC_POLYPOLYGON =    256
+Const PC_PATHS =          512
+Const CP_NONE =           0            ' Clipping Capabilities
+Const CP_RECTANGLE =      1
+Const CP_REGION =         2
+Const TC_OP_CHARACTER =   &H00000001   ' Text Capabilities
+Const TC_OP_STROKE =      &H00000002
+Const TC_CP_STROKE =      &H00000004
+Const TC_CR_90 =          &H00000008
+Const TC_CR_ANY =         &H00000010
+Const TC_SF_X_YINDEP =    &H00000020
+Const TC_SA_DOUBLE =      &H00000040
+Const TC_SA_INTEGER =     &H00000080
+Const TC_SA_CONTIN =      &H00000100
+Const TC_EA_DOUBLE =      &H00000200
+Const TC_IA_ABLE =        &H00000400
+Const TC_UA_ABLE =        &H00000800
+Const TC_SO_ABLE =        &H00001000
+Const TC_RA_ABLE =        &H00002000
+Const TC_VA_ABLE =        &H00004000
+Const TC_RESERVED =       &H00008000
+Const TC_SCROLLBLT =      &H00010000
+Const RC_BITBLT =         1            ' Raster Capabilities
+Const RC_BANDING =        2
+Const RC_SCALING =        4
+Const RC_BITMAP64 =       8
+Const RC_GDI20_OUTPUT =   &H0010
+Const RC_GDI20_STATE =    &H0020
+Const RC_SAVEBITMAP =     &H0040
+Const RC_DI_BITMAP =      &H0080
+Const RC_PALETTE =        &H0100
+Const RC_DIBTODEV =       &H0200
+Const RC_BIGFONT =        &H0400
+Const RC_STRETCHBLT =     &H0800
+Const RC_FLOODFILL =      &H1000
+Const RC_STRETCHDIB =     &H2000
+Const RC_OP_DX_OUTPUT =   &H4000
+Const RC_DEVBITS =        &H8000
+Const SB_NONE =           &H00000000   ' Shading and blending caps
+Const SB_CONST_ALPHA =    &H00000001
+Const SB_PIXEL_ALPHA =    &H00000002
+Const SB_PREMULT_ALPHA =  &H00000004
+Const SB_GRAD_RECT =      &H00000010
+Declare Function GetDeviceCaps Lib "gdi32" (hdc As HDC, nIndex As Long) As Long
+
+Declare Function GetDIBits Lib "gdi32" (hdc As HDC, hbmp As HBITMAP, uStartScan As DWord, cScanLines As DWord, lpvBits As VoidPtr, ByRef lpbi As BITMAPINFO, uUsage As DWord) As Long
+
+Const MM_TEXT =           1
+Const MM_LOMETRIC =       2
+Const MM_HIMETRIC =       3
+Const MM_LOENGLISH =      4
+Const MM_HIENGLISH =      5
+Const MM_TWIPS =          6
+Const MM_ISOTROPIC =      7
+Const MM_ANISOTROPIC =    8
+Declare Function GetMapMode Lib "gdi32" (hdc As HDC) As Long
+
+Declare Function GetMiterLimit Lib "gdi32" (hdc As HDC, peLimit As SinglePtr) As Long
+Declare Function GetObject Lib "gdi32" Alias "GetObjectA" (hgdiobj As HANDLE, cbBuffer As Long, ByRef lpvObject As Any) As Long
+Declare Function GetObjectType Lib "gdi32" (hObject As HANDLE) As Long
+
+Const PT_CLOSEFIGURE = &H01
+Const PT_LINETO =      &H02
+Const PT_BEZIERTO =    &H04
+Const PT_MOVETO =      &H06
+Declare Function GetPath Lib "gdi32" (hdc As HDC, ByRef lpPoints As POINTAPI, lpTypes As BytePtr, nSize As Long) As Long
+
+Declare Function GetPixel Lib "gdi32" (hdc As HDC, x As Long, y As Long) As DWord
+Declare Function GetPolyFillMode Lib "gdi32" (hdc As HDC) As Long
+Declare Function GetRgnBox Lib "gdi32" (hRgn As HRGN, ByRef lpRect As RECT) As Long
+Declare Function GetROP2 Lib "gdi32" (hdc As HDC) As Long
+
+Const WHITE_BRUSH =         0
+Const LTGRAY_BRUSH =        1
+Const GRAY_BRUSH =          2
+Const DKGRAY_BRUSH =        3
+Const BLACK_BRUSH =         4
+Const NULL_BRUSH =          5
+Const HOLLOW_BRUSH =        NULL_BRUSH
+Const WHITE_PEN =           6
+Const BLACK_PEN =           7
+Const NULL_PEN =            8
+Const OEM_FIXED_FONT =      10
+Const ANSI_FIXED_FONT =     11
+Const ANSI_VAR_FONT =       12
+Const SYSTEM_FONT =         13
+Const DEVICE_DEFAULT_FONT = 14
+Const DEFAULT_PALETTE =     15
+Const SYSTEM_FIXED_FONT =   16
+Declare Function GetStockObject Lib "gdi32" (fnObject As Long) As HANDLE
+
+Declare Function GetStretchBltMode Lib "gdi32" (hdc As HDC) As Long
+
+Const TA_NOUPDATECP = 0
+Const TA_UPDATECP =   1
+Const TA_LEFT =       0
+Const TA_RIGHT =      2
+Const TA_CENTER =     6
+Const TA_TOP =        0
+Const TA_BOTTOM =     8
+Const TA_BASELINE =   24
+Const TA_RTLREADING = 256
+Declare Function GetTextAlign Lib "gdi32" (hdc As HDC) As DWord
+
+Declare Function GetTextColor Lib "gdi32" (hdc As HDC) As DWord
+Declare Function GetTextExtentPoint32 Lib "gdi32" Alias "GetTextExtentPoint32A" (hdc As HDC, lpString As BytePtr, cbString As Long, ByRef lpSize As SIZE) As Long
+
+Const TMPF_FIXED_PITCH = &H01
+Const TMPF_VECTOR =      &H02
+Const TMPF_DEVICE =      &H08
+Const TMPF_TRUETYPE =    &H04
+Type TEXTMETRIC
+	tmHeight As Long
+	tmAscent As Long
+	tmDescent As Long
+	tmInternalLeading As Long
+	tmExternalLeading As Long
+	tmAveCharWidth As Long
+	tmMaxCharWidth As Long
+	tmWeight As Long
+	tmOverhang As Long
+	tmDigitizedAspectX As Long
+	tmDigitizedAspectY As Long
+	tmFirstChar As Byte
+	tmLastChar As Byte
+	tmDefaultChar As Byte
+	tmBreakChar As Byte
+	tmItalic As Byte
+	tmUnderlined As Byte
+	tmStruckOut As Byte
+	tmPitchAndFamily As Byte
+	tmCharSet As Byte
+End Type
+Declare Function GetTextMetrics Lib "gdi32" Alias "GetTextMetricsA" (hdc As HDC, ByRef lptm As TEXTMETRIC) As Long
+
+Declare Function GetViewportExtEx Lib "gdi32" (hdc As HDC, ByRef lpSize As SIZE) As Long
+Declare Function GetViewportOrgEx Lib "gdi32" (hdc As HDC, ByRef lpPoint As POINTAPI) As Long
+Declare Function GetWindowExtEx Lib "gdi32" (hdc As HDC, ByRef lpSize As SIZE) As Long
+Declare Function GetWindowOrgEx Lib "gdi32" (hdc As HDC, ByRef lpPoint As POINTAPI) As Long
+Declare Function IntersectClipRect Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long) As Long
+Declare Function InvertRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN) As Long
+Declare Function LineTo Lib "gdi32" (hdc As HDC, nXEnd As Long, nYEnd As Long) As Long
+Declare Function LPtoDP Lib "gdi32" (hdc As HDC, ByRef lpPoints As POINTAPI, nCount As Long) As Long
+Declare Function MoveToEx Lib "gdi32" (hdc As HDC, x As Long, y As Long, ByRef lpPoint As POINTAPI) As Long
+Declare Function OffsetRgn Lib "gdi32" (hRgn As HRGN, nXOffset As Long, nYOffset As Long) As Long
+Declare Function OffsetClipRgn Lib "gdi32" (hdc As HDC, nXOffset As Long, nYOffset As Long) As Long
+Declare Function OffsetViewportOrgEx Lib "gdi32" (hdc As HDC, nXOffset As Long, nYOffset As Long, ByRef lpPoint As POINTAPI) As Long
+Declare Function OffsetWindowOrgEx Lib "gdi32" (hdc As HDC, nXOffset As Long, nYOffset As Long, ByRef lpPoint As POINTAPI) As Long
+Declare Function PaintRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN) As Long
+Declare Function PatBlt Lib "gdi32" (hdc As HDC, nXLeft As Long, nYLeft As Long, nWidth As Long, nHeight As Long, dwRop As DWord) As Long
+Declare Function PathToRegion Lib "gdi32" (hdc As HDC) As HRGN
+Declare Function Pie Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long, nXRadial1 As Long, nYRadial1 As Long, nXRadial2 As Long, nYRadial2 As Long) As Long
+Declare Function PlgBlt Lib "gdi32" (hdcDest As HDC, ByRef lpPoint As POINTAPI, hdcSrc As HDC, nXSrc As Long, nYSrc As Long, nWidth As Long, nHeight As Long, hbmMask As HBITMAP, xMask As Long, yMask As Long) As Long
+Declare Function PolyBezier Lib "gdi32" (hdc As HDC, ByRef lppt As POINTAPI, cPoints As Long) As Long
+Declare Function PolyBezierTo Lib "gdi32" (hdc As HDC, ByRef lppt As POINTAPI, cPoints As Long) As Long
+Declare Function Polygon Lib "gdi32" (hdc As HDC, ByRef lpPoints As POINTAPI, cPoints As Long) As Long
+Declare Function Polyline Lib "gdi32" (hdc As HDC, ByRef lppt As POINTAPI, cPoints As Long) As Long
+Declare Function PolylineTo Lib "gdi32" (hdc As HDC, ByRef lppt As POINTAPI, cPoints As Long) As Long
+Declare Function PtInRegion Lib "gdi32" (hRgn As HRGN, x As Long, y As Long) As Long
+Declare Function PtVisible Lib "gdi32" (hdc As HDC, x As Long, y As Long) As Long
+Declare Function Rectangle Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long) As Long
+Declare Function RectInRegion Lib "gdi32" (hRgn As HRGN, ByRef lpRect As RECT) As Long
+Declare Function RectVisible Lib "gdi32" (hdc As HDC, ByRef lpRect As RECT) As Long
+Declare Function ResetDC Lib "gdi32" Alias "ResetDCA" (hdc As HDC, ByRef lpInitData As DEVMODE) As HDC
+Declare Function RestoreDC Lib "gdi32" (hdc As HDC, nSavedDC As Long) As Long
+Declare Function RoundRect Lib "gdi32" (hdc As HDC, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long, nWidth As Long, nHeight As Long) As Long
+Declare Function SaveDC Lib "gdi32" (hdc As HDC) As Long
+Declare Function ScaleViewportExtEx Lib "gdi32" (hdc As HDC, Xnum As Long, Xdenom As Long, Ynum As Long, Ydenom As Long, ByRef lpSize As SIZE) As Long
+Declare Function ScaleWindowExtEx Lib "gdi32" (hdc As HDC, Xnum As Long, Xdenom As Long, Ynum As Long, Ydenom As Long, ByRef lpSize As SIZE) As Long
+Declare Function SelectClipPath Lib "gdi32" (hdc As HDC, iMode As Long) As Long
+Declare Function SelectClipRgn Lib "gdi32" (hdc As HDC, hRgn As HRGN) As Long
+Declare Function SelectObject Lib "gdi32" (hdc As HDC, hObject As HANDLE) As HANDLE
+Declare Function SetBkColor Lib "gdi32" (hdc As HDC, crColor As DWord) As DWord
+
+Const TRANSPARENT = 1
+Const OPAQUE =      2
+Declare Function SetBkMode Lib "gdi32" (hdc As HDC, iBkMode As Long) As Long
+
+Declare Function SetBrushOrgEx Lib "gdi32" (hdc As HDC, nXOrg As Long, nYOrg As Long, ByRef lppt As POINTAPI) As Long
+Declare Function SetDIBits Lib "gdi32" (hdc As HDC, hbmp As HBITMAP, uStartScan As DWord, cScanLines As DWord, lpvBits As VoidPtr, ByRef lpbmi As BITMAPINFO, fuColorUse As DWord) As Long
+Declare Function SetMapMode Lib "gdi32" (hdc As HDC, fnMapMode As Long) As Long
+Declare Function SetMiterLimit Lib "gdi32" (hdc As HDC, eNewLimit As Single, peOldLimit As SinglePtr) As Long
+Declare Function SetPixel Lib "gdi32" (hdc As HDC, x As Long, y As Long, crColor As DWord) As DWord
+Declare Function SetPolyFillMode Lib "gdi32" (hdc As HDC, iPolyFillMode As Long) As Long
+Declare Function SetRectRgn Lib "gdi32" (hRgn As HRGN, nLeftRect As Long, nTopRect As Long, nRightRect As Long, nBottomRect As Long) As Long
+Declare Function SetROP2 Lib "gdi32" (hdc As HDC, fnDrawMode As Long) As Long
+
+Const BLACKONWHITE =        1
+Const WHITEONBLACK =        2
+Const COLORONCOLOR =        3
+Const HALFTONE =            4
+Const STRETCH_ANDSCANS =    BLACKONWHITE
+Const STRETCH_ORSCANS =     WHITEONBLACK
+Const STRETCH_DELETESCANS = COLORONCOLOR
+Const STRETCH_HALFTONE =    HALFTONE
+Declare Function SetStretchBltMode Lib "gdi32" (hdc As HDC, iStretchMode As Long) As Long
+
+Declare Function SetTextAlign Lib "gdi32" (hdc As HDC, fMode As DWord) As DWord
+Declare Function SetTextColor Lib "gdi32" (hdc As HDC, crColor As DWord) As DWord
+Declare Function SetViewportExtEx Lib "gdi32" (hdc As HDC, nXExtent As Long, nYExtent As Long, ByRef lpSize As SIZE) As Long
+Declare Function SetViewportOrgEx Lib "gdi32" (hdc As HDC, x As Long, y As Long, ByRef lpPoint As POINTAPI) As Long
+Declare Function SetWindowExtEx Lib "gdi32" (hdc As HDC, nXExtent As Long, nYExtent As Long, ByRef lpSize As SIZE) As Long
+Declare Function SetWindowOrgEx Lib "gdi32" (hdc As HDC, x As Long, y As Long, ByRef lpPoint As POINTAPI) As Long
+Declare Function StretchBlt Lib "gdi32" (hdcDest As HDC, nXOriginDest As Long, nYOriginDest As Long, nWidthDest As Long, nHeightDest As Long, hdcSrc As HDC, nXOriginSrc As Long, nYOriginSrc As Long, nWidthSrc As Long, nHeightSrc As Long, dwRop As DWord) As Long
+Declare Function StretchDIBits Lib "gdi32" (hdc As HDC, XDest As Long, YDest As Long, nDestWidth As Long, nDestHeight As Long, XSrc As Long, YSrc As Long, nSrcWidth As Long, nSrcHeight As Long, lpBits As VoidPtr, ByRef lpBitsInfo As BITMAPINFO, iUsage As Long, dwRop As DWord) As Long
+Declare Function StrokeAndFillPath Lib "gdi32" (hdc As HDC) As Long
+Declare Function StrokePath Lib "gdi32" (DC As DWord) As Long
+Declare Function TextOut Lib "gdi32" Alias "TextOutA" (hdc As HDC, nXStart As Long, nYStart As Long, lpString As BytePtr, cbString As Long) As Long

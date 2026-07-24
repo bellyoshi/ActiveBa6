@@ -1,0 +1,24 @@
+'=============================================================================
+'  Event Procedures
+'=============================================================================
+' You input event codes of window[#window#].
+' Window Handle: #handle#
+
+' TODO: Add code here to define global variables or objects or constants or functions.
+
+
+'-----------------------------------------------------------------------------
+' Callback function to process window messages
+'-----------------------------------------------------------------------------
+
+Function #window#Proc(hWnd As HWND, dwMsg As DWord, wParam As WPARAM, lParam As LPARAM) As DWord
+	' TODO: Add code here to process window messages.
+
+	' Call the default event procedure.
+	#procedure#=EventCall_#window#(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' The following is Event Procedures
+'-----------------------------------------------------------------------------

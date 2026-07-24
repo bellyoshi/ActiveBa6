@@ -1,0 +1,282 @@
+#include "driving.idx"
+
+
+Dim ScreenX=640 As Long	'ディスプレイの幅  （ピクセル単位）
+Dim ScreenY=480 As Long	'ディスプレイの高さ（ピクセル単位）
+
+' TODO: この位置にグローバル変数を定義してください。
+
+Const MAX_SPEED = 25    '最高速（メートル/秒）
+Const FPS = 60          'FPSの基準値
+
+'FPSを計算するための変数
+Dim dwNowFPS=FPS As DWord
+Dim temp_FPS=FPS As DWord
+Dim temp_Count As DWord
+
+'自動車
+Dim pModel As *CMeshModel                   'メッシュモデル
+Dim VectorPosition=[0,0,-5] As D3DVECTOR    '位置
+Dim direction_xz=D3DX_PI As Single          'XZ平面上の方向
+Dim velocity As Single                      '速度
+
+'エンジンノイズの音源
+Dim pEngineNoise As *CAudio3D
+Dim dwDefaultFrequency As DWord
+
+'リスナー
+Dim pListener As *CListener
+Dim pLisModel As *CMeshModel
+Dim ListenerPosition=[0,1,0] As D3DVECTOR	'位置
+
+'DirectInput用
+Dim pInKey As *CInputKeyboard
+
+
+Function InitProc()
+	'DirectXを初期化
+	If dx_Init(hMainWnd,ScreenX,ScreenY,FALSE)=0 Then
+		InitProc=0
+		Exit Function
+	End If
+
+	'マウスカーソルを非表示にする
+	ShowCursor(FALSE)
+
+	' TODO: この位置にアプリケーションの初期化コードを記述してください。
+
+	'ライト
+	dx_SetDefaultLight()
+
+
+	'------------------------
+	' メッシュモデルの初期化
+	'------------------------
+
+	'自動車
+	pModel=New CMeshModel("model.x")
+
+	'リスナー
+	pLisModel=New CMeshModel("listener.x")
+
+
+	'----------------------------
+	' リスナーの初期化
+	'----------------------------
+
+	'CListenerオブジェクトを生成
+	pListener=New CListener
+
+	'リスナーの位置を設定
+	pListener->SetPosition(ListenerPosition.x,ListenerPosition.y,ListenerPosition.z)
+
+
+	'----------------------------
+	' 音源（エンジン音）の初期化
+	'----------------------------
+
+	'CAudio3Dオブジェクトを生成
+	pEngineNoise=New CAudio3D
+
+	'セカンダリモードに設定
+	pEngineNoise->SetSecondary()
+
+	'読み込み
+	pEngineNoise->Load("EngineNoise.wav")
+
+	'デフォルト時の周波数を取得
+	pEngineNoise->GetFrequency(VarPtr(dwDefaultFrequency))
+
+	'最短距離、最長距離を設定
+	pEngineNoise->SetMinDistance(0)
+	pEngineNoise->SetMaxDistance(50)		'50メートルの距離まで音が届く
+
+	'リピート回数を無限に設定
+	pEngineNoise->SetRepeats(DMUS_SEG_REPEAT_INFINITE)
+
+	'再生
+	pEngineNoise->Play()
+
+
+	'-----------------------------
+	' DirectInputの初期化
+	'-----------------------------
+
+	'キーボードデバイスオブジェクトを生成
+	pInKey=New CInputKeyboard
+
+
+	InitProc=1
+End Function
+
+Sub QuitProc()
+	' TODO: この位置にアプリケーションの終了処理を記述してください。
+
+	'メッシュモデルを破棄
+	Delete pModel
+
+	'リスナーのメッシュモデルを破棄
+	Delete pLisModel
+
+	'エンジン音を停止し、破棄
+	pEngineNoise->Stop()
+	Delete pEngineNoise
+
+	'リスナーを破棄
+	Delete pListener
+
+	'キーボードデバイスオブジェクトを破棄
+	Delete pInKey
+
+
+	'DirectXの終了処理
+	dx_Quit()
+End Sub
+
+Sub InputActionProc()
+	' TODO: この位置に入力に関するコードを記述してください。
+	'       （キーボード、マウス、ジョイパッド、ジョイスティックなどによる入力）
+
+	' メモ - キャラクタの移動など、状況進行（アクション）を意味するコードを
+	'        記述することもできます。
+
+	Dim KeyState[255] As Byte
+	pInKey->GetState(KeyState)
+
+	'ESCキーが押されたときは終了する
+	If KeyState[DIK_ESCAPE] and &H80 Then
+		PostQuitMessage(0)
+	End If
+
+	'アクセル制御
+	If KeyState[DIK_UP] and &H80 Then
+		'方向キー（上）が押されているとき
+		velocity=velocity+0.1
+		If velocity>MAX_SPEED Then velocity=MAX_SPEED
+	Else
+		'方向キー（上）が離されているとき
+		velocity=velocity-0.1
+		If velocity<0 Then velocity=0
+	End If
+
+	If velocity>3 Then
+		'ハンドル操作（車が動いているときのみ）
+		If KeyState[DIK_LEFT] and &H80 Then
+			'方向キー（左）
+			direction_xz=direction_xz-2/FPS
+			If direction_xz<0 Then direction_xz=D3DX_PI*2+direction_xz
+		ElseIf KeyState[DIK_RIGHT] and &H80 Then
+			'方向キー（右）
+			direction_xz=direction_xz+2/FPS
+			If direction_xz>=D3DX_PI*2 Then direction_xz=0
+		End If
+	End If
+
+
+	'移動
+	VectorPosition.x=VectorPosition.x-Sin(direction_xz)*velocity/FPS
+	VectorPosition.z=VectorPosition.z-Cos(direction_xz)*velocity/FPS
+
+	'速度をもとに周波数を計算（エンジンの吹け上がりサウンドを再現）
+	Dim dwPowerFrequency As DWord
+	dwPowerFrequency=dwDefaultFrequency/4+dwDefaultFrequency*(3/4)*(velocity/MAX_SPEED)
+	pEngineNoise->SetFrequency(dwPowerFrequency)
+
+	'エンジン音の音源情報を設定
+	pEngineNoise->SetPosition(VectorPosition.x,VectorPosition.y,VectorPosition.z)
+	pEngineNoise->SetVelocity(
+		-Sin(direction_xz)*velocity,
+		0,
+		-Cos(direction_xz)*velocity)
+
+	'リスナー/音源のパフォーマンスを更新
+	pListener->CommitSettings()
+End Sub
+
+Sub RenderProc()
+	' TODO: この位置に描画に関するコードを記述してください。
+
+	'自動車を描画
+	Dim VectorDirection=[0,0,0] As D3DVECTOR
+	VectorDirection.y=direction_xz
+	pModel->Draw(VarPtr(VectorPosition),VarPtr(VectorDirection))
+
+	'リスナーを描画
+	VectorDirection.x=GetTickCount()/800
+	VectorDirection.y=GetTickCount()/900
+	VectorDirection.z=GetTickCount()/1000
+	pLisModel->Draw(VarPtr(ListenerPosition),VarPtr(VectorDirection))
+
+	'カメラを設定
+	Dim VectorEye=[0,5,-10] As D3DVECTOR
+	Dim VectorAt=[0,0,0] As D3DVECTOR
+	Dim VectorUp=[0,1,0] As D3DVECTOR
+	dx_SetCamera(VarPtr(VectorEye),VarPtr(VectorAt),VarPtr(VectorUp))
+
+	'視野を設定
+	dx_SetProjection(60*D3DX_PI/180,
+		1,
+		0.01,
+		2000.0)
+
+	'FPSを計算
+	temp_FPS=temp_FPS+1
+	If GetTickCount()-temp_Count>1000 Then
+		temp_Count=GetTickCount()
+
+		dwNowFPS=temp_FPS
+		temp_FPS=0
+	End If
+
+	'テキスト情報を描画
+	Dim buf[255] As Char
+	wsprintf(buf,Ex"%dfps  %dm/s  %dkm/h\nESCキーで終了",dwNowFPS,Int(velocity),Int(velocity*3600/1000))
+	dx_DrawText(ScreenX*2/3,ScreenY-50,buf,D3DCOLOR_XRGB(200,200,200))
+End Sub
+
+
+'------------------------------------------------
+' 初期化処理
+'------------------------------------------------
+
+If InitProc()=0 Then
+	MessageBox(0,"初期化に失敗しました。","Error",MB_OK or MB_ICONEXCLAMATION)
+	ExitProcess(0)
+End If
+
+
+'------------------------------------------------
+' メインループ
+'------------------------------------------------
+Dim msgMain As MSG, iResult As Long
+Do
+	If PeekMessage(msgMain,0,0,0,PM_REMOVE) Then
+		'----------------------------------
+		' メインウィンドウのメッセージ処理
+		'----------------------------------
+
+		If msgMain.message=WM_QUIT Then Exit Do
+		TranslateMessage(msgMain)
+		DispatchMessage(msgMain)
+	Else
+		'---------------------------
+		' DirectXによる入力及び描画
+		'---------------------------
+
+		InputActionProc()			'入力
+
+		dx_BeginScene()				'描画を開始
+		dx_Clear()					'画面をクリア
+		RenderProc()				'レンダリング（描画）
+		dx_EndScene()				'描画を終了
+		dx_Present()				'画面を更新
+	End If
+Loop
+
+
+'------------------------------------------------
+' 終了処理
+'------------------------------------------------
+
+QuitProc()
+ExitProcess(msgMain.wParam)

@@ -1,0 +1,99 @@
+'dos_console.sbp
+'このファイルには、コンソール アプリケーション用のサポート プログラムが記載されます。
+
+#include <api_console.sbp>
+
+Dim _System_hConsoleOut As HANDLE, _System_hConsoleIn As HANDLE
+_System_hConsoleOut=GetStdHandle(STD_OUTPUT_HANDLE)
+_System_hConsoleIn=GetStdHandle(STD_INPUT_HANDLE)
+
+'---------- command.sbp内で定義済み ----------
+'Dim _System_InputDataPtr[_System_MAX_PARMSNUM] As VoidPtr
+'Dim _System_InputDataType[_System_MAX_PARMSNUM] As DWord
+'---------------------------------------------
+Sub INPUT_FromPrompt(ShowStr As String)
+	Dim i As Long ,i2 As Long, i3 As Long
+	Dim buf As String
+	Dim InputStr[1023] As Byte
+	Dim dwAccessBytes As DWord
+
+*InputReStart
+
+	PRINT_ToPrompt(ShowStr)
+
+	'入力
+	ReadFile(_System_hConsoleIn,InputStr,1024,VarPtr(dwAccessBytes),ByVal 0)
+	InputStr[dwAccessBytes-2]=0
+
+	'データを変数に格納
+	i=0
+	i2=0
+	buf=ZeroString(lstrlen(InputStr)+1)
+	While 1
+		i3=0
+		While 1
+			If InputStr[i2]=Asc(",") Then
+				buf[i3]=0
+				Exit While
+			End If
+
+			buf[i3]=InputStr[i2]
+
+			If InputStr[i2]=0 Then Exit While
+
+			i2=i2+1
+			i3=i3+1
+		Wend
+
+		Select Case _System_InputDataType[i]
+			Case _System_Type_Double
+				SetDouble(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_Single
+				SetSingle(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_DWord
+				SetDWord(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_Word
+				SetWord(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_Byte
+				SetByte(_System_InputDataPtr[i],Val(buf))
+			Case _System_Type_String
+#ifdef _WIN64
+				_System_HeapStringFree(GetQWord(_System_InputDataPtr[i]) As VoidPtr)
+				SetQWord(_System_InputDataPtr[i],_System_HeapStringAlloc(lstrlen(buf)))
+				memcpy(GetQWord(_System_InputDataPtr[i]) As VoidPtr,StrPtr(buf),lstrlen(buf))
+#else
+				_System_HeapStringFree(GetDWord(_System_InputDataPtr[i]))
+				SetDWord(_System_InputDataPtr[i],_System_HeapStringAlloc(lstrlen(buf)))
+				memcpy(GetDWord(_System_InputDataPtr[i]) As VoidPtr,StrPtr(buf),lstrlen(buf))
+#endif
+		End Select
+
+		i=i+1
+		If _System_InputDataPtr[i]=0 and InputStr[i2]=Asc(",") Then
+			PRINT_ToPrompt("入力データの個数が多すぎます"+Chr$(10))
+			Goto *InputReStart
+		ElseIf InputStr[i2]=0 Then
+			If _System_InputDataPtr[i]<>0 Then
+				PRINT_ToPrompt("入力データの個数が足りません"+Chr$(10))
+				Goto *InputReStart
+			Else
+				Exit While
+			End If
+		End If
+
+		i2=i2+1
+	Wend
+End Sub
+
+Macro LOCATE(x As Long, y As Long)
+	SetConsoleCursorPosition(_System_hConsoleOut,MAKELONG(x,y))
+End Macro
+
+Sub PRINT_ToPrompt(buf As String)
+	Dim dwAccessBytes As DWord
+	WriteFile(_System_hConsoleOut,StrPtr(buf),Len(buf),VarPtr(dwAccessBytes),ByVal 0)
+End Sub
+
+Sub PRINTUSING_ToPrompt(UsingStr As String)
+	PRINT_ToPrompt(_System_GetUsingFormat(UsingStr))
+End Sub

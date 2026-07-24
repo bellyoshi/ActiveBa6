@@ -1,0 +1,69 @@
+'debug.sbp
+'このファイル内のコードはデバッグ コンパイル時のみ有効です（リリース コンパイルでは無視されます）。
+
+'Dim _DebugSys_dwThreadID[255] As DWord		- コンパイラが自動的に定義します
+'Dim _DebugSys_lpdwObp[255] As DWord		- コンパイラが自動的に定義します
+'Dim _DebugSys_lpdwEbp[255] As DWord		- コンパイラが自動的に定義します
+'Dim _DebugSys_ProcNum[255] As DWord		- コンパイラが自動的に定義します
+
+Function _DebugSys_GetThread() As Long
+	Dim dwThreadID As DWord
+	Dim ThreadNum As Long
+
+	dwThreadID=GetCurrentThreadId()
+	ThreadNum=0
+	Do
+		If dwThreadID=_DebugSys_dwThreadID[ThreadNum] Then Exit Do
+		ThreadNum=ThreadNum+1
+		If ThreadNum>255 Then
+			OutputDebugString(Ex"[GetThread]デバッグ情報が異常です。プロセスを終了します。\r\n")
+			ExitProcess(0)
+		End If
+	Loop
+
+	_DebugSys_GetThread=ThreadNum
+End Function
+
+Sub _DebugSys_StartProc(dwEbp As DWord, dwObp As DWord)
+	Dim i As Long
+
+	Dim ThreadNum As Long
+	ThreadNum=_DebugSys_GetThread()
+
+	If _DebugSys_lpdwObp[ThreadNum] Then
+		i=(_DebugSys_ProcNum[ThreadNum]+2)*4
+		_DebugSys_lpdwObp[ThreadNum]=HeapReAlloc(GetProcessHeap(),0,_DebugSys_lpdwObp[ThreadNum],i)
+		_DebugSys_lpdwEbp[ThreadNum]=HeapReAlloc(GetProcessHeap(),0,_DebugSys_lpdwEbp[ThreadNum],i)
+	Else
+		_DebugSys_ProcNum[ThreadNum]=0
+		_DebugSys_lpdwObp[ThreadNum]=HeapAlloc(GetProcessHeap(),0,8)
+		_DebugSys_lpdwEbp[ThreadNum]=HeapAlloc(GetProcessHeap(),0,8)
+	End If
+
+	SetDWord(_DebugSys_lpdwObp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*4,dwObp)
+	SetDWord(_DebugSys_lpdwEbp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*4,dwEbp)
+
+	_DebugSys_ProcNum[ThreadNum]=_DebugSys_ProcNum[ThreadNum]+1
+End Sub
+
+Sub _DebugSys_EndProc()
+	Dim ThreadNum As Long
+	ThreadNum=_DebugSys_GetThread()
+
+	_DebugSys_ProcNum[ThreadNum]=_DebugSys_ProcNum[ThreadNum]-1
+End Sub
+
+Sub _DebugSys_SaveContext(dwEbp As DWord, dwObp As DWord)
+	Dim ThreadNum As Long
+	ThreadNum=_DebugSys_GetThread()
+
+	If _DebugSys_lpdwObp[ThreadNum]=0 Then
+		OutputDebugString(Ex"[SaveContext]デバッグ情報が異常です。プロセスを終了します。\r\n")
+		ExitProcess(0)
+	End If
+	SetDWord(_DebugSys_lpdwObp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*SizeOf(DWord), GetDWord(VarPtr(dwObp)))
+	SetDWord(_DebugSys_lpdwEbp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*SizeOf(DWord), GetDWord(VarPtr(dwEbp)))
+End Sub
+
+Sub _DebugSys_GetEip()	'dummy
+End Sub

@@ -1,0 +1,23 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=SystemWatcher
+
+#PLATFORM=32
+
+#USEWINDOW=1
+
+#OPTION=&H00000002
+
+#OUTPUT_RELEASE=.\SystemWatcher.exe
+
+#OUTPUT_DEBUG=.\SystemWatcher_debug.exe
+
+#RESOURCE=0
+
+#SOURCE
+SystemWatcher.abp
+MainWnd.sbp

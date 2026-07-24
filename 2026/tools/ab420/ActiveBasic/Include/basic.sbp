@@ -1,0 +1,93 @@
+'basic.sbp
+
+Const LONG_MAX = &H7FFFFFFF
+Const LONG_MIN = &H80000000
+
+Const FLT_MAX = 3.402823466e+38
+Const FLT_MIN = 1.175494351e-38
+
+'-------------
+' Basic Types
+'-------------
+
+'Char
+'Byte
+'Integer
+'Word
+'Long
+TypeDef Int32 = Long
+'DWord
+'Int64
+'QWord
+'Single
+'Double
+
+TypeDef BOOL = Long
+
+
+
+'------------------
+' Types of pointer
+'------------------
+TypeDef BytePtr =   *Byte
+TypeDef WordPtr =   *Word
+TypeDef DWordPtr =  *DWord
+TypeDef SinglePtr = *Single
+TypeDef DoublePtr = *Double
+
+#ifdef _WIN64
+TypeDef LONG_PTR =  Int64
+TypeDef ULONG_PTR = QWord
+#else
+TypeDef LONG_PTR = Long
+TypeDef ULONG_PTR = DWord
+#endif
+TypeDef DWORD_PTR = ULONG_PTR
+
+TypeDef SIZE_T = LONG_PTR
+
+
+'--------------------------
+' Specify elements number
+'--------------------------
+Const ELM(n) = n - 1
+
+
+TypeDef WCHAR = Word
+
+#include <windows.sbp>
+#include <objbase.sbp>
+
+#ifdef _WIN64
+#include <system\string64.sbp>
+#include <system\debug64.sbp>
+#else
+#include <system\string.sbp>
+#include <system\debug.sbp>
+#endif
+
+
+Dim _System_CriticalSection As CRITICAL_SECTION
+Dim _System_hProcessHeap As HANDLE
+
+Sub _System_StartupProgram()
+	InitializeCriticalSection(_System_CriticalSection)
+
+	_System_hProcessHeap=GetProcessHeap()
+
+	_System_AllocatedStringInfo.pAddress=HeapAlloc(_System_hProcessHeap,0,1)
+	_System_AllocatedStringInfo.num=0
+
+	_System_RndNext=1
+End Sub
+
+Sub _System_EndProgram()
+	DeleteCriticalSection(_System_CriticalSection)
+
+	HeapFree(_System_hProcessHeap,0,_System_AllocatedStringInfo.pAddress)
+End Sub
+
+_System_StartupProgram()
+
+#include <basic\function.sbp>
+#include <basic\command.sbp>

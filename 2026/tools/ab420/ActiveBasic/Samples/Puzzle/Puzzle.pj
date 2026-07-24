@@ -1,0 +1,23 @@
+' ActiveBasic Project file.
+
+#VERSION=9
+
+#MODULETYPE=0
+
+#NAME=Puzzle
+
+#PLATFORM=32
+
+#USEWINDOW=1
+
+#OPTION=&H01000000
+
+#OUTPUT_RELEASE=.\Puzzle.exe
+
+#OUTPUT_DEBUG=.\Puzzle_debug.exe
+
+#RESOURCE=Puzzle.rc
+
+#SOURCE
+Puzzle.abp
+MainWnd.sbp

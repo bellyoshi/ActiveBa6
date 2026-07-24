@@ -1,0 +1,11 @@
+case4
+
+text,"SendMail.sbp",0,138,5872,5872
+rad,MainWnd
+text,"MainWnd.sbp",0,157,6404,6404
+rad,SendMail
+
+2
+1
+1
+0,0,0,1,1

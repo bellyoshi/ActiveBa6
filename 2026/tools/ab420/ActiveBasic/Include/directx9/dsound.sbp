@@ -1,0 +1,631 @@
+' dsound.sbp
+
+
+Const DIRECTSOUND_VERSION = &H0900
+
+
+Const _FACDS = &H878   'DirectSound's facility code
+Const MAKE_DSHRESULT(code) = MAKE_HRESULT(1, _FACDS, code)
+
+
+' DirectSound Component GUID {47D4D946-62E8-11CF-93BC-444553540000}
+Dim CLSID_DirectSound = [&H47d4d946, &H62e8, &H11cf, [&H93, &Hbc, &H44, &H45, &H53, &H54, &H0, &H0]] As GUID
+
+' DirectSound 8.0 Component GUID {3901CC3F-84B5-4FA4-BA35-AA8172B8A09B}
+Dim CLSID_DirectSound8 = [&H3901cc3f, &H84b5, &H4fa4, [&Hba, &H35, &Haa, &H81, &H72, &Hb8, &Ha0, &H9b]] As GUID
+
+' DirectSound Capture Component GUID {B0210780-89CD-11D0-AF08-00A0C925CD16}
+Dim CLSID_DirectSoundCapture = [&Hb0210780, &H89cd, &H11d0, [&Haf, &H8, &H0, &Ha0, &Hc9, &H25, &Hcd, &H16]] As GUID
+
+' DirectSound 8.0 Capture Component GUID {E4BCAC13-7F99-4908-9A8E-74E3BF24B6E1}
+Dim CLSID_DirectSoundCapture8 = [&He4bcac13, &H7f99, &H4908, [&H9a, &H8e, &H74, &He3, &Hbf, &H24, &Hb6, &He1]] As GUID
+
+' DirectSound Full Duplex Component GUID {FEA4300C-7959-4147-B26A-2377B9E7A91D}
+Dim CLSID_DirectSoundFullDuplex = [&Hfea4300c, &H7959, &H4147, [&Hb2, &H6a, &H23, &H77, &Hb9, &He7, &Ha9, &H1d]] As GUID
+
+
+' DirectSound default playback device GUID {DEF00000-9C6D-47ED-AAF1-4DDA8F2B5C03}
+Dim DSDEVID_DefaultPlayback = [&Hdef00000, &H9c6d, &H47ed, [&Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03]] As GUID
+
+' DirectSound default capture device GUID {DEF00001-9C6D-47ED-AAF1-4DDA8F2B5C03}
+Dim DSDEVID_DefaultCapture = [&Hdef00001, &H9c6d, &H47ed, [&Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03]] As GUID
+
+' DirectSound default device for voice playback {DEF00002-9C6D-47ED-AAF1-4DDA8F2B5C03}
+Dim DSDEVID_DefaultVoicePlayback = [&Hdef00002, &H9c6d, &H47ed, [&Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03]] As GUID
+
+' DirectSound default device for voice capture {DEF00003-9C6D-47ED-AAF1-4DDA8F2B5C03}
+Dim DSDEVID_DefaultVoiceCapture = [&Hdef00003, &H9c6d, &H47ed, [&Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03]] As GUID
+
+
+Type DSCAPS
+	dwSize As DWord
+	dwFlags As DWord
+	dwMinSecondarySampleRate As DWord
+	dwMaxSecondarySampleRate As DWord
+	dwPrimaryBuffers As DWord
+	dwMaxHwMixingAllBuffers As DWord
+	dwMaxHwMixingStaticBuffers As DWord
+	dwMaxHwMixingStreamingBuffers As DWord
+	dwFreeHwMixingAllBuffers As DWord
+	dwFreeHwMixingStaticBuffers As DWord
+	dwFreeHwMixingStreamingBuffers As DWord
+	dwMaxHw3DAllBuffers As DWord
+	dwMaxHw3DStaticBuffers As DWord
+	dwMaxHw3DStreamingBuffers As DWord
+	dwFreeHw3DAllBuffers As DWord
+	dwFreeHw3DStaticBuffers As DWord
+	dwFreeHw3DStreamingBuffers As DWord
+	dwTotalHwMemBytes As DWord
+	dwFreeHwMemBytes As DWord
+	dwMaxContigFreeHwMemBytes As DWord
+	dwUnlockTransferRateHwBuffers As DWord
+	dwPlayCpuOverheadSwBuffers As DWord
+	dwReserved1 As DWord
+	dwReserved2 As DWord
+End Type
+
+Type DSBCAPS
+	dwSize As DWord
+	dwFlags As DWord
+	dwBufferBytes As DWord
+	dwUnlockTransferRate As DWord
+	dwPlayCpuOverhead As DWord
+End Type
+
+Const DSFX_LOCHARDWARE = &H00000001
+Const DSFX_LOCSOFTWARE = &H00000002
+Type DSEFFECTDESC
+	dwSize As DWord
+	dwFlags As DWord
+	guidDSFXClass As GUID
+	dwReserved1 As DWord
+	dwReserved2 As DWord
+End Type
+
+Const DSCFX_LOCHARDWARE  = &H00000001
+Const DSCFX_LOCSOFTWARE  = &H00000002
+Const DSCFXR_LOCHARDWARE = &H00000010
+Const DSCFXR_LOCSOFTWARE = &H00000020
+Type DSCEFFECTDESC
+	dwSize As DWord
+	dwFlags As DWord
+	guidDSCFXClass As GUID
+	guidDSCFXInstance As GUID
+	dwReserved1 As DWord
+	dwReserved2 As DWord
+End Type
+
+Type DSBUFFERDESC
+	dwSize As DWord
+	dwFlags As DWord
+	dwBufferBytes As DWord
+	dwReserved As DWord
+	lpwfxFormat As *WAVEFORMATEX
+	guid3DAlgorithm As GUID
+End Type
+
+Type DS3DBUFFER
+	dwSize As DWord
+	vPosition As D3DVECTOR
+	vVelocity As D3DVECTOR
+	dwInsideConeAngle As DWord
+	dwOutsideConeAngle As DWord
+	vConeOrientation As D3DVECTOR
+	lConeOutsideVolume As Long
+	flMinDistance As Single
+	flMaxDistance As Single
+	dwMode As DWord
+End Type
+
+Type DS3DLISTENER
+	dwSize As DWord
+	vPosition As D3DVECTOR
+	vVelocity As D3DVECTOR
+	vOrientFront As D3DVECTOR
+	vOrientTop As D3DVECTOR
+	flDistanceFactor As Single
+	flRolloffFactor As Single
+	flDopplerFactor As Single
+End Type
+
+Type DSCCAPS
+	dwSize As DWord
+	dwFlags As DWord
+	dwFormats As DWord
+	dwChannels As DWord
+End Type
+
+Type DSCBUFFERDESC
+	dwSize As DWord
+	dwFlags As DWord
+	dwBufferBytes As DWord
+	dwReserved As DWord
+	lpwfxFormat As *WAVEFORMATEX
+	dwFXCount As DWord
+	lpDSCFXDesc As *DSCEFFECTDESC
+End Type
+
+Type DSCBCAPS
+	dwSize As DWord
+	dwFlags As DWord
+	dwBufferBytes As DWord
+	dwReserved As DWord
+End Type
+
+Type DSBPOSITIONNOTIFY
+	dwOffset As DWord
+	hEventNotify As HANDLE
+End Type
+
+
+'------------------------
+' DirectSound Interfaces
+'------------------------
+
+Class IReferenceClock
+	Inherits IUnknown
+Public
+	'IReferenceClock methods
+	Virtual Function GetTime(pTime As *REFERENCE_TIME) As DWord
+	Virtual Function AdviseTime(rtBaseTime As REFERENCE_TIME, rtStreamTime As REFERENCE_TIME, hEvent As HANDLE, pdwAdviseCookie As DWordPtr) As DWord
+	Virtual Function AdvisePeriodic(rtStartTime As REFERENCE_TIME, rtPeriodTime As REFERENCE_TIME, hSemaphore As HANDLE, pdwAdviseCookie As DWordPtr) As DWord
+	Virtual Function Unadvise(dwAdviseCookie As DWord) As DWord
+End Class
+
+Dim IID_IDirectSound = [&H279AFA83, &H4981, &H11CE, [&HA5, &H21, &H00, &H20, &HAF, &H0B, &HE5, &H60]] As GUID
+Class IDirectSound
+	Inherits IUnknown
+Public
+	'IDirectSound methods
+	Virtual Function CreateSoundBuffer(pcDSBufferDesc As *DSBUFFERDESC, ppDSBuffer As *LPDIRECTSOUNDBUFFER, pUnkOuter As LPUNKNOWN) As DWord
+	Virtual Function GetCaps(pDSCaps As *DSCAPS) As DWord
+	Virtual Function DuplicateSoundBuffer(pDSBufferOriginal As LPDIRECTSOUNDBUFFER, ppDSBufferDuplicate As *LPDIRECTSOUNDBUFFER) As DWord
+	Virtual Function SetCooperativeLevel(hwnd As HWND, dwLevel As DWord) As DWord
+	Virtual Function Compact() As DWord
+	Virtual Function GetSpeakerConfig(pdwSpeakerConfig As DWordPtr) As DWord
+	Virtual Function SetSpeakerConfig(dwSpeakerConfig As DWord) As DWord
+	Virtual Function Initialize(pcGuidDevice As *GUID) As DWord
+End Class
+TypeDef LPDIRECTSOUND = *IDirectSound
+
+Dim IID_IDirectSound8 = [&HC50A7E93, &HF395, &H4834, [&H9E, &HF6, &H7F, &HA9, &H9D, &HE5, &H09, &H66]] As GUID
+Class IDirectSound8
+	Inherits IDirectSound
+Public
+	'IDirectSound8 methods
+	Virtual Function VerifyCertification(pdwCertified As DWordPtr) As DWord
+End Class
+TypeDef LPDIRECTSOUND8 = *IDirectSound8
+
+Dim IID_IDirectSoundBuffer = [&H279AFA85, &H4981, &H11CE, [&HA5, &H21, &H00, &H20, &HAF, &H0B, &HE5, &H60]] As GUID
+Class IDirectSoundBuffer
+	Inherits IUnknown
+Public
+	'IDirectSoundBuffer methods
+	Virtual Function GetCaps(pDSBufferCaps As *DSBCAPS) As DWord
+	Virtual Function GetCurrentPosition(pdwCurrentPlayCursor As DWordPtr, pdwCurrentWriteCursor As DWordPtr) As DWord
+	Virtual Function GetFormat(pwfxFormat As *WAVEFORMATEX, dwSizeAllocated As DWord, pdwSizeWritten As DWordPtr) As DWord
+	Virtual Function GetVolume(plVolume As *Long) As DWord
+	Virtual Function GetPan(plPan As *Long) As DWord
+	Virtual Function GetFrequency(pdwFrequency As DWordPtr) As DWord
+	Virtual Function GetStatus(pdwStatus As DWordPtr) As DWord
+	Virtual Function Initialize(pDirectSound As LPDIRECTSOUND, pcDSBufferDesc As *DSBUFFERDESC) As DWord
+	Virtual Function Lock(dwOffset As DWord, dwBytes As DWord, ppvAudioPtr1 As DWordPtr, pdwAudioBytes1 As DWordPtr, ppvAudioPtr2 As DWordPtr, pdwAudioBytes2 As DWordPtr, dwFlags As DWord) As DWord
+	Virtual Function Play(dwReserved1 As DWord, dwPriority As DWord, dwFlags As DWord) As DWord
+	Virtual Function SetCurrentPosition(dwNewPosition As DWord) As DWord
+	Virtual Function SetFormat(pcfxFormat As *WAVEFORMATEX) As DWord
+	Virtual Function SetVolume(lVolume As Long) As DWord
+	Virtual Function SetPan(lPan As Long) As DWord
+	Virtual Function SetFrequency(dwFrequency As DWord) As DWord
+	Virtual Function Stop() As DWord
+	Virtual Function Unlock(pvAudioPtr1 As VoidPtr, dwAudioBytes1 As DWord, pvAudioPtr2 As VoidPtr, dwAudioBytes2 As DWord) As DWord
+	Virtual Function Restore() As DWord
+End Class
+TypeDef LPDIRECTSOUNDBUFFER = *IDirectSoundBuffer
+
+Dim IID_IDirectSoundBuffer8 = [&H6825a449, &H7524, &H4d82, [&H92, &H0f, &H50, &He3, &H6a, &Hb3, &Hab, &H1e]] As GUID
+Class IDirectSoundBuffer8
+	Inherits IDirectSoundBuffer
+Public
+	'IDirectSoundBuffer8 methods
+	Virtual Function SetFX(dwEffectsCount As DWord, pDSFXDesc As *DSEFFECTDESC, pdwResultCodes As DWordPtr) As DWord
+	Virtual Function AcquireResources(dwFlags As DWord, dwEffectsCount As DWord, pdwResultCodes As DWordPtr) As DWord
+	Virtual Function GetObjectInPath(ByRef rguidObject As GUID, dwIndex As DWord, ByRef rguidInterface As GUID, ppObject As DWordPtr) As DWord
+End Class
+TypeDef LPDIRECTSOUNDBUFFER8 = *IDirectSoundBuffer8
+
+' Special GUID meaning "select all objects" for use in GetObjectInPath()
+Dim GUID_All_Objects = [&Haa114de5, &Hc262, &H4169, [&Ha1, &Hc8, &H23, &Hd6, &H98, &Hcc, &H73, &Hb5]] As GUID
+
+Dim IID_IDirectSound3DListener = [&H279AFA84, &H4981, &H11CE, [&HA5, &H21, &H00, &H20, &HAF, &H0B, &HE5, &H60]] As GUID
+Class IDirectSound3DListener
+	Inherits IUnknown
+Public
+	'IDirectSound3DListener methods
+	Virtual Function GetAllParameters(pListener As *DS3DLISTENER) As DWord
+	Virtual Function GetDistanceFactor(pflDistanceFactor As SinglePtr) As DWord
+	Virtual Function GetDopplerFactor(pflDopplerFactor As SinglePtr) As DWord
+	Virtual Function GetOrientation(pvOrientFront As *D3DVECTOR, pvOrientTop As *D3DVECTOR) As DWord
+	Virtual Function GetPosition(pvPosition As *D3DVECTOR) As DWord
+	Virtual Function GetRolloffFactor(pflRolloffFactor As SinglePtr) As DWord
+	Virtual Function GetVelocity(pvVelocity As *D3DVECTOR) As DWord
+	Virtual Function SetAllParameters(pcListener As *DS3DLISTENER, dwApply As DWord) As DWord
+	Virtual Function SetDistanceFactor(flDistanceFactor As Single, dwApply As DWord) As DWord
+	Virtual Function SetDopplerFactor(flDopplerFactor As Single, dwApply As DWord) As DWord
+	Virtual Function SetOrientation(xFront As Single, yFront As Single, zFront As Single, xTop As Single, yTop As Single, zTop As Single, dwApply As DWord) As DWord
+	Virtual Function SetPosition(x As Single, y As Single, z As Single, dwApply As DWord) As DWord
+	Virtual Function SetRolloffFactor(flRolloffFactor As Single, dwApply As DWord) As DWord
+	Virtual Function SetVelocity(x As Single, y As Single, z As Single, dwApply As DWord) As DWord
+	Virtual Function CommitDeferredSettings() As DWord
+End Class
+TypeDef LPDIRECTSOUND3DLISTENER = *IDirectSound3DListener
+Dim IID_IDirectSound3DListener8 As GUID
+IID_IDirectSound3DListener8=IID_IDirectSound3DListener
+TypeDef IDirectSound3DListener8 = IDirectSound3DListener
+TypeDef LPDIRECTSOUND3DLISTENER8 = *IDirectSound3DListener8
+
+Dim IID_IDirectSound3DBuffer = [&H279AFA86, &H4981, &H11CE, [&HA5, &H21, &H00, &H20, &HAF, &H0B, &HE5, &H60]] As GUID
+Class IDirectSound3DBuffer
+	Inherits IUnknown
+Public
+	'IDirectSound3DBuffer methods
+	Virtual Function GetAllParameters(pDs3dBuffer As *DS3DBUFFER) As DWord
+	Virtual Function GetConeAngles(pdwInsideConeAngle As DWordPtr, pdwOutsideConeAngle As DWordPtr) As DWord
+	Virtual Function GetConeOrientation(pvOrientation As *D3DVECTOR) As DWord
+	Virtual Function GetConeOutsideVolume(plConeOutsideVolume As *Long) As DWord
+	Virtual Function GetMaxDistance(pflMaxDistance As SinglePtr) As DWord
+	Virtual Function GetMinDistance(pflMinDistance As SinglePtr) As DWord
+	Virtual Function GetMode(pdwMode As DWordPtr) As DWord
+	Virtual Function GetPosition(pvPosition As *D3DVECTOR) As DWord
+	Virtual Function GetVelocity(pvVelocity As *D3DVECTOR) As DWord
+	Virtual Function SetAllParameters(pcDs3dBuffer As *DS3DBUFFER, dwApply As DWord) As DWord
+	Virtual Function SetConeAngles(dwInsideConeAngle As DWord, dwOutsideConeAngle As DWord, dwApply As DWord) As DWord
+	Virtual Function SetConeOrientation(x As Single, y As Single, z As Single, dwApply As DWord) As DWord
+	Virtual Function SetConeOutsideVolume(lConeOutsideVolume As Long, dwApply As DWord) As DWord
+	Virtual Function SetMaxDistance(flMaxDistance As Single, dwApply As DWord) As DWord
+	Virtual Function SetMinDistance(flMinDistance As Single, dwApply As DWord) As DWord
+	Virtual Function SetMode(dwMode As DWord, dwApply As DWord) As DWord
+	Virtual Function SetPosition(x As Single, y As Single, z As Single, dwApply As DWord) As DWord
+	Virtual Function SetVelocity(x As Single, y As Single, z As Single, dwApply As DWord) As DWord
+End Class
+TypeDef LPDIRECTSOUND3DBUFFER = *IDirectSound3DBuffer
+Dim IID_IDirectSound3DBuffer8 As GUID
+IID_IDirectSound3DBuffer8=IID_IDirectSound3DBuffer
+TypeDef IDirectSound3DBuffer8 = IDirectSound3DBuffer
+TypeDef LPDIRECTSOUND3DBUFFER8 = *IDirectSound3DBuffer8
+
+Dim IID_IDirectSoundCapture = [&Hb0210781, &H89cd, &H11d0, [&Haf, &H8, &H0, &Ha0, &Hc9, &H25, &Hcd, &H16]] As GUID
+Class IDirectSoundCapture
+	Inherits IUnknown
+Public
+	'IDirectSoundCapture methods
+	Virtual Function CreateCaptureBuffer(pcDSCBufferDesc As *DSCBUFFERDESC, ppDSCBuffer As *LPDIRECTSOUNDCAPTUREBUFFER, pUnkOuter As LPUNKNOWN) As DWord
+	Virtual Function GetCaps(pDSCCaps As *DSCCAPS) As DWord
+	Virtual Function Initialize(pcGuidDevice As *GUID) As DWord
+End Class
+TypeDef LPDIRECTSOUNDCAPTURE = *IDirectSoundCapture
+TypeDef IDirectSoundCapture8 = IDirectSoundCapture
+TypeDef LPDIRECTSOUNDCAPTURE8 = *IDirectSoundCapture8
+
+Dim IID_IDirectSoundCaptureBuffer = [&Hb0210782, &H89cd, &H11d0, [&Haf, &H8, &H0, &Ha0, &Hc9, &H25, &Hcd, &H16]] As GUID
+Class IDirectSoundCaptureBuffer
+	Inherits IUnknown
+Public
+	'IDirectSoundCaptureBuffer methods
+	Virtual Function GetCaps(pDSCBCaps As *DSCBCAPS) As DWord
+	Virtual Function GetCurrentPosition(pdwCapturePosition As DWordPtr, pdwReadPosition As DWordPtr) As DWord
+	Virtual Function GetFormat(pwfxFormat As *WAVEFORMATEX, dwSizeAllocated As DWord, pdwSizeWritten As DWordPtr) As DWord
+	Virtual Function GetStatus(pdwStatus As DWordPtr) As DWord
+	Virtual Function Initialize(pDirectSoundCapture As LPDIRECTSOUNDCAPTURE, pcDSCBufferDesc As *DSCBUFFERDESC) As DWord
+	Virtual Function Lock(dwOffset As DWord, dwBytes As DWord, ppvAudioPtr1 As DWordPtr, pdwAudioBytes1 As DWordPtr, ppvAudioPtr2 As DWordPtr, pdwAudioBytes2 As DWordPtr, dwFlags As DWord) As DWord
+	Virtual Function Start(dwFlags As DWord) As DWord
+	Virtual Function Stop() As DWord
+	Virtual Function Unlock(pvAudioPtr1 As VoidPtr, dwAudioBytes1 As DWord, pvAudioPtr2 As VoidPtr, dwAudioBytes2 As DWord) As DWord
+End Class
+TypeDef LPDIRECTSOUNDCAPTUREBUFFER = *IDirectSoundCaptureBuffer
+
+Dim IID_IDirectSoundCaptureBuffer8 = [&H990df4, &Hdbb, &H4872, [&H83, &H3e, &H6d, &H30, &H3e, &H80, &Hae, &Hb6]] As GUID
+Class IDirectSoundCaptureBuffer8
+	Inherits IDirectSoundCaptureBuffer
+Public
+	'IDirectSoundCaptureBuffer8 methods
+	Virtual Function GetObjectInPath(ByRef rguidObject As GUID, dwIndex As DWord, ByRef rguidInterface As GUID, ppObject As DWord) As DWord
+	Virtual Function GetFXStatus(dwFXCount As DWord, pdwFXStatus As DWordPtr) As DWord
+End Class
+TypeDef LPDIRECTSOUNDCAPTUREBUFFER8 = *IDirectSoundCaptureBuffer8
+
+Dim IID_IDirectSoundNotify = [&Hb0210783, &H89cd, &H11d0, [&Haf, &H8, &H0, &Ha0, &Hc9, &H25, &Hcd, &H16]] As GUID
+Class IDirectSoundNotify
+	Inherits IUnknown
+Public
+	'IDirectSoundNotify methods
+	Virtual Function SetNotificationPositions(dwPositionNotifies As DWord, pcPositionNotifies As *DSBPOSITIONNOTIFY) As DWord
+End Class
+TypeDef LPDIRECTSOUNDNOTIFY = *IDirectSoundNotify
+
+Dim IID_IKsPropertySet = [&H31efac30, &H515c, &H11d0, [&Ha9, &Haa, &H00, &Haa, &H00, &H61, &Hbe, &H93]] As GUID
+Class IKsPropertySet
+	Inherits IUnknown
+Public
+	'IKsPropertySet methods
+	Virtual Function Get(ByRef rguidPropSet As GUID, ulId As DWord, pInstanceData As VoidPtr, ulInstanceLength As DWord, pPropertyData As VoidPtr, ulDataLength As DWord, pulBytesReturned As DWordPtr) As DWord
+	Virtual Function Set(ByRef rguidPropSet As GUID, ulId As DWord, pInstanceData As VoidPtr, ulInstanceLength As DWord, pPropertyData As VoidPtr, ulDataLength As DWord) As DWord
+	Virtual Function QuerySupport(ByRef rguidPropSet As GUID, ulId As DWord, pulTypeSupport As DWordPtr) As DWord
+End Class
+TypeDef LPKSPROPERTYSET = *IKsPropertySet
+
+Dim IID_IDirectSoundFullDuplex = [&Hedcb4c7a, &Hdaab, &H4216, [&Ha4, &H2e, &H6c, &H50, &H59, &H6d, &Hdc, &H1d]] As GUID
+Class IDirectSoundFullDuplex
+	Inherits IUnknown
+Public
+	'IDirectSoundFullDuplex methods
+	Virtual Function Initialize(pCaptureGuid As *GUID, pRenderGuid As *GUID, lpDscBufferDesc As *DSCBUFFERDESC, lpDsBufferDesc As *DSBUFFERDESC, hWnd As HWND, dwLevel As DWord, lplpDirectSoundCaptureBuffer8 As *LPDIRECTSOUNDCAPTUREBUFFER8, lplpDirectSoundBuffer8 As *LPDIRECTSOUNDBUFFER8) As DWord
+End Class
+TypeDef LPDIRECTSOUNDFULLDUPLEX = *IDirectSoundFullDuplex
+
+
+'-------------------
+' DirectSound APIs
+'-------------------
+
+Declare Function DirectSoundCreate Lib "dsound" (pcGuidDevice As *GUID, ppDS As *LPDIRECTSOUND, pUnkOuter As LPUNKNOWN) As DWord
+Declare Function DirectSoundEnumerate Lib "dsound" Alias "DirectSoundEnumerateA" (pDSEnumCallback As VoidPtr, pContext As VoidPtr) As DWord
+Declare Function DirectSoundCaptureCreate Lib "dsound" (pcGuidDevice As *GUID, ppDSC As *LPDIRECTSOUNDCAPTURE, pUnkOuter As LPUNKNOWN) As DWord
+Declare Function DirectSoundCaptureEnumerate Lib "dsound" Alias "DirectSoundCaptureEnumerateA" (pDSEnumCallback As VoidPtr, pContext As VoidPtr) As DWord
+Declare Function DirectSoundCreate8 Lib "dsound" (pcGuidDevice As *GUID, ppDS8 As *LPDIRECTSOUND8, pUnkOuter As LPUNKNOWN) As DWord
+Declare Function DirectSoundCaptureCreate8 Lib "dsound" (pcGuidDevice As *GUID, ppDSC8 As *LPDIRECTSOUNDCAPTURE8, pUnkOuter As LPUNKNOWN) As DWord
+Declare Function DirectSoundFullDuplexCreate Lib "dsound" (pcGuidCaptureDevice As *GUID, pcGuidRenderDevice As *GUID, pcDSCBufferDesc As *DSCBUFFERDESC, pcDSBufferDesc As *DSBUFFERDESC, hWnd As HWND, dwLevel As DWord, ppDSFD As *LPDIRECTSOUNDFULLDUPLEX, ppDSCBuffer8 As *LPDIRECTSOUNDCAPTUREBUFFER8, ppDSBuffer8 As *LPDIRECTSOUNDBUFFER8, pUnkOuter As LPUNKNOWN) As DWord
+Declare Function GetDeviceID Lib "dsound" (pGuidSrc As *GUID, pGuidDest As *GUID) As DWord
+
+
+'--------------
+' Return Codes
+'--------------
+
+' The function completed successfully
+Const DS_OK                        = S_OK
+
+' The call succeeded, but we had to substitute the 3D algorithm
+Const DS_NO_VIRTUALIZATION         = MAKE_HRESULT(0, _FACDS, 10)
+
+' The call failed because resources (such as a priority level)
+' were already being used by another caller
+Const DSERR_ALLOCATED              = MAKE_DSHRESULT(10)
+
+' The control (vol, pan, etc.) requested by the caller is not available
+Const DSERR_CONTROLUNAVAIL         = MAKE_DSHRESULT(30)
+
+' An invalid parameter was passed to the returning function
+Const DSERR_INVALIDPARAM           = E_INVALIDARG
+
+' This call is not valid for the current state of this object
+Const DSERR_INVALIDCALL            = MAKE_DSHRESULT(50)
+
+' An undetermined error occurred inside the DirectSound subsystem
+Const DSERR_GENERIC                = E_FAIL
+
+' The caller does not have the priority level required for the function to
+' succeed
+Const DSERR_PRIOLEVELNEEDED        = MAKE_DSHRESULT(70)
+
+' Not enough free memory is available to complete the operation
+Const DSERR_OUTOFMEMORY            = E_OUTOFMEMORY
+
+' The specified WAVE format is not supported
+Const DSERR_BADFORMAT              = MAKE_DSHRESULT(100)
+
+' The function called is not supported at this time
+Const DSERR_UNSUPPORTED            = E_NOTIMPL
+
+' No sound driver is available for use
+Const DSERR_NODRIVER               = MAKE_DSHRESULT(120)
+
+' This object is already initialized
+Const DSERR_ALREADYINITIALIZED     = MAKE_DSHRESULT(130)
+
+' This object does not support aggregation
+Const DSERR_NOAGGREGATION          = CLASS_E_NOAGGREGATION
+
+' The buffer memory has been lost, and must be restored
+Const DSERR_BUFFERLOST             = MAKE_DSHRESULT(150)
+
+' Another app has a higher priority level, preventing this call from
+' succeeding
+Const DSERR_OTHERAPPHASPRIO        = MAKE_DSHRESULT(160)
+
+' This object has not been initialized
+Const DSERR_UNINITIALIZED          = MAKE_DSHRESULT(170)
+
+' The requested COM interface is not available
+Const DSERR_NOINTERFACE            = E_NOINTERFACE
+
+' Access is denied
+Const DSERR_ACCESSDENIED           = E_ACCESSDENIED
+
+' Tried to create a DSBCAPS_CTRLFX buffer shorter than DSBSIZE_FX_MIN milliseconds
+Const DSERR_BUFFERTOOSMALL         = MAKE_DSHRESULT(180)
+
+' Attempt to use DirectSound 8 functionality on an older DirectSound object
+Const DSERR_DS8_REQUIRED           = MAKE_DSHRESULT(190)
+
+' A circular loop of send effects was detected
+Const DSERR_SENDLOOP               = MAKE_DSHRESULT(200)
+
+' The GUID specified in an audiopath file does not match a valid MIXIN buffer
+Const DSERR_BADSENDBUFFERGUID      = MAKE_DSHRESULT(210)
+
+' The object requested was not found (numerically equal to DMUS_E_NOT_FOUND)
+Const DSERR_OBJECTNOTFOUND         = MAKE_DSHRESULT(4449)
+
+' The effects requested could not be found on the system, or they were found
+' but in the wrong order, or in the wrong hardware/software locations.
+Const DSERR_FXUNAVAILABLE          = MAKE_DSHRESULT(220)
+
+
+'--------
+' Flags
+'--------
+
+Const DSCAPS_PRIMARYMONO          = &H00000001
+Const DSCAPS_PRIMARYSTEREO        = &H00000002
+Const DSCAPS_PRIMARY8BIT          = &H00000004
+Const DSCAPS_PRIMARY16BIT         = &H00000008
+Const DSCAPS_CONTINUOUSRATE       = &H00000010
+Const DSCAPS_EMULDRIVER           = &H00000020
+Const DSCAPS_CERTIFIED            = &H00000040
+Const DSCAPS_SECONDARYMONO        = &H00000100
+Const DSCAPS_SECONDARYSTEREO      = &H00000200
+Const DSCAPS_SECONDARY8BIT        = &H00000400
+Const DSCAPS_SECONDARY16BIT       = &H00000800
+
+Const DSSCL_NORMAL                = &H00000001
+Const DSSCL_PRIORITY              = &H00000002
+Const DSSCL_EXCLUSIVE             = &H00000003
+Const DSSCL_WRITEPRIMARY          = &H00000004
+
+Const DSSPEAKER_DIRECTOUT         = &H00000000
+Const DSSPEAKER_HEADPHONE         = &H00000001
+Const DSSPEAKER_MONO              = &H00000002
+Const DSSPEAKER_QUAD              = &H00000003
+Const DSSPEAKER_STEREO            = &H00000004
+Const DSSPEAKER_SURROUND          = &H00000005
+Const DSSPEAKER_5POINT1           = &H00000006
+Const DSSPEAKER_7POINT1           = &H00000007
+
+Const DSSPEAKER_GEOMETRY_MIN      = &H00000005  '   5 degrees
+Const DSSPEAKER_GEOMETRY_NARROW   = &H0000000A  '  10 degrees
+Const DSSPEAKER_GEOMETRY_WIDE     = &H00000014  '  20 degrees
+Const DSSPEAKER_GEOMETRY_MAX      = &H000000B4  ' 180 degrees
+
+Const DSBCAPS_PRIMARYBUFFER       = &H00000001
+Const DSBCAPS_STATIC              = &H00000002
+Const DSBCAPS_LOCHARDWARE         = &H00000004
+Const DSBCAPS_LOCSOFTWARE         = &H00000008
+Const DSBCAPS_CTRL3D              = &H00000010
+Const DSBCAPS_CTRLFREQUENCY       = &H00000020
+Const DSBCAPS_CTRLPAN             = &H00000040
+Const DSBCAPS_CTRLVOLUME          = &H00000080
+Const DSBCAPS_CTRLPOSITIONNOTIFY  = &H00000100
+Const DSBCAPS_CTRLFX              = &H00000200
+Const DSBCAPS_STICKYFOCUS         = &H00004000
+Const DSBCAPS_GLOBALFOCUS         = &H00008000
+Const DSBCAPS_GETCURRENTPOSITION2 = &H00010000
+Const DSBCAPS_MUTE3DATMAXDISTANCE = &H00020000
+Const DSBCAPS_LOCDEFER            = &H00040000
+
+Const DSBPLAY_LOOPING             = &H00000001
+Const DSBPLAY_LOCHARDWARE         = &H00000002
+Const DSBPLAY_LOCSOFTWARE         = &H00000004
+Const DSBPLAY_TERMINATEBY_TIME    = &H00000008
+Const DSBPLAY_TERMINATEBY_DISTANCE    = &H000000010
+Const DSBPLAY_TERMINATEBY_PRIORITY    = &H000000020
+
+Const DSBSTATUS_PLAYING           = &H00000001
+Const DSBSTATUS_BUFFERLOST        = &H00000002
+Const DSBSTATUS_LOOPING           = &H00000004
+Const DSBSTATUS_LOCHARDWARE       = &H00000008
+Const DSBSTATUS_LOCSOFTWARE       = &H00000010
+Const DSBSTATUS_TERMINATED        = &H00000020
+
+Const DSBLOCK_FROMWRITECURSOR     = &H00000001
+Const DSBLOCK_ENTIREBUFFER        = &H00000002
+
+Const DSBFREQUENCY_ORIGINAL       = 0
+Const DSBFREQUENCY_MIN            = 100
+Const DSBFREQUENCY_MAX            = 200000
+
+Const DSBPAN_LEFT                 = -10000
+Const DSBPAN_CENTER               = 0
+Const DSBPAN_RIGHT                = 10000
+
+Const DSBVOLUME_MIN               = -10000
+Const DSBVOLUME_MAX               = 0
+
+Const DSBSIZE_MIN                 = 4
+Const DSBSIZE_MAX                 = &H0FFFFFFF
+Const DSBSIZE_FX_MIN              = 150  ' NOTE: Milliseconds, not bytes
+
+Const DS3DMODE_NORMAL             = &H00000000
+Const DS3DMODE_HEADRELATIVE       = &H00000001
+Const DS3DMODE_DISABLE            = &H00000002
+
+Const DS3D_IMMEDIATE              = &H00000000
+Const DS3D_DEFERRED               = &H00000001
+
+Const DS3D_MINDISTANCEFACTOR      = FLT_MIN
+Const DS3D_MAXDISTANCEFACTOR      = FLT_MAX
+Const DS3D_DEFAULTDISTANCEFACTOR  = 1.0
+
+Const DS3D_MINROLLOFFFACTOR       = 0.0
+Const DS3D_MAXROLLOFFFACTOR       = 10.0
+Const DS3D_DEFAULTROLLOFFFACTOR   = 1.0
+
+Const DS3D_MINDOPPLERFACTOR       = 0.0
+Const DS3D_MAXDOPPLERFACTOR       = 10.0
+Const DS3D_DEFAULTDOPPLERFACTOR   = 1.0
+
+Const DS3D_DEFAULTMINDISTANCE     = 1.0
+Const DS3D_DEFAULTMAXDISTANCE     = 1000000000.0
+
+Const DS3D_MINCONEANGLE           = 0
+Const DS3D_MAXCONEANGLE           = 360
+Const DS3D_DEFAULTCONEANGLE       = 360
+
+Const DS3D_DEFAULTCONEOUTSIDEVOLUME = DSBVOLUME_MAX
+
+' IDirectSoundCapture attributes
+
+Const DSCCAPS_EMULDRIVER          = DSCAPS_EMULDRIVER
+Const DSCCAPS_CERTIFIED           = DSCAPS_CERTIFIED
+Const DSCCAPS_MULTIPLECAPTURE     = &H00000001
+
+' IDirectSoundCaptureBuffer attributes
+
+Const DSCBCAPS_WAVEMAPPED         = &H80000000
+
+Const DSCBCAPS_CTRLFX             = &H00000200
+
+
+Const DSCBLOCK_ENTIREBUFFER       = &H00000001
+
+Const DSCBSTATUS_CAPTURING        = &H00000001
+Const DSCBSTATUS_LOOPING          = &H00000002
+
+Const DSCBSTART_LOOPING           = &H00000001
+
+Const DSBPN_OFFSETSTOP            = &HFFFFFFFF
+
+Const DS_CERTIFIED                = &H00000000
+Const DS_UNCERTIFIED              = &H00000001
+
+
+'----------------------------------------
+' DirectSound Internal Effect Algorithms
+'----------------------------------------
+
+' Gargle {DAFD8210-5711-4B91-9FE3-F75B7AE279BF}
+Dim GUID_DSFX_STANDARD_GARGLE = [&Hdafd8210, &H5711, &H4b91, [&H9f, &He3, &Hf7, &H5b, &H7a, &He2, &H79, &Hbf]] As GUID
+
+' Chorus {EFE6629C-81F7-4281-BD91-C9D604A95AF6}
+Dim GUID_DSFX_STANDARD_CHORUS = [&Hefe6629c, &H81f7, &H4281, [&Hbd, &H91, &Hc9, &Hd6, &H04, &Ha9, &H5a, &Hf6]] As GUID
+
+' Flanger {EFCA3D92-DFD8-4672-A603-7420894BAD98}
+Dim GUID_DSFX_STANDARD_FLANGER = [&Hefca3d92, &Hdfd8, &H4672, [&Ha6, &H03, &H74, &H20, &H89, &H4b, &Had, &H98]] As GUID
+
+' Echo/Delay {EF3E932C-D40B-4F51-8CCF-3F98F1B29D5D}
+Dim GUID_DSFX_STANDARD_ECHO = [&Hef3e932c, &Hd40b, &H4f51, [&H8c, &Hcf, &H3f, &H98, &Hf1, &Hb2, &H9d, &H5d]] As GUID
+
+' Distortion {EF114C90-CD1D-484E-96E5-09CFAF912A21}
+Dim GUID_DSFX_STANDARD_DISTORTION = [&Hef114c90, &Hcd1d, &H484e, [&H96, &He5, &H09, &Hcf, &Haf, &H91, &H2a, &H21]] As GUID
+
+' Compressor/Limiter {EF011F79-4000-406D-87AF-BFFB3FC39D57}
+Dim GUID_DSFX_STANDARD_COMPRESSOR = [&Hef011f79, &H4000, &H406d, [&H87, &Haf, &Hbf, &Hfb, &H3f, &Hc3, &H9d, &H57]] As GUID
+
+' Parametric Equalization {120CED89-3BF4-4173-A132-3CB406CF3231}
+Dim GUID_DSFX_STANDARD_PARAMEQ = [&H120ced89, &H3bf4, &H4173, [&Ha1, &H32, &H3c, &Hb4, &H06, &Hcf, &H32, &H31]] As GUID
+
+' I3DL2 Environmental Reverberation: Reverb (Listener) Effect {EF985E71-D5C7-42D4-BA4D-2D073E2E96F4}
+Dim GUID_DSFX_STANDARD_I3DL2REVERB = [&Hef985e71, &Hd5c7, &H42d4, [&Hba, &H4d, &H2d, &H07, &H3e, &H2e, &H96, &Hf4]] As GUID
+
+' Waves Reverberation {87FC0268-9A55-4360-95AA-004A1D9DE26C}
+Dim GUID_DSFX_WAVES_REVERB = [&H87fc0268, &H9a55, &H4360, [&H95, &Haa, &H00, &H4a, &H1d, &H9d, &He2, &H6c]] As GUID

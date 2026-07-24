@@ -1,0 +1,10 @@
+case4
+
+text,"CDPlayer.abp",0,0,0,0
+rad,MainWnd
+text,"MainWnd.sbp",0,192,6173,6227
+
+2
+1
+0
+0,0,1,0,1

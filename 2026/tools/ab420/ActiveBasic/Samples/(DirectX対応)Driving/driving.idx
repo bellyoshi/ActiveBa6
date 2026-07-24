@@ -1,0 +1,16 @@
+' インデックス プログラム
+
+'Win32APIの定義ファイル
+#include <api_mmsys.sbp>
+
+'RADツールが生成するウィンドウ制御プログラム
+#include "Callback.wbp"
+
+'プロジェクト内のプログラム ファイル
+#include "MainWnd.sbp"
+#include "dx_graphics.sbp"
+#include "dx_music.sbp"
+#include "dx_input.sbp"
+
+'RADツールが生成するウィンドウ生成プログラム
+#include "MakeWindow.wbp"

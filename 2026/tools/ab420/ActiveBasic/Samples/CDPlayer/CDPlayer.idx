@@ -1,0 +1,18 @@
+' インデックス プログラム
+
+'Win32APIの定義ファイル
+#include <api_mmsys.sbp>
+#include <api_commctrl.sbp>
+
+'RADツールが生成するウィンドウ制御プログラム
+#include "Callback.wbp"
+
+'プロジェクト内のプログラム ファイル
+#include "MainWnd.sbp"
+
+'RADツールが生成するウィンドウ生成プログラム
+#include "MakeWindow.wbp"
+
+'リソースファイル
+#include "resource.sbp"
+#resource "CDPlayer.rc"

@@ -1,0 +1,135 @@
+'このファイルはウィンドウ定義ファイル（*.wnd）をもとに生成されています
+
+Dim _RadSys_InitCtrls As INITCOMMONCONTROLSEX
+_RadSys_InitCtrls.dwSize=Len(_RadSys_InitCtrls)
+_RadSys_InitCtrls.dwICC=ICC_WIN95_CLASSES
+InitCommonControlsEx(_RadSys_InitCtrls)
+
+Const TrackList=1000
+Const PlayButton=1001
+Const StopButton=1002
+Const PauseButton=1003
+Const TrackBar1=1004
+Const Static1=1005
+Const ReloadButton=1006
+Const EjectButton=1007
+
+Dim hMainWnd As HWND
+Dim hFont_MainWnd As HFONT
+hFont_MainWnd=CreateFont(-12,0,0,0,400,0,0,0,128,3,2,1,32,"ＭＳ Ｐゴシック")
+Dim h3DFaceBrush As HBRUSH
+h3DFaceBrush=CreateSolidBrush(GetSysColor(COLOR_3DFACE))
+
+
+Sub CDPlayer_DestroyObjects()
+	DeleteObject(hFont_MainWnd)
+	DeleteObject(h3DFaceBrush)
+End Sub
+
+Function EventCall_MainWnd(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Select Case message
+		Case WM_DESTROY
+			MainWnd_Destroy()
+		Case WM_CREATE
+			hMainWnd=hWnd
+			CreateWindowEx(&H00000200,"LISTBOX","",&H50200003,123,29,184,143,hWnd,TrackList As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,TrackList),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","再生",&H58000000,34,226,88,21,hWnd,PlayButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,PlayButton),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","停止",&H58000000,218,226,88,21,hWnd,StopButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,StopButton),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","一時停止",&H58000000,126,226,88,21,hWnd,PauseButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,PauseButton),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"msctls_trackbar32","",&H50000018,2,190,317,23,hWnd,TrackBar1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,TrackBar1),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","トラック情報",&H50000000,176,14,77,12,hWnd,Static1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static1),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","リロード",&H50000000,16,64,88,21,hWnd,ReloadButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,ReloadButton),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","取り出し",&H50000000,16,91,88,21,hWnd,EjectButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,EjectButton),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			MainWnd_Create(ByVal (lParam As VoidPtr))
+		Case MM_MCINOTIFY
+			MainWnd_MciNotify(wParam,lParam)
+		Case WM_HSCROLL
+			MainWnd_HScroll(LOWORD(wParam),HIWORD(wParam),lParam As HWND)
+		Case WM_TIMER
+			MainWnd_Timer(wParam As DWord)
+		Case WM_CLOSE
+			Dim cancel=0 As Integer
+			If cancel=0 Then DestroyWindow(hWnd)
+		Case WM_COMMAND
+			Select Case LOWORD(wParam)
+				Case ReloadButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							MainWnd_ReloadButton_Click()
+					End Select
+				Case EjectButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							MainWnd_EjectButton_Click()
+					End Select
+				Case PlayButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							MainWnd_PlayButton_Click()
+					End Select
+				Case PauseButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							MainWnd_PauseButton_Click()
+					End Select
+				Case StopButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							MainWnd_StopButton_Click()
+					End Select
+			End Select
+		Case Else
+			EventCall_MainWnd=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	EventCall_MainWnd=0
+End Function
+
+Function DefaultCallProc(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	DefaultCallProc=DefWindowProc(hWnd,message,wParam,lParam)
+End Function
+
+Dim _RadSys_dlgwcl As WNDCLASSEX
+FillMemory(VarPtr(_RadSys_dlgwcl),Len(_RadSys_dlgwcl),0)
+_RadSys_dlgwcl.cbSize=Len(_RadSys_dlgwcl)
+_RadSys_dlgwcl.hInstance=GetModuleHandle(0)
+_RadSys_dlgwcl.style=CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+_RadSys_dlgwcl.hIcon=LoadIcon(NULL,MAKEINTRESOURCE(IDI_APPLICATION))
+_RadSys_dlgwcl.hIconSm=LoadIcon(NULL,MAKEINTRESOURCE(IDI_WINLOGO))
+_RadSys_dlgwcl.hCursor=LoadCursor(NULL,MAKEINTRESOURCE(IDC_ARROW))
+_RadSys_dlgwcl.lpszClassName="NORMALDLG"
+_RadSys_dlgwcl.hbrBackground=h3DFaceBrush
+_RadSys_dlgwcl.lpfnWndProc=AddressOf(DefaultCallProc)
+RegisterClassEx(_RadSys_dlgwcl)
+
+Function DialogBox(hOwnerWnd As HWND, TemplateName As LPSTR) As LONG_PTR
+	Else
+		Exit Function
+	End If
+	EnableWindow(hOwnerWnd,0)
+
+	Dim msg As MSG, iResult As Long
+	Do
+		iResult=GetMessage(msg,0,0,0)
+		If iResult=0 or iResult=-1 Then Exit Do
+		TranslateMessage(msg)
+		DispatchMessage(msg)
+	Loop
+	DialogBox=msg.wParam
+End Function
+Sub EndDialog(hWnd As HWND, lResult As Long)
+	EnableWindow(GetWindow(hWnd,GW_OWNER),1)
+	DestroyWindow(hWnd)
+	PostMessage(0,WM_QUIT,lResult,0)
+End Sub
+
+Function CreateDialog(hOwnerWnd As HWND, TemplateName As LPSTR) As HWND
+End Function

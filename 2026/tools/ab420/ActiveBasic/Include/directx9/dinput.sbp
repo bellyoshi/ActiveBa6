@@ -1,0 +1,745 @@
+' dinput.sbp
+
+
+'----------------
+' Version
+'----------------
+
+Const DIRECTINPUT_VERSION = &H0800
+
+
+'----------------
+' Interfaces
+'----------------
+
+Dim IID_IDirectInput8 = [&HBF798030,&H483A,&H4DA2,[&HAA,&H99,&H5D,&H64,&HED,&H36,&H97,&H00]] As GUID
+Dim IID_IDirectInputDevice8 = [&H54D41080,&HDC15,&H4833,[&HA4,&H1B,&H74,&H8F,&H73,&HA3,&H81,&H79]] As GUID
+Dim IID_IDirectInputEffect = &H[E7E1F7C0,&H88D2,&H11D0,[&H9A,&HD0,&H00,&HA0,&HC9,&HA0,&H6E,&H35]] As GUID
+
+
+'-------------------------
+' Predefined object types
+'-------------------------
+
+Dim GUID_XAxis = [&HA36D02E0,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_YAxis = [&HA36D02E1,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_ZAxis = [&HA36D02E2,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_RxAxis = [&HA36D02F4,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_RyAxis = [&HA36D02F5,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_RzAxis = [&HA36D02E3,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_Slider = [&HA36D02E4,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_Button = [&HA36D02F0,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_Key = [&H55728220,&HD33C,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_POV = [&HA36D02F2,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_Unknown = [&HA36D02F3,&HC9F3,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+
+
+'--------------------------
+' Predefined product GUIDs
+'--------------------------
+
+Dim GUID_SysMouse = [&H6F1D2B60,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_SysKeyboard = [&H6F1D2B61,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_Joystick = [&H6F1D2B70,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_SysMouseEm = [&H6F1D2B80,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_SysMouseEm2 = [&H6F1D2B81,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_SysKeyboardEm = [&H6F1D2B82,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+Dim GUID_SysKeyboardEm2 = [&H6F1D2B83,&HD5A0,&H11CF,[&HBF,&HC7,&H44,&H45,&H53,&H54,&H00,&H00]] As GUID
+
+
+Type DIENVELOPE
+	dwSize As DWord
+	dwAttackLevel As DWord
+	dwAttackTime As DWord
+	dwFadeLevel As DWord
+	dwFadeTime As DWord
+End Type
+TypeDef LPDIENVELOPE = *DIENVELOPE
+
+
+Type DIEFFECT
+	dwSize As DWord
+	dwFlags As DWord
+	dwDuration As DWord
+	dwSamplePeriod As DWord
+	dwGain As DWord
+	dwTriggerButton As DWord
+	dwTriggerRepeatInterval As DWord
+	cAxes As DWord
+	rgdwAxes As *DWord
+	rglDirection As *Long
+	lpEnvelope As LPDIENVELOPE
+	cbTypeSpecificParams As DWord
+	lpvTypeSpecificParams As VoidPtr
+	dwStartDelay As DWord
+End Type
+TypeDef LPDIEFFECT = *DIEFFECT
+
+
+Type DIFILEEFFECT
+	dwSize As DWord
+	GuidEffect As GUID
+	lpDiEffect As LPDIEFFECT
+	szFriendlyName[MAX_PATH-1] As Char
+End Type
+TypeDef LPDIFILEEFFECT = *DIFILEEFFECT
+
+
+Type DIEFFESCAPE
+	dwSize As DWord
+	dwCommand As DWord
+	lpvInBuffer As VoidPtr
+	cbInBuffer As DWord
+	lpvOutBuffer As VoidPtr
+	cbOutBuffer As DWord
+End Type
+TypeDef LPDIEFFESCAPE = *DIEFFESCAPE
+
+
+Class IDirectInputEffect
+	Inherits IUnknown
+Public
+	'IDirectInputEffect methods
+	Virtual Function Initialize(hinst As HINSTANCE, dwVersion As DWord, ByRef rguid As GUID) As DWord
+	Virtual Function GetEffectGuid(pguid As *GUID) As DWord
+	Virtual Function GetParameters(peff As LPDIEFFECT, dwFlags As DWord) As DWord
+	Virtual Function SetParameters(peff As LPDIEFFECT, dwFlags As DWord) As DWord
+	Virtual Function Start(dwIterations As DWord, dwFlags As DWord) As DWord
+	Virtual Function Stop() As DWord
+	Virtual Function GetEffectStatus(pdwFlags As *DWord) As DWord
+	Virtual Function Download() As DWord
+	Virtual Function Unload() As DWord
+	Virtual Function Escape(pesc As LPDIEFFESCAPE) As DWord
+End Class
+TypeDef LPDIRECTINPUTEFFECT = *IDirectInputEffect
+
+
+Type DIDEVCAPS
+	dwSize As DWord
+	dwFlags As DWord
+	dwDevType As DWord
+	dwAxes As DWord
+	dwButtons As DWord
+	dwPOVs As DWord
+	dwFFSamplePeriod As DWord
+	dwFFMinTimeResolution As DWord
+	dwFirmwareRevision As DWord
+	dwHardwareRevision As DWord
+	dwFFDriverVersion As DWord
+End Type
+TypeDef LPDIDEVCAPS = *DIDEVCAPS
+
+
+Const DIDOI_FFACTUATOR      = &H00000001
+Const DIDOI_FFEFFECTTRIGGER = &H00000002
+Const DIDOI_POLLED          = &H00008000
+Const DIDOI_ASPECTPOSITION  = &H00000100
+Const DIDOI_ASPECTVELOCITY  = &H00000200
+Const DIDOI_ASPECTACCEL     = &H00000300
+Const DIDOI_ASPECTFORCE     = &H00000400
+Const DIDOI_ASPECTMASK      = &H00000F00
+Const DIDOI_GUIDISUSAGE     = &H00010000
+Type DIOBJECTDATAFORMAT
+	pguid As *GUID
+	dwOfs As DWord
+	dwType As DWord
+	dwFlags As DWord
+End Type
+TypeDef LPDIOBJECTDATAFORMAT = *DIOBJECTDATAFORMAT
+
+
+Const DIDFT_ALL           = &H00000000
+Const DIDFT_RELAXIS       = &H00000001
+Const DIDFT_ABSAXIS       = &H00000002
+Const DIDFT_AXIS          = &H00000003
+Const DIDFT_PSHBUTTON     = &H00000004
+Const DIDFT_TGLBUTTON     = &H00000008
+Const DIDFT_BUTTON        = &H0000000C
+Const DIDFT_POV           = &H00000010
+Const DIDFT_COLLECTION    = &H00000040
+Const DIDFT_NODATA        = &H00000080
+Const DIDFT_ANYINSTANCE   = &H00FFFF00
+Const DIDFT_INSTANCEMASK  = DIDFT_ANYINSTANCE
+Const DIDFT_FFACTUATOR        = &H01000000
+Const DIDFT_FFEFFECTTRIGGER   = &H02000000
+Const DIDFT_OUTPUT            = &H10000000
+Const DIDFT_VENDORDEFINED     = &H04000000
+Const DIDFT_ALIAS             = &H08000000
+Const DIDFT_OPTIONAL          = &H80000000
+Const DIDFT_NOCOLLECTION      = &H00FFFF00
+Type DIDATAFORMAT
+	dwSize As DWord
+	dwObjSize As DWord
+	dwFlags As DWord
+	dwDataSize As DWord
+	dwNumObjs As DWord
+	rgodf As LPDIOBJECTDATAFORMAT
+End Type
+TypeDef LPDIDATAFORMAT = *DIDATAFORMAT
+
+Const DIDF_ABSAXIS = &H00000001
+Const DIDF_RELAXIS = &H00000002
+
+
+Type DIACTION
+	uAppData As DWord
+	dwSemantic As DWord
+	dwFlags As DWord
+	lptszActionName As *Char
+	guidInstance As GUID
+	dwObjID As DWord
+	dwHow As DWord
+End Type
+TypeDef LPDIACTION = *DIACTION
+
+
+Type DIACTIONFORMAT
+	dwSize As DWord
+	dwActionSize As DWord
+	dwDataSize As DWord
+	dwNumActions As DWord
+	rgoAction As LPDIACTION
+	guidActionMap As GUID
+	dwGenre As DWord
+	dwBufferSize As DWord
+	lAxisMin As Long
+	lAxisMax As Long
+	hInstString As HINSTANCE
+	ftTimeStamp As FILETIME
+	dwCRC As DWord
+	tszActionMap[MAX_PATH-1] As Char
+End Type
+TypeDef LPDIACTIONFORMAT = *DIACTIONFORMAT
+
+
+Type DICOLORSET
+	dwSize As DWord
+	cTextFore As D3DCOLOR
+	cTextHighlight As D3DCOLOR
+	cCalloutLine As D3DCOLOR
+	cCalloutHighlight As D3DCOLOR
+	cBorder As D3DCOLOR
+	cControlFill As D3DCOLOR
+	cHighlightFill As D3DCOLOR
+	cAreaFill As D3DCOLOR
+End Type
+
+
+Type DICONFIGUREDEVICESPARAMS
+	dwSize As DWord
+	dwcUsers As DWord
+	lptszUserNames As *Char
+	dwcFormats As DWord
+	lprgFormats As LPDIACTIONFORMAT
+	hwnd As HWND
+	dics As DICOLORSET
+	lpUnkDDSTarget As *IUnknown
+End Type
+TypeDef LPDICONFIGUREDEVICESPARAMS = *DICONFIGUREDEVICESPARAMS
+
+
+Type DIDEVICEIMAGEINFO
+	tszImagePath[MAX_PATH-1] As Char
+	dwFlags As DWord
+	dwViewID As DWord
+	rcOverlay As RECT
+	dwObjID As DWord
+	dwcValidPts As DWord
+	rgptCalloutLine[5-1] As POINTAPI  
+	rcCalloutRect As RECT
+	dwTextAlign As DWord
+End Type
+TypeDef LPDIDEVICEIMAGEINFO = *DIDEVICEIMAGEINFO
+
+
+Type DIDEVICEIMAGEINFOHEADER
+	dwSize As DWord
+	dwSizeImageInfo As DWord
+	dwcViews As DWord
+	dwcButtons As DWord
+	dwcAxes As DWord
+	dwcPOVs As DWord
+	dwBufferSize As DWord
+	dwBufferUsed As DWord
+	lprgImageInfoArray As LPDIDEVICEIMAGEINFO
+End Type
+TypeDef LPDIDEVICEIMAGEINFOHEADER = *DIDEVICEIMAGEINFOHEADER
+
+
+Type DIDEVICEOBJECTINSTANCE
+	dwSize As DWord
+	guidType As GUID
+	dwOfs As DWord
+	dwType As DWord
+	dwFlags As DWord
+	tszName[MAX_PATH-1] As Char
+	dwFFMaxForce As DWord
+	dwFFForceResolution As DWord
+	wCollectionNumber As Word
+	wDesignatorIndex As Word
+	wUsagePage As Word
+	wUsage As Word
+	dwDimension As DWord
+	wExponent As Word
+	wReportId As Word
+End Type
+TypeDef LPDIDEVICEOBJECTINSTANCE = *DIDEVICEOBJECTINSTANCE
+
+
+Type DIPROPHEADER
+	dwSize As DWord
+	dwHeaderSize As DWord
+	dwObj As DWord
+	dwHow As DWord
+End Type
+TypeDef LPDIPROPHEADER = *DIPROPHEADER
+
+
+Type DIDEVICEOBJECTDATA
+	dwOfs As DWord
+	dwData As DWord
+	dwTimeStamp As DWord
+	dwSequence As DWord
+	uAppData As DWord
+End Type
+TypeDef LPDIDEVICEOBJECTDATA = *DIDEVICEOBJECTDATA
+
+
+Const DISCL_EXCLUSIVE    = &H00000001
+Const DISCL_NONEXCLUSIVE = &H00000002
+Const DISCL_FOREGROUND   = &H00000004
+Const DISCL_BACKGROUND   = &H00000008
+Const DISCL_NOWINKEY     = &H00000010
+
+
+Type DIDEVICEINSTANCE
+	dwSize As DWord
+	guidInstance As GUID
+	guidProduct As GUID
+	dwDevType As DWord
+	tszInstanceName[MAX_PATH-1] As Char
+	tszProductName[MAX_PATH-1] As Char
+	guidFFDriver As GUID
+	wUsagePage As Word
+	wUsage As Word
+End Type
+TypeDef LPDIDEVICEINSTANCE = *DIDEVICEINSTANCE
+
+
+Type DIEFFECTINFO
+	dwSize As DWord
+	guid As GUID
+	dwEffType As DWord
+	dwStaticParams As DWord
+	dwDynamicParams As DWord
+	tszName[MAX_PATH-1] As Char
+End Type
+TypeDef LPDIEFFECTINFO = *DIEFFECTINFO
+
+
+Class IDirectInputDevice8
+	Inherits IUnknown
+Public
+	'IDirectInputDevice8 methods
+	Virtual Function GetCapabilities(lpDIDevCaps As LPDIDEVCAPS) As DWord
+	Virtual Function EnumObjects(lpCallback As VoidPtr, pvRef As VoidPtr, dwFlags As DWord) As DWord
+	Virtual Function GetProperty(ByRef rguidProp As GUID, pdiph As LPDIPROPHEADER) As DWord
+	Virtual Function SetProperty(ByRef rguidProp As GUID, pdiph As LPDIPROPHEADER) As DWord
+	Virtual Function Acquire() As DWord
+	Virtual Function Unacquire() As DWord
+	Virtual Function GetDeviceState(cbData As DWord, lpvData As VoidPtr) As DWord
+	Virtual Function GetDeviceData(cbObjectData As DWord, rgdod As LPDIDEVICEOBJECTDATA, pdwInOut As *DWord, dwFlags As DWord) As DWord
+	Virtual Function SetDataFormat(lpdf As LPDIDATAFORMAT) As DWord
+	Virtual Function SetEventNotification(hEvent As HANDLE) As DWord
+	Virtual Function SetCooperativeLevel(hwnd As HWND, dwFlags As DWord) As DWord
+	Virtual Function GetObjectInfo(pdidoi As LPDIDEVICEOBJECTINSTANCE, dwObj As DWord, dwHow As DWord) As DWord
+	Virtual Function GetDeviceInfo(pdidi As LPDIDEVICEINSTANCE) As DWord
+	Virtual Function RunControlPanel(hwndOwner As HWND, dwFlags As DWord) As DWord
+	Virtual Function Initialize(hinst As HINSTANCE, dwVersion As DWord, ByRef rguid As GUID) As DWord
+	Virtual Function CreateEffect(ByRef rguid As GUID, lpeff As LPDIEFFECT, ppdeff As *LPDIRECTINPUTEFFECT, punkOuter As LPUNKNOWN) As DWord
+	Virtual Function EnumEffects(lpCallback As VoidPtr, pvRef As VoidPtr, dwEffType As DWord) As DWord
+	Virtual Function GetEffectInfo(pdei As LPDIEFFECTINFO, ByRef rguid As GUID) As DWord
+	Virtual Function GetForceFeedbackState(pdwOut As *DWord) As DWord
+	Virtual Function SendForceFeedbackCommand(dwFlags As DWord) As DWord
+	Virtual Function EnumCreatedEffectObjects(lpCallback As VoidPtr, pvRef As VoidPtr, fl As DWord) As DWord
+	Virtual Function Escape(pesc As LPDIEFFESCAPE) As DWord
+	Virtual Function Poll() As DWord
+	Virtual Function SendDeviceData(cbObjectData As DWord, rgdod As LPDIDEVICEOBJECTDATA, pdwInOut As *DWord, fl As DWord) As DWord
+	Virtual Function EnumEffectsInFile(lpszFileName As *Char, pec As VoidPtr, pvRef As VoidPtr, dwFlags As DWord) As DWord
+	Virtual Function WriteEffectToFile(lpszFileName As *Char, dwEntries As DWord, rgDiFileEft As LPDIFILEEFFECT, dwFlags As DWord) As DWord
+	Virtual Function BuildActionMap(lpdiaf As LPDIACTIONFORMAT, lpszUserName As *Char, dwFlags As DWord) As DWord
+	Virtual Function SetActionMap(lpdiActionFormat As LPDIACTIONFORMAT, lptszUserName As *Char, dwFlags As DWord) As DWord
+	Virtual Function GetImageInfo(lpdiDevImageInfoHeader As LPDIDEVICEIMAGEINFOHEADER) As DWord
+End Class
+TypeDef LPDIRECTINPUTDEVICE8 = *IDirectInputDevice8
+
+
+Class IDirectInput8
+	Inherits IUnknown
+Public
+	'IDirectInput8 methods
+	Virtual Function CreateDevice(ByRef rguid As GUID, lplpDirectInputDevice As *LPDIRECTINPUTDEVICE8, pUnkOuter As LPUNKNOWN) As DWord
+	Virtual Function EnumDevices(dwDevType As DWord, lpCallback As VoidPtr, pvRef As VoidPtr, dwFlags As DWord) As DWord
+	Virtual Function GetDeviceStatus(ByRef rguidInstance As GUID) As DWord
+	Virtual Function RunControlPanel(hwndOwner As HWND, dwFlags As DWord) As DWord
+	Virtual Function Initialize(hinst As HINSTANCE, dwVersion As DWord) As DWord
+	Virtual Function FindDevice(ByRef rguidClass As GUID, ptszName As *Char, pguidInstance As *GUID) As DWord
+	Virtual Function EnumDevicesBySemantics(ptszUserName As *Char, lpdiActionFormat As LPDIACTIONFORMAT, lpCallback As VoidPtr, pvRef As VoidPtr, dwFlags As DWord) As DWord
+	Virtual Function ConfigureDevices(lpdiCallback As VoidPtr, lpdiCDParams As LPDICONFIGUREDEVICESPARAMS, dwFlags As DWord, pvRefData As VoidPtr) As DWord
+End Class
+TypeDef LPDIRECTINPUT8 = *IDirectInput8
+
+
+'---------------------------------
+' DirectInput keyboard scan codes
+'---------------------------------
+
+Const DIK_ESCAPE          = &H01
+Const DIK_1               = &H02
+Const DIK_2               = &H03
+Const DIK_3               = &H04
+Const DIK_4               = &H05
+Const DIK_5               = &H06
+Const DIK_6               = &H07
+Const DIK_7               = &H08
+Const DIK_8               = &H09
+Const DIK_9               = &H0A
+Const DIK_0               = &H0B
+Const DIK_MINUS           = &H0C    '- on main keyboard
+Const DIK_EQUALS          = &H0D
+Const DIK_BACK            = &H0E    'backspace
+Const DIK_TAB             = &H0F
+Const DIK_Q               = &H10
+Const DIK_W               = &H11
+Const DIK_E               = &H12
+Const DIK_R               = &H13
+Const DIK_T               = &H14
+Const DIK_Y               = &H15
+Const DIK_U               = &H16
+Const DIK_I               = &H17
+Const DIK_O               = &H18
+Const DIK_P               = &H19
+Const DIK_LBRACKET        = &H1A
+Const DIK_RBRACKET        = &H1B
+Const DIK_RETURN          = &H1C    'Enter on main keyboard
+Const DIK_LCONTROL        = &H1D
+Const DIK_A               = &H1E
+Const DIK_S               = &H1F
+Const DIK_D               = &H20
+Const DIK_F               = &H21
+Const DIK_G               = &H22
+Const DIK_H               = &H23
+Const DIK_J               = &H24
+Const DIK_K               = &H25
+Const DIK_L               = &H26
+Const DIK_SEMICOLON       = &H27
+Const DIK_APOSTROPHE      = &H28
+Const DIK_GRAVE           = &H29    'accent grave
+Const DIK_LSHIFT          = &H2A
+Const DIK_BACKSLASH       = &H2B
+Const DIK_Z               = &H2C
+Const DIK_X               = &H2D
+Const DIK_C               = &H2E
+Const DIK_V               = &H2F
+Const DIK_B               = &H30
+Const DIK_N               = &H31
+Const DIK_M               = &H32
+Const DIK_COMMA           = &H33
+Const DIK_PERIOD          = &H34    '. on main keyboard
+Const DIK_SLASH           = &H35    '/ on main keyboard
+Const DIK_RSHIFT          = &H36
+Const DIK_MULTIPLY        = &H37    '* on numeric keypad
+Const DIK_LMENU           = &H38    'left Alt
+Const DIK_SPACE           = &H39
+Const DIK_CAPITAL         = &H3A
+Const DIK_F1              = &H3B
+Const DIK_F2              = &H3C
+Const DIK_F3              = &H3D
+Const DIK_F4              = &H3E
+Const DIK_F5              = &H3F
+Const DIK_F6              = &H40
+Const DIK_F7              = &H41
+Const DIK_F8              = &H42
+Const DIK_F9              = &H43
+Const DIK_F10             = &H44
+Const DIK_NUMLOCK         = &H45
+Const DIK_SCROLL          = &H46    'Scroll Lock
+Const DIK_NUMPAD7         = &H47
+Const DIK_NUMPAD8         = &H48
+Const DIK_NUMPAD9         = &H49
+Const DIK_SUBTRACT        = &H4A    '- on numeric keypad
+Const DIK_NUMPAD4         = &H4B
+Const DIK_NUMPAD5         = &H4C
+Const DIK_NUMPAD6         = &H4D
+Const DIK_ADD             = &H4E    '+ on numeric keypad
+Const DIK_NUMPAD1         = &H4F
+Const DIK_NUMPAD2         = &H50
+Const DIK_NUMPAD3         = &H51
+Const DIK_NUMPAD0         = &H52
+Const DIK_DECIMAL         = &H53    '. on numeric keypad
+Const DIK_OEM_102         = &H56    '<> or \| on RT 102-key keyboard (Non-U.S.)
+Const DIK_F11             = &H57
+Const DIK_F12             = &H58
+Const DIK_F13             = &H64    '                    (NEC PC98)
+Const DIK_F14             = &H65    '                    (NEC PC98)
+Const DIK_F15             = &H66    '                    (NEC PC98)
+Const DIK_KANA            = &H70    '(Japanese keyboard)           
+Const DIK_ABNT_C1         = &H73    '/? on Brazilian keyboard
+Const DIK_CONVERT         = &H79    '(Japanese keyboard)           
+Const DIK_NOCONVERT       = &H7B    '(Japanese keyboard)           
+Const DIK_YEN             = &H7D    '(Japanese keyboard)           
+Const DIK_ABNT_C2         = &H7E    'Numpad . on Brazilian keyboard
+Const DIK_NUMPADEQUALS    = &H8D    '= on numeric keypad (NEC PC98)
+Const DIK_PREVTRACK       = &H90    'Previous Track (DIK_CIRCUMFLEX on Japanese keyboard)
+Const DIK_AT              = &H91    '                    (NEC PC98)
+Const DIK_COLON           = &H92    '                    (NEC PC98)
+Const DIK_UNDERLINE       = &H93    '                    (NEC PC98)
+Const DIK_KANJI           = &H94    '(Japanese keyboard)           
+Const DIK_STOP            = &H95    '                    (NEC PC98)
+Const DIK_AX              = &H96    '                    (Japan AX)
+Const DIK_UNLABELED       = &H97    '                       (J3100)
+Const DIK_NEXTTRACK       = &H99    'Next Track
+Const DIK_NUMPADENTER     = &H9C    'Enter on numeric keypad
+Const DIK_RCONTROL        = &H9D
+Const DIK_MUTE            = &HA0    'Mute
+Const DIK_CALCULATOR      = &HA1    'Calculator
+Const DIK_PLAYPAUSE       = &HA2    'Play / Pause
+Const DIK_MEDIASTOP       = &HA4    'Media Stop
+Const DIK_VOLUMEDOWN      = &HAE    'Volume -
+Const DIK_VOLUMEUP        = &HB0    'Volume +
+Const DIK_WEBHOME         = &HB2    'Web home
+Const DIK_NUMPADCOMMA     = &HB3    ', on numeric keypad (NEC PC98)
+Const DIK_DIVIDE          = &HB5    '/ on numeric keypad
+Const DIK_SYSRQ           = &HB7
+Const DIK_RMENU           = &HB8    'right Alt
+Const DIK_PAUSE           = &HC5    'Pause
+Const DIK_HOME            = &HC7    'Home on arrow keypad
+Const DIK_UP              = &HC8    'UpArrow on arrow keypad
+Const DIK_PRIOR           = &HC9    'PgUp on arrow keypad
+Const DIK_LEFT            = &HCB    'LeftArrow on arrow keypad
+Const DIK_RIGHT           = &HCD    'RightArrow on arrow keypad
+Const DIK_END             = &HCF    'End on arrow keypad
+Const DIK_DOWN            = &HD0    'DownArrow on arrow keypad
+Const DIK_NEXT            = &HD1    'PgDn on arrow keypad
+Const DIK_INSERT          = &HD2    'Insert on arrow keypad
+Const DIK_DELETE          = &HD3    'Delete on arrow keypad
+Const DIK_LWIN            = &HDB    'Left Windows key
+Const DIK_RWIN            = &HDC    'Right Windows key
+Const DIK_APPS            = &HDD    'AppMenu key
+Const DIK_POWER           = &HDE    'System Power
+Const DIK_SLEEP           = &HDF    'System Sleep
+Const DIK_WAKE            = &HE3    'System Wake
+Const DIK_WEBSEARCH       = &HE5    'Web Search
+Const DIK_WEBFAVORITES    = &HE6    'Web Favorites
+Const DIK_WEBREFRESH      = &HE7    'Web Refresh
+Const DIK_WEBSTOP         = &HE8    'Web Stop
+Const DIK_WEBFORWARD      = &HE9    'Web Forward
+Const DIK_WEBBACK         = &HEA    'Web Back
+Const DIK_MYCOMPUTER      = &HEB    'My Computer
+Const DIK_MAIL            = &HEC    'Mail
+Const DIK_MEDIASELECT     = &HED    'Media Select
+
+' Alternate names for keys, to facilitate transition from DOS.
+Const DIK_BACKSPACE       = DIK_BACK            'backspace
+Const DIK_NUMPADSTAR      = DIK_MULTIPLY        '* on numeric keypad
+Const DIK_LALT            = DIK_LMENU           'left Alt
+Const DIK_CAPSLOCK        = DIK_CAPITAL         'CapsLock
+Const DIK_NUMPADMINUS     = DIK_SUBTRACT        '- on numeric keypad
+Const DIK_NUMPADPLUS      = DIK_ADD             '+ on numeric keypad
+Const DIK_NUMPADPERIOD    = DIK_DECIMAL         '. on numeric keypad
+Const DIK_NUMPADSLASH     = DIK_DIVIDE          '/ on numeric keypad
+Const DIK_RALT            = DIK_RMENU           'right Alt
+Const DIK_UPARROW         = DIK_UP              'UpArrow on arrow keypad
+Const DIK_PGUP            = DIK_PRIOR           'PgUp on arrow keypad
+Const DIK_LEFTARROW       = DIK_LEFT            'LeftArrow on arrow keypad
+Const DIK_RIGHTARROW      = DIK_RIGHT           'RightArrow on arrow keypad
+Const DIK_DOWNARROW       = DIK_DOWN            'DownArrow on arrow keypad
+Const DIK_PGDN            = DIK_NEXT            'PgDn on arrow keypad
+
+' Alternate names for keys originally not used on US keyboards.
+Const DIK_CIRCUMFLEX      = DIK_PREVTRACK       'Japanese keyboard
+
+
+'-----------------------
+' Mouse
+'-----------------------
+
+Type DIMOUSESTATE
+	lX As Long
+	lY As Long
+	lZ As Long
+	rgbButtons[3] As Byte
+End Type
+
+Type DIMOUSESTATE2
+	lX As Long
+	lY As Long
+	lZ As Long
+	rgbButtons[7] As Byte
+End Type
+
+
+Declare Function DirectInput8Create Lib "dinput8" (hinst As HINSTANCE, dwVersion As DWord, ByRef riidltf As GUID, ppvOut As *DWord, punkOuter As *IUnknown) As DWord
+
+
+'-------------------
+' Device Data Type
+'-------------------
+
+'c_dfDIKeyboard
+Sub _System_DirectInput_Keyboard_SetDataType(p As *DIOBJECTDATAFORMAT)
+	Dim i As Long
+	For i=0 To 255
+		p[i].pguid=VarPtr(GUID_Key)
+		p[i].dwOfs=i
+		p[i].dwType=DIDFT_BUTTON or DIDFT_OPTIONAL or (i<<8)
+		p[i].dwFlags=0
+	Next
+End Sub
+Dim _System_dfDIKeyboardObjectDataFormat[255] As DIOBJECTDATAFORMAT
+_System_DirectInput_Keyboard_SetDataType(_System_dfDIKeyboardObjectDataFormat)
+Dim c_dfDIKeyboard=[24,16,DIDF_RELAXIS,256,256,0] As DIDATAFORMAT
+c_dfDIKeyboard.rgodf=_System_dfDIKeyboardObjectDataFormat
+
+'c_dfDIMouse
+Dim _System_dfDIMouseObjectDataFormat[6]=[
+	[0,&H00,DIDFT_ANYINSTANCE or DIDFT_AXIS,0],
+	[0,&H04,DIDFT_ANYINSTANCE or DIDFT_AXIS,0],
+	[0,&H08,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,0],
+	[0,&H0C,DIDFT_ANYINSTANCE or DIDFT_BUTTON,0],
+	[0,&H0D,DIDFT_ANYINSTANCE or DIDFT_BUTTON,0],
+	[0,&H0E,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0],
+	[0,&H0F,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0]
+] As DIOBJECTDATAFORMAT
+_System_dfDIMouseObjectDataFormat[0].pguid=VarPtr(GUID_XAxis)
+_System_dfDIMouseObjectDataFormat[1].pguid=VarPtr(GUID_YAxis)
+_System_dfDIMouseObjectDataFormat[2].pguid=VarPtr(GUID_ZAxis)
+Dim c_dfDIMouse=[24,16,DIDF_RELAXIS,16,7,0] As DIDATAFORMAT
+c_dfDIMouse.rgodf=_System_dfDIMouseObjectDataFormat
+
+'c_dfDIMouse2
+Dim _System_dfDIMouse2ObjectDataFormat[10]=[
+	[0,&H00,DIDFT_ANYINSTANCE or DIDFT_AXIS,0],
+	[0,&H04,DIDFT_ANYINSTANCE or DIDFT_AXIS,0],
+	[0,&H08,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,0],
+	[0,&H0C,DIDFT_ANYINSTANCE or DIDFT_BUTTON,0],
+	[0,&H0D,DIDFT_ANYINSTANCE or DIDFT_BUTTON,0],
+	[0,&H0E,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0],
+	[0,&H0F,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0],
+	[0,&H10,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0],
+	[0,&H11,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0],
+	[0,&H12,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0],
+	[0,&H13,DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL,0]
+] As DIOBJECTDATAFORMAT
+_System_dfDIMouse2ObjectDataFormat[0].pguid=VarPtr(GUID_XAxis)
+_System_dfDIMouse2ObjectDataFormat[1].pguid=VarPtr(GUID_YAxis)
+_System_dfDIMouse2ObjectDataFormat[2].pguid=VarPtr(GUID_ZAxis)
+Dim c_dfDIMouse2=[24,16,DIDF_RELAXIS,20,11,0] As DIDATAFORMAT
+c_dfDIMouse2.rgodf=_System_dfDIMouse2ObjectDataFormat
+
+'c_dfDIJoystick
+Sub _System_DirectInput_Joystick_SetDataType(p As *DIOBJECTDATAFORMAT)
+	Dim i As Long
+	For i=12 To &H2B
+		p[i].pguid=0
+		p[i].dwOfs=&H30+i-12
+		p[i].dwType=DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL or (i<<8)
+		p[i].dwFlags=0
+	Next
+End Sub
+Dim _System_dfDIJoystickObjectDataFormat[&H2B]=[
+	[0,&H00,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H04,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H08,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H0C,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H10,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H14,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H18,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H1C,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H20,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0],
+	[0,&H24,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0],
+	[0,&H28,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0],
+	[0,&H2C,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0]
+] As DIOBJECTDATAFORMAT
+_System_dfDIJoystickObjectDataFormat[0].pguid=VarPtr(GUID_XAxis)
+_System_dfDIJoystickObjectDataFormat[1].pguid=VarPtr(GUID_YAxis)
+_System_dfDIJoystickObjectDataFormat[2].pguid=VarPtr(GUID_ZAxis)
+_System_dfDIJoystickObjectDataFormat[3].pguid=VarPtr(GUID_RxAxis)
+_System_dfDIJoystickObjectDataFormat[4].pguid=VarPtr(GUID_RyAxis)
+_System_dfDIJoystickObjectDataFormat[5].pguid=VarPtr(GUID_RzAxis)
+_System_dfDIJoystickObjectDataFormat[6].pguid=VarPtr(GUID_Slider)
+_System_dfDIJoystickObjectDataFormat[7].pguid=VarPtr(GUID_Slider)
+_System_dfDIJoystickObjectDataFormat[8].pguid=VarPtr(GUID_POV)
+_System_dfDIJoystickObjectDataFormat[9].pguid=VarPtr(GUID_POV)
+_System_dfDIJoystickObjectDataFormat[10].pguid=VarPtr(GUID_POV)
+_System_dfDIJoystickObjectDataFormat[11].pguid=VarPtr(GUID_POV)
+_System_DirectInput_Joystick_SetDataType(_System_dfDIJoystickObjectDataFormat)
+Dim c_dfDIJoystick=[24,16,DIDF_ABSAXIS,&H50,&H2C,0] As DIDATAFORMAT
+c_dfDIJoystick.rgodf=_System_dfDIJoystickObjectDataFormat
+
+'c_dfDIJoystick2
+Sub _System_DirectInput_Joystick2_SetDataType(p As *DIOBJECTDATAFORMAT)
+	Dim i As Long
+	For i=12 To &H8B
+		p[i].pguid=0
+		p[i].dwOfs=&H30+i-12
+		p[i].dwType=DIDFT_ANYINSTANCE or DIDFT_BUTTON or DIDFT_OPTIONAL or (i<<8)
+		p[i].dwFlags=0
+	Next
+
+	With p[&H8C]:.pguid=VarPtr(GUID_XAxis):.dwOfs=&HB0:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H8D]:.pguid=VarPtr(GUID_YAxis):.dwOfs=&HB4:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H8E]:.pguid=VarPtr(GUID_ZAxis):.dwOfs=&HB8:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H8F]:.pguid=VarPtr(GUID_RxAxis):.dwOfs=&HBC:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H90]:.pguid=VarPtr(GUID_RyAxis):.dwOfs=&HC0:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H91]:.pguid=VarPtr(GUID_RzAxis):.dwOfs=&HC4:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H92]:.pguid=VarPtr(GUID_Slider):.dwOfs=&H18:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+	With p[&H93]:.pguid=VarPtr(GUID_Slider):.dwOfs=&H1C:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTVELOCITY:End With
+
+	With p[&H94]:.pguid=VarPtr(GUID_XAxis):.dwOfs=&HD0:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H95]:.pguid=VarPtr(GUID_YAxis):.dwOfs=&HD4:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H96]:.pguid=VarPtr(GUID_ZAxis):.dwOfs=&HD8:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H97]:.pguid=VarPtr(GUID_RxAxis):.dwOfs=&HDC:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H98]:.pguid=VarPtr(GUID_RyAxis):.dwOfs=&HE0:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H99]:.pguid=VarPtr(GUID_RzAxis):.dwOfs=&HE4:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H9A]:.pguid=VarPtr(GUID_Slider):.dwOfs=&H18:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+	With p[&H9B]:.pguid=VarPtr(GUID_Slider):.dwOfs=&H1C:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTACCEL:End With
+
+	With p[&H9C]:.pguid=VarPtr(GUID_XAxis):.dwOfs=&HF0:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&H9D]:.pguid=VarPtr(GUID_YAxis):.dwOfs=&HF4:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&H9E]:.pguid=VarPtr(GUID_ZAxis):.dwOfs=&HF8:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&H9F]:.pguid=VarPtr(GUID_RxAxis):.dwOfs=&HFC:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&HA0]:.pguid=VarPtr(GUID_RyAxis):.dwOfs=&H100:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&HA1]:.pguid=VarPtr(GUID_RzAxis):.dwOfs=&H104:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&HA2]:.pguid=VarPtr(GUID_Slider):.dwOfs=&H18:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+	With p[&HA3]:.pguid=VarPtr(GUID_Slider):.dwOfs=&H1C:.dwType=DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL:.dwFlags=DIDOI_ASPECTFORCE:End With
+End Sub
+Dim _System_dfDIJoystick2ObjectDataFormat[&HA3]=[
+	[0,&H00,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H04,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H08,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H0C,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H10,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H14,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H18,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H1C,DIDFT_ANYINSTANCE or DIDFT_AXIS or DIDFT_OPTIONAL,DIDOI_ASPECTPOSITION],
+	[0,&H20,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0],
+	[0,&H24,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0],
+	[0,&H28,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0],
+	[0,&H2C,DIDFT_ANYINSTANCE or DIDFT_POV or DIDFT_OPTIONAL,0]
+] As DIOBJECTDATAFORMAT
+_System_dfDIJoystick2ObjectDataFormat[0].pguid=VarPtr(GUID_XAxis)
+_System_dfDIJoystick2ObjectDataFormat[1].pguid=VarPtr(GUID_YAxis)
+_System_dfDIJoystick2ObjectDataFormat[2].pguid=VarPtr(GUID_ZAxis)
+_System_dfDIJoystick2ObjectDataFormat[3].pguid=VarPtr(GUID_RxAxis)
+_System_dfDIJoystick2ObjectDataFormat[4].pguid=VarPtr(GUID_RyAxis)
+_System_dfDIJoystick2ObjectDataFormat[5].pguid=VarPtr(GUID_RzAxis)
+_System_dfDIJoystick2ObjectDataFormat[6].pguid=VarPtr(GUID_Slider)
+_System_dfDIJoystick2ObjectDataFormat[7].pguid=VarPtr(GUID_Slider)
+_System_dfDIJoystick2ObjectDataFormat[8].pguid=VarPtr(GUID_POV)
+_System_dfDIJoystick2ObjectDataFormat[9].pguid=VarPtr(GUID_POV)
+_System_dfDIJoystick2ObjectDataFormat[10].pguid=VarPtr(GUID_POV)
+_System_dfDIJoystick2ObjectDataFormat[11].pguid=VarPtr(GUID_POV)
+_System_DirectInput_Joystick2_SetDataType(_System_dfDIJoystickObjectDataFormat)
+Dim c_dfDIJoystick2=[24,16,DIDF_ABSAXIS,&H110,&HA4,0] As DIDATAFORMAT
+c_dfDIJoystick2.rgodf=_System_dfDIJoystick2ObjectDataFormat

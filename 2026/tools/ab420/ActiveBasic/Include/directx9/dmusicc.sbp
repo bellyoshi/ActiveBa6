@@ -1,0 +1,259 @@
+' dmusicc.sbp - This module defines the DirectMusic core API's
+
+Const DMUS_MAX_DESCRIPTION = 128
+
+Type DMUS_BUFFERDESC
+	dwSize As DWord
+	dwFlags As DWord
+	guidBufferFormat As GUID
+	cbBuffer As DWord
+End Type
+
+' dwEffectFlags fields of both DMUS_PORTCAPS and DMUS_PORTPARAMS.
+Const DMUS_EFFECT_NONE   = &H00000000
+Const DMUS_EFFECT_REVERB = &H00000001
+Const DMUS_EFFECT_CHORUS = &H00000002
+Const DMUS_EFFECT_DELAY  = &H00000004
+
+' For DMUS_PORTCAPS dwClass
+Const DMUS_PC_INPUTCLASS  = 0
+Const DMUS_PC_OUTPUTCLASS = 1
+
+' For DMUS_PORTCAPS dwFlags
+Const DMUS_PC_DLS             = &H00000001   'Supports DLS downloading and DLS level 1.
+Const DMUS_PC_EXTERNAL        = &H00000002   'External MIDI module.
+Const DMUS_PC_SOFTWARESYNTH   = &H00000004   'Software synthesizer.
+Const DMUS_PC_MEMORYSIZEFIXED = &H00000008   'Memory size is fixed.
+Const DMUS_PC_GMINHARDWARE    = &H00000010   'GM sound set is built in, no need to download.
+Const DMUS_PC_GSINHARDWARE    = &H00000020   'GS sound set is built in.
+Const DMUS_PC_XGINHARDWARE    = &H00000040   'XG sound set is built in.
+Const DMUS_PC_DIRECTSOUND     = &H00000080   'Connects to DirectSound via a DSound buffer.
+Const DMUS_PC_SHAREABLE       = &H00000100   'Synth can be actively shared by multiple apps at once.
+Const DMUS_PC_DLS2            = &H00000200   'Supports DLS2 instruments.
+Const DMUS_PC_AUDIOPATH       = &H00000400   'Multiple outputs can be connected to DirectSound for audiopaths.
+Const DMUS_PC_WAVE            = &H00000800   'Supports streaming and one shot waves.
+Const DMUS_PC_SYSTEMMEMORY    = &H7FFFFFFF   'Sample memory is system memory.
+
+' For DMUS_PORTCAPS dwType
+Const DMUS_PORT_WINMM_DRIVER    = 0
+Const DMUS_PORT_USER_MODE_SYNTH = 1
+Const DMUS_PORT_KERNEL_MODE     = 2
+
+Type DMUS_PORTCAPS
+	dwSize As DWord
+	dwFlags As DWord
+	guidPort As GUID
+	dwClass As DWord
+	dwType As DWord
+	dwMemorySize As DWord
+	dwMaxChannelGroups As DWord
+	dwMaxVoices As DWord    
+	dwMaxAudioChannels As DWord
+	dwEffectFlags As DWord
+	wszDescription[DMUS_MAX_DESCRIPTION-1] As WCHAR
+End Type
+
+' For DMUS_PORTPARAMS8 dwValidParams
+Const DMUS_PORTPARAMS_VOICES        = &H00000001
+Const DMUS_PORTPARAMS_CHANNELGROUPS = &H00000002
+Const DMUS_PORTPARAMS_AUDIOCHANNELS = &H00000004
+Const DMUS_PORTPARAMS_SAMPLERATE    = &H00000008
+Const DMUS_PORTPARAMS_EFFECTS       = &H00000020
+Const DMUS_PORTPARAMS_SHARE         = &H00000040
+Const DMUS_PORTPARAMS_FEATURES      = &H00000080
+
+' For DMUS_PORTPARAMS8 dwFeatures
+Const DMUS_PORT_FEATURE_AUDIOPATH = &H00000001	'Supports audiopath connection to DSound buffers.
+Const DMUS_PORT_FEATURE_STREAMING = &H00000002	'Supports streaming waves through the synth.
+
+Type DMUS_PORTPARAMS8
+	dwSize As DWord
+	dwValidParams As DWord
+	dwVoices As DWord
+	dwChannelGroups As DWord
+	dwAudioChannels As DWord
+	dwSampleRate As DWord
+	dwEffectFlags As DWord
+	fShare As Long
+	dwFeatures As DWord
+End Type
+TypeDef DMUS_PORTPARAMS = DMUS_PORTPARAMS8
+
+Type DMUS_SYNTHSTATS
+	dwSize As DWord         'Size in bytes of the structure
+	dwValidStats As DWord   'Flags indicating which fields below are valid.
+	dwVoices As DWord       'Average number of voices playing.
+	dwTotalCPU As DWord     'Total CPU usage as percent * 100.
+	dwCPUPerVoice As DWord  'CPU per voice as percent * 100.
+	dwLostNotes As DWord    'Number of notes lost in 1 second.
+	dwFreeMemory As DWord   'Free memory in bytes
+	lPeakVolume As Long     'Decibel level * 100.
+End Type
+
+Enum DMUS_CLOCKTYPE
+	DMUS_CLOCK_SYSTEM = 0
+	DMUS_CLOCK_WAVE = 1
+End Enum
+
+Type DMUS_CLOCKINFO
+	dwSize As DWord
+	ctType As DMUS_CLOCKTYPE
+	guidClock As GUID
+	wszDescription[DMUS_MAX_DESCRIPTION-1] As WCHAR
+	dwFlags As DWord
+End Type
+TypeDef DMUS_CLOCKINFO8 = DMUS_CLOCKINFO
+
+
+'-----------------
+' Interface
+'-----------------
+
+Class IDirectMusic
+	Inherits IUnknown
+Public
+	'IDirectMusic
+	Virtual Function EnumPort(dwIndex As DWord, pPortCaps As *DMUS_PORTCAPS) As DWord
+	Virtual Function CreateMusicBuffer(pBufferDesc As *DMUS_BUFFERDESC, ppBuffer As *LPDIRECTMUSICBUFFER, pUnkOuter As LPUNKNOWN) As DWord
+	Virtual Function CreatePort(ByRef rclsidPort As GUID, pPortParams As *DMUS_PORTPARAMS, ppPort As *LPDIRECTMUSICPORT8, pUnkOuter As LPUNKNOWN) As DWord
+	Virtual Function EnumMasterClock(dwIndex As DWord, lpClockInfo As *DMUS_CLOCKINFO) As DWord
+	Virtual Function GetMasterClock(pguidClock As *GUID, ppReferenceClock As **IReferenceClock) As DWord
+	Virtual Function SetMasterClock(ByRef rguidClock As GUID) As DWord
+	Virtual Function Activate(fEnable As Long) As DWord
+	Virtual Function GetDefaultPort(pguidPort As *GUID) As DWord
+	Virtual Function SetDirectSound(pDirectSound As LPDIRECTSOUND, hWnd As HWND) As DWord
+End Class
+TypeDef LPDIRECTMUSIC = *IDirectMusic
+
+Class IDirectMusic8
+	Inherits IDirectMusic
+Public
+	'IDirectMusic8
+	Virtual Function SetExternalMasterClock(pClock As *IReferenceClock) As DWord
+End Class
+TypeDef LPDIRECTMUSIC8 = *IDirectMusic8
+
+Class IDirectMusicBuffer
+	Inherits IUnknown
+Public
+	'IDirectMusicBuffer
+	Virtual Function Flush() As DWord
+	Virtual Function TotalTime(prtTime As *REFERENCE_TIME) As DWord
+	Virtual Function PackStructured(rt As REFERENCE_TIME, dwChannelGroup As DWord, dwChannelMessage As DWord) As DWord
+	Virtual Function PackUnstructured(rt As REFERENCE_TIME, dwChannelGroup As DWord, cb As DWord, lpb As BytePtr) As DWord
+	Virtual Function ResetReadPtr() As DWord
+	Virtual Function GetNextEvent(prt As *REFERENCE_TIME, pdwChannelGroup As DWordPtr, pdwLength As DWordPtr, ppData As **Byte) As DWord
+	Virtual Function GetRawBufferPtr(ppData As **Byte) As DWord
+	Virtual Function GetStartTime(prt As *REFERENCE_TIME) As DWord
+	Virtual Function GetUsedBytes(pcb As DWordPtr) As DWord
+	Virtual Function GetMaxBytes(pcb As DWordPtr) As DWord
+	Virtual Function GetBufferFormat(pGuidFormat As *GUID) As DWord
+	Virtual Function SetStartTime(rt As REFERENCE_TIME) As DWord
+	Virtual Function SetUsedBytes(cb As DWord) As DWord
+End Class
+TypeDef LPDIRECTMUSICBUFFER = *IDirectMusicBuffer
+TypeDef IDirectMusicBuffer8 = IDirectMusicBuffer
+TypeDef LPDIRECTMUSICBUFFER8 = *IDirectMusicBuffer8
+
+Class IDirectMusicInstrument
+	Inherits IUnknown
+Public
+	'IDirectMusicInstrument
+	Virtual Function GetPatch(pdwPatch As DWordPtr) As DWord
+	Virtual Function SetPatch(dwPatch As DWord) As DWord
+End Class
+TypeDef IDirectMusicInstrument8 = IDirectMusicInstrument
+TypeDef LPDIRECTMUSICINSTRUMENT8 = *IDirectMusicInstrument8
+
+Class IDirectMusicDownloadedInstrument
+	Inherits IUnknown
+End Class
+TypeDef IDirectMusicDownloadedInstrument8 = IDirectMusicDownloadedInstrument
+TypeDef LPDIRECTMUSICDOWNLOADEDINSTRUMENT8 = *IDirectMusicDownloadedInstrument8
+
+Class IDirectMusicCollection
+	Inherits IUnknown
+Public
+	'IDirectMusicCollection
+	Virtual Function GetInstrument(dwPatch As DWord, ppInstrument As **IDirectMusicInstrument) As DWord
+	Virtual Function EnumInstrument(dwIndex As DWord, pdwPatch As DWordPtr, pwszName As *WCHAR, dwNameLen As DWord) As DWord
+End Class
+TypeDef IDirectMusicCollection8 = IDirectMusicCollection
+TypeDef LPDIRECTMUSICCOLLECTION8 = *IDirectMusicCollection8
+
+Class IDirectMusicDownload
+	Inherits IUnknown
+Public
+	'IDirectMusicDownload
+	Virtual Function GetBuffer(ppvBuffer As DWordPtr, pdwSize As DWordPtr) As DWord
+End Class
+TypeDef IDirectMusicDownload8 = IDirectMusicDownload
+TypeDef LPDIRECTMUSICDOWNLOAD8 = *IDirectMusicDownload8
+
+Class IDirectMusicPortDownload
+	Inherits IUnknown
+Public
+	'IDirectMusicPortDownload
+	Virtual Function GetBuffer(dwDLId As DWord, ppIDMDownload As **IDirectMusicDownload) As DWord
+	Virtual Function AllocateBuffer(dwSize As DWord, ppIDMDownload As **IDirectMusicDownload) As DWord
+	Virtual Function GetDLId(pdwStartDLId As DWordPtr, dwCount As DWord) As DWord
+	Virtual Function GetAppend(pdwAppend As DWordPtr) As DWord
+	Virtual Function Download(pIDMDownload As *IDirectMusicDownload) As DWord
+	Virtual Function Unload(pIDMDownload As *IDirectMusicDownload) As DWord
+End Class
+TypeDef IDirectMusicPortDownload8 = IDirectMusicPortDownload
+TypeDef LPDIRECTMUSICPORTDOWNLOAD8 = *IDirectMusicPortDownload8
+
+Class IDirectMusicPort
+	Inherits IUnknown
+Public
+	'IDirectMusicPort
+	Virtual Function PlayBuffer(pBuffer As LPDIRECTMUSICBUFFER) As DWord
+	Virtual Function SetReadNotificationHandle(hEvent As HANDLE) As DWord
+	Virtual Function Read(pBuffer As LPDIRECTMUSICBUFFER) As DWord
+	Virtual Function DownloadInstrument(pInstrument As *IDirectMusicInstrument, ppDownloadedInstrument As **IDirectMusicDownloadedInstrument, pNoteRanges As *DMUS_NOTERANGE, dwNumNoteRanges As DWord) As DWord
+	Virtual Function UnloadInstrument(pDownloadedInstrument As *IDirectMusicDownloadedInstrument) As DWord
+	Virtual Function GetLatencyClock(ppClock As **IReferenceClock) As DWord
+	Virtual Function GetRunningStats(pStats As *DMUS_SYNTHSTATS) As DWord
+	Virtual Function Compact() As DWord
+	Virtual Function GetCaps(pPortCaps As *DMUS_PORTCAPS) As DWord
+	Virtual Function DeviceIoControl(dwIoControlCode As DWord, lpInBuffer As VoidPtr, nInBufferSize As DWord, lpOutBuffer As VoidPtr, nOutBufferSize As DWord, lpBytesReturned As DWordPtr, lpOverlapped As *OVERLAPPED) As DWord
+	Virtual Function SetNumChannelGroups(dwChannelGroups As DWord) As DWord
+	Virtual Function GetNumChannelGroups(pdwChannelGroups As DWordPtr) As DWord
+	Virtual Function Activate(fActive As Long) As DWord
+	Virtual Function SetChannelPriority(dwChannelGroup As DWord, dwChannel As DWord, dwPriority As DWord) As DWord
+	Virtual Function GetChannelPriority(dwChannelGroup As DWord, dwChannel As DWord, pdwPriority As DWordPtr) As DWord
+	Virtual Function SetDirectSound(pDirectSound As LPDIRECTSOUND, pDirectSoundBuffer As LPDIRECTSOUNDBUFFER) As DWord
+	Virtual Function GetFormat(pWaveFormatEx As *WAVEFORMATEX, pdwWaveFormatExSize As DWordPtr, pdwBufferSize As DWordPtr) As DWord
+End Class
+TypeDef IDirectMusicPort8 = IDirectMusicPort
+TypeDef LPDIRECTMUSICPORT8 = *IDirectMusicPort8
+
+Class IDirectMusicThru
+	Inherits IUnknown
+Public
+	'IDirectMusicThru
+	Virtual Function ThruChannel(dwSourceChannelGroup As DWord, dwSourceChannel As DWord, dwDestinationChannelGroup As DWord, dwDestinationChannel As DWord, pDestinationPort As LPDIRECTMUSICPORT8) As DWord
+End Class
+TypeDef IDirectMusicThru8 = IDirectMusicThru
+TypeDef LPDIRECTMUSICTHRU8 = *IDirectMusicThru8
+
+
+'-----------------
+' CLSID and IID
+'-----------------
+
+Dim CLSID_DirectMusic = [&H636b9f10,&H0c7d,&H11d1,[&H95,&Hb2,&H00,&H20,&Haf,&Hdc,&H74,&H21]] As GUID
+Dim CLSID_DirectMusicCollection = [&H480ff4b0, &H28b2, &H11d1, [&Hbe, &Hf7, &H0, &Hc0, &H4f, &Hbf, &H8f, &Hef]] As GUID
+Dim CLSID_DirectMusicSynth = [&H58C2B4D0,&H46E7,&H11D1,[&H89,&HAC,&H00,&HA0,&HC9,&H05,&H41,&H29]] As GUID
+
+Dim IID_IDirectMusic = [&H6536115a,&H7b2d,&H11d2,[&Hba,&H18,&H00,&H00,&Hf8,&H75,&Hac,&H12]] As GUID
+Dim IID_IDirectMusicBuffer = [&Hd2ac2878, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicPort = [&H08f2d8c9,&H37c2,&H11d2,[&Hb9,&Hf9,&H00,&H00,&Hf8,&H75,&Hac,&H12]] As GUID
+Dim IID_IDirectMusicThru = [&Hced153e7, &H3606, &H11d2, [&Hb9, &Hf9, &H00, &H00, &Hf8, &H75, &Hac, &H12]] As GUID
+Dim IID_IDirectMusicPortDownload = [&Hd2ac287a, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicDownload = [&Hd2ac287b, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicCollection = [&Hd2ac287c, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicInstrument = [&Hd2ac287d, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+Dim IID_IDirectMusicDownloadedInstrument = [&Hd2ac287e, &Hb39b, &H11d1, [&H87, &H4, &H0, &H60, &H8, &H93, &Hb1, &Hbd]] As GUID
+

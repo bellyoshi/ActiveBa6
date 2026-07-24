@@ -1,0 +1,7 @@
+' dmdls.sbp - DLS download definitions for DirectMusic API's
+
+Type DMUS_NOTERANGE
+	dwLowNote As DWord   'Sets the low note for the range of MIDI note events to which the instrument responds.
+	dwHighNote As DWord  'Sets the high note for the range of MIDI note events to which the instrument responds.
+End Type
+

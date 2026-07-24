@@ -1,0 +1,205 @@
+' ----------------------------------------------------------------------------
+'  イベント プロシージャ
+' ----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [SendMail] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hSendMail
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+
+Function SendMailThread(dw As DWord) As DWord
+    Dim TextBuffer As String    'テキストバッファの格納用
+    Dim length As Long          'テキストの長さ
+    Dim temporary As String     '送信時のテキスト一時保存用
+
+    Dim buffer[255] As Byte
+    Dim i As Long, i2 As Long
+
+    '「送信」「閉じる」ボタンを無効にする
+    EnableWindow(GetDlgItem(hSendMail,CommandButton1),FALSE)
+    EnableWindow(GetDlgItem(hSendMail,CommandButton2),FALSE)
+
+    '各エディットボックスの内容を取得する
+    Dim szServerName[255] As Byte      'サーバー名
+    Dim szFrom[255] As Byte            '送信元アドレス
+    Dim szTo[255] As Byte              '送信先アドレス
+    Dim szSubject[255] As Byte         '件名
+    GetWindowText(GetDlgItem(hSendMail,EditBox1),szServerName,256)
+    GetWindowText(GetDlgItem(hSendMail,EditBox2),szFrom,256)
+    GetWindowText(GetDlgItem(hSendMail,EditBox3),szTo,256)
+    GetWindowText(GetDlgItem(hSendMail,EditBox4),szSubject,256)
+
+    'テキスト データを格納するためのバッファ領域を確保
+    Dim hEdit As DWord
+    hEdit=GetDlgItem(hMainWnd,EditBox1)
+    length=GetWindowTextLength(hEdit)
+    TextBuffer=ZeroString(length+1)
+    temporary=ZeroString(length+3)
+
+    'テキスト バッファを取得
+    GetWindowText(hEdit, TextBuffer, length+1)
+
+
+    'WinSock Ver1.1の初期化
+    Dim wsaData As WSADATA          'ソケットの初期化情報
+    WSAStartup(MAKEWORD(1,1),wsaData)
+
+    'サーバーを探す
+    Dim lpHost As *HOSTENT          'ホスト情報
+    lpHost=gethostbyname(szServerName)
+    If lpHost=0 Then
+        wsprintf(buffer,"%sが見つかりません",szServerName)
+        SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+        '「送信」「閉じる」ボタンを有効にする
+        EnableWindow(GetDlgItem(hSendMail,CommandButton1),TRUE)
+        EnableWindow(GetDlgItem(hSendMail,CommandButton2),TRUE)
+        Exit Function
+    End If
+
+    'ソケットをオープン
+    Dim s As DWord                  'ソケット
+    s=socket(AF_INET, SOCK_STREAM, 0)
+    If s=0 Then
+        SetDlgItemText(hSendMail,Static_Recv,"ソケットのオープンに失敗")
+
+        '「送信」「閉じる」ボタンを有効にする
+        EnableWindow(GetDlgItem(hSendMail,CommandButton1),TRUE)
+        EnableWindow(GetDlgItem(hSendMail,CommandButton2),TRUE)
+        Exit Function
+    End If
+
+    'メール用のポート番号を取得
+    Dim lpServ As *SERVENT          'サービス情報
+    Dim sockaddress As SOCKADDR_IN  'アドレス情報
+    lpServ = getservbyname("mail", NULL)
+    If lpServ=0 Then
+        'デフォルトのポート番号を使用
+        sockaddress.sin_port=htons(IPPORT_SMTP)
+    Else
+        sockaddress.sin_port=lpServ->s_port
+    End If
+
+    sockaddress.sin_family=AF_INET
+    sockaddress.sin_addr=GetDWord(GetDWord(lpHost->h_addr_list))
+
+    'サーバーに接続
+    If connect(s,sockaddress,Len(sockaddress)) Then
+        SetDlgItemText(hSendMail,Static_Recv,"サーバーへの接続に失敗")
+
+        '「送信」「閉じる」ボタンを有効にする
+        EnableWindow(GetDlgItem(hSendMail,CommandButton1),TRUE)
+        EnableWindow(GetDlgItem(hSendMail,CommandButton2),TRUE)
+        Exit Function
+    End If
+
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    wsprintf(buffer,Ex"HELO %s\r\n",szServerName)        'HELOコマンドを送信
+    send(s, buffer, lstrlen(buffer), 0)
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    wsprintf(buffer, Ex"MAIL FROM : <%s>\r\n", szFrom)   'MAIL FROMコマンドを送信
+    send(s, buffer, lstrlen(buffer), 0)
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    wsprintf(buffer, Ex"RCPT TO :<%s>\r\n", szTo)        'RCPT TOコマンドを送信
+    send(s, buffer, lstrlen(buffer), 0)
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    lstrcpy(buffer, Ex"DATA\r\n")                        'DATAコマンドを送信
+    send(s, buffer, lstrlen(buffer), 0)
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    lstrcpy(buffer, Ex"X-Mailer: Test_Mailer\r\n")       'ヘッダ部分を送信
+    send(s, buffer, lstrlen(buffer), 0)
+
+    wsprintf(buffer, Ex"Subject: %s \r\n", szSubject)    '件名を送信
+    send(s, buffer, lstrlen(buffer), 0)
+
+    lstrcpy(buffer, Ex"\r\n")
+    send(s, buffer, lstrlen(buffer), 0)
+
+    'メール本文を送信
+    i=0
+    i2=0
+    Do
+        If (TextBuffer[i]=13 and TextBuffer[i+1]=10) or TextBuffer[i]=0 Then
+            '改行
+            temporary[i2]=0
+            lstrcat(temporary,Ex"\r\n")
+
+            '送信
+            send(s, temporary, lstrlen(temporary), 0)
+
+            If TextBuffer[i]=0 Then Exit Do
+
+            i=i+2
+            i2=0
+            Continue
+        End If
+        temporary[i2]=TextBuffer[i]
+
+        i=i+1
+        i2=i2+1
+    Loop
+
+    lstrcpy(buffer, Ex".\r\n")
+    send(s, buffer, lstrlen(buffer), 0)
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    lstrcpy(buffer, Ex"QUIT\r\n")                        'QUITコマンドを送信
+    send(s, buffer, lstrlen(buffer), 0)
+    FillMemory(buffer,256,0)
+    recv(s, buffer, 256, 0)
+    SetDlgItemText(hSendMail,Static_Recv,buffer)
+
+    'ソケットへの接続を閉じる
+    shutdown(s,SD_BOTH)
+    closesocket(s)
+
+    'WinSockが使用したメモリを解放
+    WSACleanup()
+
+    SetDlgItemText(hSendMail,Static_Recv,"送信が完了しました")
+
+    '「送信」「閉じる」ボタンを有効にする
+    EnableWindow(GetDlgItem(hSendMail,CommandButton1),TRUE)
+    EnableWindow(GetDlgItem(hSendMail,CommandButton2),TRUE)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Function SendMailProc(hWnd As DWord, dwMsg As DWord, wParam As DWord, lParam As DWord) As DWord
+	' TODO: この位置にウィンドウメッセージを処理するためのコードを記述します。
+
+	' イベントプロシージャの呼び出しを行います。
+	SendMailProc=EventCall_SendMail(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ここから下は、イベントプロシージャを記述するための領域になります。
+
+Sub SendMail_CommandButton1_Click()
+    Dim dw As DWord
+    'SendMailThread関数を、新しいスレッドで実行する
+    CreateThread(ByVal 0,0,AddressOf(SendMailThread),0,0,VarPtr(dw))
+End Sub
+
+Sub SendMail_CommandButton2_Click()
+    EndDialog(hSendMail,0)
+End Sub

@@ -1,0 +1,208 @@
+#N88BASIC
+
+'シャッフル回数を指定（ここでは1000回）
+Const SHUFFLENUM=1000
+
+'テーブル配列
+Dim table[15] As Long
+
+
+Sub ShowTable()
+    '----------------------
+    ' パズルテーブルを表示
+    '----------------------
+
+    Locate 0,0
+    Print "・・・・・・・・・"
+    Print Using "・##・##・##・##・";table[0],table[1],table[2],table[3]
+    Print "・・・・・・・・・"
+    Print Using "・##・##・##・##・";table[4],table[5],table[6],table[7]
+    Print "・・・・・・・・・"
+    Print Using "・##・##・##・##・";table[8],table[9],table[10],table[11]
+    Print "・・・・・・・・・"
+    Print Using "・##・##・##・##・";table[12],table[13],table[14],table[15]
+    Print "・・・・・・・・・"
+
+    '0のピース（空白ピース）を空白文字に変換する
+    If table[0]=0 Then Locate 2,1:PRINT "  "
+    If table[1]=0 Then Locate 6,1:PRINT "  "
+    If table[2]=0 Then Locate 10,1:PRINT "  "
+    If table[3]=0 Then Locate 14,1:PRINT "  "
+    If table[4]=0 Then Locate 2,3:PRINT "  "
+    If table[5]=0 Then Locate 6,3:PRINT "  "
+    If table[6]=0 Then Locate 10,3:PRINT "  "
+    If table[7]=0 Then Locate 14,3:PRINT "  "
+    If table[8]=0 Then Locate 2,5:PRINT "  "
+    If table[9]=0 Then Locate 6,5:PRINT "  "
+    If table[10]=0 Then Locate 10,5:PRINT "  "
+    If table[11]=0 Then Locate 14,5:PRINT "  "
+    If table[12]=0 Then Locate 2,7:PRINT "  "
+    If table[13]=0 Then Locate 6,7:PRINT "  "
+    If table[14]=0 Then Locate 10,7:PRINT "  "
+    If table[15]=0 Then Locate 14,7:PRINT "  "
+End Sub
+
+Sub ShowClearMessage()
+    '------------------------
+    ' クリアメッセージを表示
+    '------------------------
+
+    '文字色を黄色に、背景色を黒にセット
+    Color 6,0
+
+    'パズルテーブルを表示
+    ShowTable()
+
+    'クリアメッセージを表示
+    Locate 0,10
+    Print "・・・Clear!・・・"
+End Sub
+
+Sub SwapLong(ByRef a As Long, ByRef b As Long)
+    Dim temp As Long
+    temp=a
+    a=b
+    b=temp
+End Sub
+
+Sub MoveLeft()
+    '左へ移動
+
+    Dim i As Long
+
+    '空白が右端にある場合は抜け出す
+    If table[3]=0 or table[7]=0 or table[11]=0 or table[15]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i],table[i+1])
+End Sub
+
+Sub MoveRight()
+    '右へ移動
+    Dim temp As Long
+    Dim i As Long
+
+    '空白が左端にある場合は抜け出す
+    If table[0]=0 or table[4]=0 or table[8]=0 or table[12]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i-1],table[i])
+End Sub
+
+Sub MoveUp()
+    '上へ移動
+    Dim temp As Long
+    Dim i As Long
+
+    '空白が下端にある場合は抜け出す
+    If table[12]=0 or table[13]=0 or table[14]=0 or table[15]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i],table[i+4])
+End Sub
+
+Sub MoveDown()
+    '下へ移動
+    Dim temp As Long
+    Dim i As Long
+
+    '空白が上端にある場合は抜け出す
+    If table[0]=0 or table[1]=0 or table[2]=0 or table[3]=0 Then Exit Sub
+
+    For i=0 To 15
+        If table[i]=0 Then Exit For
+    Next
+
+    '入れ替え
+    SwapLong(table[i-4],table[i])
+End Sub
+
+Sub Shuffle()
+    '------------------------------------
+    ' SHUFFLENUMの回数だけシャッフルする
+    '------------------------------------
+
+    Dim i As Long
+
+    For i=0 To SHUFFLENUM
+        '0～3の間で乱数を生成
+        Select Case CInt(Rnd()*3)
+            Case 0
+                MoveLeft()
+            Case 1
+                MoveRight()
+            Case 2
+                MoveUp()
+            Case 3
+                MoveDown()
+        End Select
+    Next
+End Sub
+
+
+'--------------------------
+' ここからメインプログラム
+'--------------------------
+
+Dim i As Long
+Dim buf As String
+
+'テーブル配列の初期化
+For i=0 To 15
+    table[i]=i
+Next
+
+'擬似乱数を初期化
+Randomize
+
+' シャッフル
+Shuffle()
+
+'文字色を白に、背景色を黒にセット
+Color 7,0
+
+Do
+    'パズルテーブルを表示
+    ShowTable()
+
+    Do
+        Sleep(10)
+        buf=Inkey$()
+    Loop While buf=""
+
+    Select Case Asc(buf)
+        Case VK_LEFT
+            '左へ移動
+            MoveLeft()
+        Case VK_RIGHT
+            '右へ移動
+            MoveRight()
+        Case VK_UP
+            '上へ移動
+            MoveUp()
+        Case VK_DOWN
+            '下へ移動
+            MoveDown()
+    End Select
+
+    'クリア判定
+    For i=0 To 15
+        If not table[i]=i Then Exit For
+    Next
+    If i=16 Then
+        ShowClearMessage()
+        Exit Do
+    End If
+Loop

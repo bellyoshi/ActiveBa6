@@ -1,0 +1,392 @@
+'d3d9caps.sbp
+
+
+Type D3DVSHADERCAPS2_0
+	Caps As DWord
+	DynamicFlowControlDepth As Long
+	NumTemps As Long
+	StaticFlowControlDepth As Long
+End Type
+
+Const D3DVS20CAPS_PREDICATION = 1<<0
+
+Const D3DVS20_MAX_DYNAMICFLOWCONTROLDEPTH = 24
+Const D3DVS20_MIN_DYNAMICFLOWCONTROLDEPTH = 0
+Const D3DVS20_MAX_NUMTEMPS                = 32
+Const D3DVS20_MIN_NUMTEMPS                = 12
+Const D3DVS20_MAX_STATICFLOWCONTROLDEPTH  = 4
+Const D3DVS20_MIN_STATICFLOWCONTROLDEPTH  = 1
+
+Type D3DPSHADERCAPS2_0
+	Caps As DWord
+	DynamicFlowControlDepth As Long
+	NumTemps As Long
+	StaticFlowControlDepth As Long
+	NumInstructionSlots As Long
+End Type
+
+Const D3DPS20CAPS_ARBITRARYSWIZZLE        = 1<<0
+Const D3DPS20CAPS_GRADIENTINSTRUCTIONS    = 1<<1
+Const D3DPS20CAPS_PREDICATION             = 1<<2
+Const D3DPS20CAPS_NODEPENDENTREADLIMIT    = 1<<3
+Const D3DPS20CAPS_NOTEXINSTRUCTIONLIMIT   = 1<<4
+
+Const D3DPS20_MAX_DYNAMICFLOWCONTROLDEPTH = 24
+Const D3DPS20_MIN_DYNAMICFLOWCONTROLDEPTH = 0
+Const D3DPS20_MAX_NUMTEMPS                = 32
+Const D3DPS20_MIN_NUMTEMPS                = 12
+Const D3DPS20_MAX_STATICFLOWCONTROLDEPTH  = 4
+Const D3DPS20_MIN_STATICFLOWCONTROLDEPTH  = 0
+Const D3DPS20_MAX_NUMINSTRUCTIONSLOTS     = 512
+Const D3DPS20_MIN_NUMINSTRUCTIONSLOTS     = 96
+
+Const D3DMIN30SHADERINSTRUCTIONS = 512
+Const D3DMAX30SHADERINSTRUCTIONS = 32768
+
+Type D3DCAPS9
+	'Device Info
+	DeviceType As DWord
+	AdapterOrdinal As DWord
+
+	'Caps from DX7 Draw
+	Caps As DWord
+	Caps2 As DWord
+	Caps3 As DWord
+	PresentationIntervals As DWord
+
+	'Cursor Caps
+	CursorCaps As DWord
+
+	'3D Device Caps
+	DevCaps As DWord
+
+	PrimitiveMiscCaps As DWord
+	RasterCaps As DWord
+	ZCmpCaps As DWord
+	SrcBlendCaps As DWord
+	DestBlendCaps As DWord
+	AlphaCmpCaps As DWord
+	ShadeCaps As DWord
+	TextureCaps As DWord
+	TextureFilterCaps As DWord
+	CubeTextureFilterCaps As DWord
+	VolumeTextureFilterCaps As DWord
+	TextureAddressCaps As DWord
+	VolumeTextureAddressCaps As DWord
+
+	LineCaps As DWord
+
+	MaxTextureWidth As DWord
+	MaxTextureHeight As DWord
+	MaxVolumeExtent As DWord
+
+	MaxTextureRepeat As DWord
+	MaxTextureAspectRatio As DWord
+	MaxAnisotropy As DWord
+	MaxVertexW As Single
+
+	GuardBandLeft As Single
+	GuardBandTop As Single
+	GuardBandRight As Single
+	GuardBandBottom As Single
+
+	ExtentsAdjust As Single
+	StencilCaps As DWord
+
+	FVFCaps As DWord
+	TextureOpCaps As DWord
+	MaxTextureBlendStages As DWord
+	MaxSimultaneousTextures As DWord
+
+	VertexProcessingCaps As DWord
+	MaxActiveLights As DWord
+	MaxUserClipPlanes As DWord
+	MaxVertexBlendMatrices As DWord
+	MaxVertexBlendMatrixIndex As DWord
+
+	MaxPointSize As Single
+
+	MaxPrimitiveCount As DWord
+	MaxVertexIndex As DWord
+	MaxStreams As DWord
+	MaxStreamStride As DWord
+
+	VertexShaderVersion As DWord
+	MaxVertexShaderConst As DWord
+
+	PixelShaderVersion As DWord
+	PixelShader1xMaxValue As Single
+
+	'Here are the DX9 specific ones
+	DevCaps2 As DWord
+
+	MaxNpatchTessellationLevel As Single
+	Reserved5 As DWord
+
+	MasterAdapterOrdinal As DWord
+	AdapterOrdinalInGroup As DWord
+	NumberOfAdaptersInGroup As DWord
+	DeclTypes As DWord
+	NumSimultaneousRTs As DWord
+	StretchRectFilterCaps As DWord
+	VS20Caps As D3DVSHADERCAPS2_0
+	PS20Caps As D3DPSHADERCAPS2_0
+	VertexTextureFilterCaps As DWord
+	MaxVShaderInstructionsExecuted As DWord
+	MaxPShaderInstructionsExecuted As DWord
+	MaxVertexShader30InstructionSlots As DWord 
+	MaxPixelShader30InstructionSlots As DWord
+End Type
+
+
+' Caps
+Const D3DCAPS_READ_SCANLINE = &H00020000
+
+' Caps2
+Const D3DCAPS2_FULLSCREENGAMMA   = &H00020000
+Const D3DCAPS2_CANCALIBRATEGAMMA = &H00100000
+Const D3DCAPS2_RESERVED          = &H02000000
+Const D3DCAPS2_CANMANAGERESOURCE = &H10000000
+Const D3DCAPS2_DYNAMICTEXTURES   = &H20000000
+Const D3DCAPS2_CANAUTOGENMIPMAP  = &H40000000
+
+' Caps3
+Const D3DCAPS3_RESERVED = &H8000001F
+
+' Indicates that the device can respect the ALPHABLENDENABLE render state
+' when fullscreen while using the FLIP or DISCARD swap effect.
+' COPY and COPYVSYNC swap effects work whether or not this flag is set.
+Const D3DCAPS3_ALPHA_FULLSCREEN_FLIP_OR_DISCARD = &H00000020
+
+' Indicates that the device can perform a gamma correction from 
+' a windowed back buffer containing linear content to the sRGB desktop.
+Const D3DCAPS3_LINEAR_TO_SRGB_PRESENTATION = &H00000080
+
+Const D3DCAPS3_COPY_TO_VIDMEM    = &H00000100 'Device can acclerate copies from sysmem to local vidmem
+Const D3DCAPS3_COPY_TO_SYSTEMMEM = &H00000200 'Device can acclerate copies from local vidmem to sysmem
+
+' PresentationIntervals
+Const D3DPRESENT_INTERVAL_DEFAULT   = &H00000000
+Const D3DPRESENT_INTERVAL_ONE       = &H00000001
+Const D3DPRESENT_INTERVAL_TWO       = &H00000002
+Const D3DPRESENT_INTERVAL_THREE     = &H00000004
+Const D3DPRESENT_INTERVAL_FOUR      = &H00000008
+Const D3DPRESENT_INTERVAL_IMMEDIATE = &H80000000
+
+' CursorCaps
+Const D3DCURSORCAPS_COLOR  = &H00000001   'Driver supports HW color cursor in at least hi-res modes(height >=400)
+Const D3DCURSORCAPS_LOWRES = &H00000002   'Driver supports HW cursor also in low-res modes(height < 400)
+
+' DevCaps
+Const D3DDEVCAPS_EXECUTESYSTEMMEMORY     = &H00000010     'Device can use execute buffers from system memory
+Const D3DDEVCAPS_EXECUTEVIDEOMEMORY      = &H00000020     'Device can use execute buffers from video memory
+Const D3DDEVCAPS_TLVERTEXSYSTEMMEMORY    = &H00000040     'Device can use TL buffers from system memory
+Const D3DDEVCAPS_TLVERTEXVIDEOMEMORY     = &H00000080     'Device can use TL buffers from video memory
+Const D3DDEVCAPS_TEXTURESYSTEMMEMORY     = &H00000100     'Device can texture from system memory
+Const D3DDEVCAPS_TEXTUREVIDEOMEMORY      = &H00000200     'Device can texture from device memory
+Const D3DDEVCAPS_DRAWPRIMTLVERTEX        = &H00000400     'Device can draw TLVERTEX primitives
+Const D3DDEVCAPS_CANRENDERAFTERFLIP      = &H00000800     'Device can render without waiting for flip to complete
+Const D3DDEVCAPS_TEXTURENONLOCALVIDMEM   = &H00001000     'Device can texture from nonlocal video memory
+Const D3DDEVCAPS_DRAWPRIMITIVES2         = &H00002000     'Device can support DrawPrimitives2
+Const D3DDEVCAPS_SEPARATETEXTUREMEMORIES = &H00004000     'Device is texturing from separate memory pools
+Const D3DDEVCAPS_DRAWPRIMITIVES2EX       = &H00008000     'Device can support Extended DrawPrimitives2 i.e. DX7 compliant driver
+Const D3DDEVCAPS_HWTRANSFORMANDLIGHT     = &H00010000     'Device can support transformation and lighting in hardware and DRAWPRIMITIVES2EX must be also
+Const D3DDEVCAPS_CANBLTSYSTONONLOCAL     = &H00020000     'Device supports a Tex Blt from system memory to non-local vidmem
+Const D3DDEVCAPS_HWRASTERIZATION         = &H00080000     'Device has HW acceleration for rasterization
+Const D3DDEVCAPS_PUREDEVICE              = &H00100000     'Device supports D3DCREATE_PUREDEVICE
+Const D3DDEVCAPS_QUINTICRTPATCHES        = &H00200000     'Device supports quintic Beziers and BSplines
+Const D3DDEVCAPS_RTPATCHES               = &H00400000     'Device supports Rect and Tri patches
+Const D3DDEVCAPS_RTPATCHHANDLEZERO       = &H00800000     'Indicates that RT Patches may be drawn efficiently using handle 0
+Const D3DDEVCAPS_NPATCHES                = &H01000000     'Device supports N-Patches
+
+' PrimitiveMiscCaps
+Const D3DPMISCCAPS_MASKZ                      = &H00000002
+Const D3DPMISCCAPS_CULLNONE                   = &H00000010
+Const D3DPMISCCAPS_CULLCW                     = &H00000020
+Const D3DPMISCCAPS_CULLCCW                    = &H00000040
+Const D3DPMISCCAPS_COLORWRITEENABLE           = &H00000080
+Const D3DPMISCCAPS_CLIPPLANESCALEDPOINTS      = &H00000100     'Device correctly clips scaled points to clip planes
+Const D3DPMISCCAPS_CLIPTLVERTS                = &H00000200     'device will clip post-transformed vertex primitives
+Const D3DPMISCCAPS_TSSARGTEMP                 = &H00000400     'device supports D3DTA_TEMP for temporary register
+Const D3DPMISCCAPS_BLENDOP                    = &H00000800     'device supports D3DRS_BLENDOP
+Const D3DPMISCCAPS_NULLREFERENCE              = &H00001000     'Reference Device that doesnt render
+Const D3DPMISCCAPS_INDEPENDENTWRITEMASKS      = &H00004000     'Device supports independent write masks for MET or MRT
+Const D3DPMISCCAPS_PERSTAGECONSTANT           = &H00008000     'Device supports per-stage constants
+Const D3DPMISCCAPS_FOGANDSPECULARALPHA        = &H00010000     'Device supports separate fog and specular alpha (many devices use the specular alpha channel to store fog factor)
+Const D3DPMISCCAPS_SEPARATEALPHABLEND         = &H00020000     'Device supports separate blend settings for the alpha channel
+Const D3DPMISCCAPS_MRTINDEPENDENTBITDEPTHS    = &H00040000     'Device supports different bit depths for MRT
+Const D3DPMISCCAPS_MRTPOSTPIXELSHADERBLENDING = &H00080000     'Device supports post-pixel shader operations for MRT
+Const D3DPMISCCAPS_FOGVERTEXCLAMPED           = &H00100000     'Device clamps fog blend factor per vertex
+
+' LineCaps
+Const D3DLINECAPS_TEXTURE   = &H00000001
+Const D3DLINECAPS_ZTEST     = &H00000002
+Const D3DLINECAPS_BLEND     = &H00000004
+Const D3DLINECAPS_ALPHACMP  = &H00000008
+Const D3DLINECAPS_FOG       = &H00000010
+Const D3DLINECAPS_ANTIALIAS = &H00000020
+
+' RasterCaps
+Const D3DPRASTERCAPS_DITHER              = &H00000001
+Const D3DPRASTERCAPS_ZTEST               = &H00000010
+Const D3DPRASTERCAPS_FOGVERTEX           = &H00000080
+Const D3DPRASTERCAPS_FOGTABLE            = &H00000100
+Const D3DPRASTERCAPS_MIPMAPLODBIAS       = &H00002000
+Const D3DPRASTERCAPS_ZBUFFERLESSHSR      = &H00008000
+Const D3DPRASTERCAPS_FOGRANGE            = &H00010000
+Const D3DPRASTERCAPS_ANISOTROPY          = &H00020000
+Const D3DPRASTERCAPS_WBUFFER             = &H00040000
+Const D3DPRASTERCAPS_WFOG                = &H00100000
+Const D3DPRASTERCAPS_ZFOG                = &H00200000
+Const D3DPRASTERCAPS_COLORPERSPECTIVE    = &H00400000   'Device iterates colors perspective correct
+Const D3DPRASTERCAPS_SCISSORTEST         = &H01000000
+Const D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS = &H02000000
+Const D3DPRASTERCAPS_DEPTHBIAS           = &H04000000 
+Const D3DPRASTERCAPS_MULTISAMPLE_TOGGLE  = &H08000000
+
+' ZCmpCaps, AlphaCmpCaps
+Const D3DPCMPCAPS_NEVER        = &H00000001
+Const D3DPCMPCAPS_LESS         = &H00000002
+Const D3DPCMPCAPS_EQUAL        = &H00000004
+Const D3DPCMPCAPS_LESSEQUAL    = &H00000008
+Const D3DPCMPCAPS_GREATER      = &H00000010
+Const D3DPCMPCAPS_NOTEQUAL     = &H00000020
+Const D3DPCMPCAPS_GREATEREQUAL = &H00000040
+Const D3DPCMPCAPS_ALWAYS       = &H00000080
+
+' SourceBlendCaps, DestBlendCaps
+Const D3DPBLENDCAPS_ZERO            = &H00000001
+Const D3DPBLENDCAPS_ONE             = &H00000002
+Const D3DPBLENDCAPS_SRCCOLOR        = &H00000004
+Const D3DPBLENDCAPS_INVSRCCOLOR     = &H00000008
+Const D3DPBLENDCAPS_SRCALPHA        = &H00000010
+Const D3DPBLENDCAPS_INVSRCALPHA     = &H00000020
+Const D3DPBLENDCAPS_DESTALPHA       = &H00000040
+Const D3DPBLENDCAPS_INVDESTALPHA    = &H00000080
+Const D3DPBLENDCAPS_DESTCOLOR       = &H00000100
+Const D3DPBLENDCAPS_INVDESTCOLOR    = &H00000200
+Const D3DPBLENDCAPS_SRCALPHASAT     = &H00000400
+Const D3DPBLENDCAPS_BOTHSRCALPHA    = &H00000800
+Const D3DPBLENDCAPS_BOTHINVSRCALPHA = &H00001000
+Const D3DPBLENDCAPS_BLENDFACTOR     = &H00002000   'Supports both D3DBLEND_BLENDFACTOR and D3DBLEND_INVBLENDFACTOR
+
+' ShadeCaps
+Const D3DPSHADECAPS_COLORGOURAUDRGB    = &H00000008
+Const D3DPSHADECAPS_SPECULARGOURAUDRGB = &H00000200
+Const D3DPSHADECAPS_ALPHAGOURAUDBLEND  = &H00004000
+Const D3DPSHADECAPS_FOGGOURAUD         = &H00080000
+
+' TextureCaps
+Const D3DPTEXTURECAPS_PERSPECTIVE        = &H00000001  'Perspective-correct texturing is supported
+Const D3DPTEXTURECAPS_POW2               = &H00000002  'Power-of-2 texture dimensions are required - applies to non-Cube/Volume textures only.
+Const D3DPTEXTURECAPS_ALPHA              = &H00000004  'Alpha in texture pixels is supported
+Const D3DPTEXTURECAPS_SQUAREONLY         = &H00000020  'Only square textures are supported
+Const D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE = &H00000040  'Texture indices are not scaled by the texture size prior to interpolation
+Const D3DPTEXTURECAPS_ALPHAPALETTE       = &H00000080  'Device can draw alpha from texture palettes
+Const D3DPTEXTURECAPS_NONPOW2CONDITIONAL = &H00000100
+Const D3DPTEXTURECAPS_PROJECTED          = &H00000400  'Device can do D3DTTFF_PROJECTED
+Const D3DPTEXTURECAPS_CUBEMAP            = &H00000800  'Device can do cubemap textures
+Const D3DPTEXTURECAPS_VOLUMEMAP          = &H00002000  'Device can do volume textures
+Const D3DPTEXTURECAPS_MIPMAP             = &H00004000  'Device can do mipmapped textures
+Const D3DPTEXTURECAPS_MIPVOLUMEMAP       = &H00008000  'Device can do mipmapped volume textures
+Const D3DPTEXTURECAPS_MIPCUBEMAP         = &H00010000  'Device can do mipmapped cube maps
+Const D3DPTEXTURECAPS_CUBEMAP_POW2       = &H00020000  'Device requires that cubemaps be power-of-2 dimension
+Const D3DPTEXTURECAPS_VOLUMEMAP_POW2     = &H00040000  'Device requires that volume maps be power-of-2 dimension
+Const D3DPTEXTURECAPS_NOPROJECTEDBUMPENV = &H00200000  'Device does not support projected bump env lookup operation in programmable and fixed function pixel shaders
+
+' TextureFilterCaps, StretchRectFilterCaps
+Const D3DPTFILTERCAPS_MINFPOINT         = &H00000100   'Min Filter
+Const D3DPTFILTERCAPS_MINFLINEAR        = &H00000200
+Const D3DPTFILTERCAPS_MINFANISOTROPIC   = &H00000400
+Const D3DPTFILTERCAPS_MINFPYRAMIDALQUAD = &H00000800
+Const D3DPTFILTERCAPS_MINFGAUSSIANQUAD  = &H00001000
+Const D3DPTFILTERCAPS_MIPFPOINT         = &H00010000   'Mip Filter
+Const D3DPTFILTERCAPS_MIPFLINEAR        = &H00020000
+Const D3DPTFILTERCAPS_MAGFPOINT         = &H01000000   'Mag Filter
+Const D3DPTFILTERCAPS_MAGFLINEAR        = &H02000000
+Const D3DPTFILTERCAPS_MAGFANISOTROPIC   = &H04000000
+Const D3DPTFILTERCAPS_MAGFPYRAMIDALQUAD = &H08000000
+Const D3DPTFILTERCAPS_MAGFGAUSSIANQUAD  = &H10000000
+
+' TextureAddressCaps
+Const D3DPTADDRESSCAPS_WRAP          = &H00000001
+Const D3DPTADDRESSCAPS_MIRROR        = &H00000002
+Const D3DPTADDRESSCAPS_CLAMP         = &H00000004
+Const D3DPTADDRESSCAPS_BORDER        = &H00000008
+Const D3DPTADDRESSCAPS_INDEPENDENTUV = &H00000010
+Const D3DPTADDRESSCAPS_MIRRORONCE    = &H00000020
+
+' StencilCaps
+Const D3DSTENCILCAPS_KEEP     = &H00000001
+Const D3DSTENCILCAPS_ZERO     = &H00000002
+Const D3DSTENCILCAPS_REPLACE  = &H00000004
+Const D3DSTENCILCAPS_INCRSAT  = &H00000008
+Const D3DSTENCILCAPS_DECRSAT  = &H00000010
+Const D3DSTENCILCAPS_INVERT   = &H00000020
+Const D3DSTENCILCAPS_INCR     = &H00000040
+Const D3DSTENCILCAPS_DECR     = &H00000080
+Const D3DSTENCILCAPS_TWOSIDED = &H00000100
+
+' TextureOpCaps
+Const D3DTEXOPCAPS_DISABLE                   = &H00000001
+Const D3DTEXOPCAPS_SELECTARG1                = &H00000002
+Const D3DTEXOPCAPS_SELECTARG2                = &H00000004
+Const D3DTEXOPCAPS_MODULATE                  = &H00000008
+Const D3DTEXOPCAPS_MODULATE2X                = &H00000010
+Const D3DTEXOPCAPS_MODULATE4X                = &H00000020
+Const D3DTEXOPCAPS_ADD                       = &H00000040
+Const D3DTEXOPCAPS_ADDSIGNED                 = &H00000080
+Const D3DTEXOPCAPS_ADDSIGNED2X               = &H00000100
+Const D3DTEXOPCAPS_SUBTRACT                  = &H00000200
+Const D3DTEXOPCAPS_ADDSMOOTH                 = &H00000400
+Const D3DTEXOPCAPS_BLENDDIFFUSEALPHA         = &H00000800
+Const D3DTEXOPCAPS_BLENDTEXTUREALPHA         = &H00001000
+Const D3DTEXOPCAPS_BLENDFACTORALPHA          = &H00002000
+Const D3DTEXOPCAPS_BLENDTEXTUREALPHAPM       = &H00004000
+Const D3DTEXOPCAPS_BLENDCURRENTALPHA         = &H00008000
+Const D3DTEXOPCAPS_PREMODULATE               = &H00010000
+Const D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR    = &H00020000
+Const D3DTEXOPCAPS_MODULATECOLOR_ADDALPHA    = &H00040000
+Const D3DTEXOPCAPS_MODULATEINVALPHA_ADDCOLOR = &H00080000
+Const D3DTEXOPCAPS_MODULATEINVCOLOR_ADDALPHA = &H00100000
+Const D3DTEXOPCAPS_BUMPENVMAP                = &H00200000
+Const D3DTEXOPCAPS_BUMPENVMAPLUMINANCE       = &H00400000
+Const D3DTEXOPCAPS_DOTPRODUCT3               = &H00800000
+Const D3DTEXOPCAPS_MULTIPLYADD               = &H01000000
+Const D3DTEXOPCAPS_LERP                      = &H02000000
+
+' FVFCaps
+Const D3DFVFCAPS_TEXCOORDCOUNTMASK  = &H0000ffff   'mask for texture coordinate count field
+Const D3DFVFCAPS_DONOTSTRIPELEMENTS = &H00080000   'Device prefers that vertex elements not be stripped
+Const D3DFVFCAPS_PSIZE              = &H00100000   'Device can receive point size
+
+' VertexProcessingCaps
+Const D3DVTXPCAPS_TEXGEN                   = &H00000001   'device can do texgen
+Const D3DVTXPCAPS_MATERIALSOURCE7          = &H00000002   'device can do DX7-level colormaterialsource ops
+Const D3DVTXPCAPS_DIRECTIONALLIGHTS        = &H00000008   'device can do directional lights
+Const D3DVTXPCAPS_POSITIONALLIGHTS         = &H00000010   'device can do positional lights (includes point and spot)
+Const D3DVTXPCAPS_LOCALVIEWER              = &H00000020   'device can do local viewer
+Const D3DVTXPCAPS_TWEENING                 = &H00000040   'device can do vertex tweening
+Const D3DVTXPCAPS_TEXGEN_SPHEREMAP         = &H00000100   'device supports D3DTSS_TCI_SPHEREMAP
+Const D3DVTXPCAPS_NO_TEXGEN_NONLOCALVIEWER = &H00000200   'device does not support TexGen in non-local viewer mode
+
+' DevCaps2
+Const D3DDEVCAPS2_STREAMOFFSET                       = &H00000001   'Device supports offsets in streams. Must be set by DX9 drivers
+Const D3DDEVCAPS2_DMAPNPATCH                         = &H00000002   'Device supports displacement maps for N-Patches
+Const D3DDEVCAPS2_ADAPTIVETESSRTPATCH                = &H00000004   'Device supports adaptive tesselation of RT-patches
+Const D3DDEVCAPS2_ADAPTIVETESSNPATCH                 = &H00000008   'Device supports adaptive tesselation of N-patches
+Const D3DDEVCAPS2_CAN_STRETCHRECT_FROM_TEXTURES      = &H00000010   'Device supports StretchRect calls with a texture as the source
+Const D3DDEVCAPS2_PRESAMPLEDDMAPNPATCH               = &H00000020   'Device supports presampled displacement maps for N-Patches
+Const D3DDEVCAPS2_VERTEXELEMENTSCANSHARESTREAMOFFSET = &H00000040   'Vertex elements in a vertex declaration can share the same stream offset
+
+' DeclTypes
+Const D3DDTCAPS_UBYTE4    = &H00000001
+Const D3DDTCAPS_UBYTE4N   = &H00000002
+Const D3DDTCAPS_SHORT2N   = &H00000004
+Const D3DDTCAPS_SHORT4N   = &H00000008
+Const D3DDTCAPS_USHORT2N  = &H00000010
+Const D3DDTCAPS_USHORT4N  = &H00000020
+Const D3DDTCAPS_UDEC3     = &H00000040
+Const D3DDTCAPS_DEC3N     = &H00000080
+Const D3DDTCAPS_FLOAT16_2 = &H00000100
+Const D3DDTCAPS_FLOAT16_4 = &H00000200

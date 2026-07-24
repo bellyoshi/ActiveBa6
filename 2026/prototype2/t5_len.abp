@@ -1,0 +1,5 @@
+#console
+Dim s As String
+s = "ab"
+ExitProcess(Len(s))
+End

@@ -1,0 +1,229 @@
+'このファイルはウィンドウ定義ファイル（*.wnd）をもとに生成されています
+
+Dim _RadSys_InitCtrls As INITCOMMONCONTROLSEX
+_RadSys_InitCtrls.dwSize=Len(_RadSys_InitCtrls)
+_RadSys_InitCtrls.dwICC=ICC_WIN95_CLASSES
+InitCommonControlsEx(_RadSys_InitCtrls)
+
+Const EditBox1=1000
+Const EditBox2=1001
+Const CommandButton1=1002
+Const EditBox3=1003
+Const EditBox4=1004
+Const Static1=1005
+Const Static2=1006
+Const Static3=1007
+Const Static4=1008
+Const CommandButton2=1009
+Const Static_Recv=1010
+Const IDM_NEW=1011
+Const IDM_OPEN=1012
+Const IDM_SAVE=1013
+Const IDM_SENDMAIL=1014
+Const IDM_EXIT=1015
+Const IDM_UNDO=1016
+Const IDM_CUT=1017
+Const IDM_COPY=1018
+Const IDM_PASTE=1019
+Const IDM_ALLSELECT=1020
+Const IDM_ABOUT=1021
+
+Dim hMainWnd As HWND
+Dim hFont_MainWnd As HFONT
+hFont_MainWnd=CreateFont(-19,0,0,0,400,0,0,0,128,1,2,1,1,"FixedSys")
+Dim hSendMail As HWND
+Dim hFont_SendMail As HFONT
+hFont_SendMail=CreateFont(-12,0,0,0,400,0,0,0,128,3,2,1,32,"ＭＳ Ｐゴシック")
+Dim h3DFaceBrush As HBRUSH
+h3DFaceBrush=CreateSolidBrush(GetSysColor(COLOR_3DFACE))
+
+
+Dim hMenu_MainMenu As HMENU
+hMenu_MainMenu=CreateMenu()
+Dim hMenu_MainMenu_2 As HMENU
+hMenu_MainMenu_2=CreatePopupMenu()
+InsMenu hMenu_MainMenu_2,0,MF_BYPOSITION,Ex"バージョン情報(&A)",IDM_ABOUT,0,0
+InsMenu hMenu_MainMenu,0,MF_BYPOSITION,Ex"ヘルプ(&H)",0,hMenu_MainMenu_2,0
+Dim hMenu_MainMenu_1 As HMENU
+hMenu_MainMenu_1=CreatePopupMenu()
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION,Ex"すべて選択(&A)",IDM_ALLSELECT,0,0
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION,Ex"貼り付け(&P)",IDM_PASTE,0,0
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION,Ex"コピー(&C)",IDM_COPY,0,0
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION,Ex"切り取り(&T)",IDM_CUT,0,0
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION
+InsMenu hMenu_MainMenu_1,0,MF_BYPOSITION,Ex"元に戻す(&U)",IDM_UNDO,0,0
+InsMenu hMenu_MainMenu,0,MF_BYPOSITION,Ex"編集(&E)",0,hMenu_MainMenu_1,0
+Dim hMenu_MainMenu_0 As HMENU
+hMenu_MainMenu_0=CreatePopupMenu()
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION,Ex"終了(&X)",IDM_EXIT,0,0
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION,Ex"メールで送信(&M)",IDM_SENDMAIL,0,0
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION,Ex"保存(&S)",IDM_SAVE,0,0
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION,Ex"開く(&O)",IDM_OPEN,0,0
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION
+InsMenu hMenu_MainMenu_0,0,MF_BYPOSITION,Ex"新規作成(&N)",IDM_NEW,0,0
+InsMenu hMenu_MainMenu,0,MF_BYPOSITION,Ex"ファイル(&F)",0,hMenu_MainMenu_0,0
+
+Sub TextEditor_DestroyObjects()
+	DestroyMenu(hMenu_MainMenu)
+	DestroyMenu(hMenu_MainMenu_2)
+	DestroyMenu(hMenu_MainMenu_1)
+	DestroyMenu(hMenu_MainMenu_0)
+	DeleteObject(hFont_MainWnd)
+	DeleteObject(hFont_SendMail)
+	DeleteObject(h3DFaceBrush)
+End Sub
+
+Function EventCall_MainWnd(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Select Case message
+		Case WM_DESTROY
+			MainWnd_Destroy()
+		Case WM_CREATE
+			hMainWnd=hWnd
+			SetMenu(hWnd,hMenu_MainMenu)
+			CreateWindowEx(&H00000200,"EDIT","",&H503000c4,77,12,70,21,hWnd,EditBox1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,EditBox1),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			MainWnd_Create(ByVal (lParam As VoidPtr))
+		Case WM_SIZE
+			MainWnd_Resize(wParam As Long,LOWORD(lParam),HIWORD(lParam))
+		Case WM_DROPFILES
+			MainWnd_DropFiles(wParam As HDROP)
+		Case WM_CLOSE
+			Dim cancel=0 As Integer
+			If cancel=0 Then DestroyWindow(hWnd)
+		Case WM_NOTIFY
+			MainWnd_Notify(ByVal (lParam As *NMHDR))
+		Case WM_COMMAND
+			Select Case LOWORD(wParam)
+				Case IDM_NEW
+					MainWnd_IDM_NEW_MenuClick()
+				Case IDM_OPEN
+					MainWnd_IDM_OPEN_MenuClick()
+				Case IDM_SAVE
+					MainWnd_IDM_SAVE_MenuClick()
+				Case IDM_EXIT
+					MainWnd_IDM_EXIT_MenuClick()
+				Case IDM_UNDO
+					MainWnd_IDM_UNDO_MenuClick()
+				Case IDM_CUT
+					MainWnd_IDM_CUT_MenuClick()
+				Case IDM_COPY
+					MainWnd_IDM_COPY_MenuClick()
+				Case IDM_PASTE
+					MainWnd_IDM_PASTE_MenuClick()
+				Case IDM_ALLSELECT
+					MainWnd_IDM_ALLSELECT_MenuClick()
+				Case IDM_ABOUT
+					MainWnd_IDM_ABOUT_MenuClick()
+				Case EditBox1
+					Select Case HIWORD(wParam)
+						Case EN_CHANGE
+							MainWnd_EditBox1_Change()
+					End Select
+				Case IDM_SENDMAIL
+					MainWnd_IDM_SENDMAIL_MenuClick()
+			End Select
+		Case Else
+			EventCall_MainWnd=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	EventCall_MainWnd=0
+End Function
+
+Function EventCall_SendMail(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Select Case message
+		Case WM_INITDIALOG
+			hSendMail=hWnd
+			CreateWindowEx(&H00000200,"EDIT","",&H50000000,116,12,162,21,hWnd,EditBox1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,EditBox1),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000200,"EDIT","",&H50000000,116,39,162,21,hWnd,EditBox2 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,EditBox2),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","送信",&H50000000,104,203,88,21,hWnd,CommandButton1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,CommandButton1),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000200,"EDIT","",&H50000000,116,77,163,21,hWnd,EditBox3 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,EditBox3),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000200,"EDIT","",&H50000000,116,104,162,21,hWnd,EditBox4 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,EditBox4),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","SMTPサーバー",&H50000000,13,16,83,12,hWnd,Static1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static1),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","送信元アドレス",&H50000000,13,43,81,12,hWnd,Static2 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static2),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","送信先アドレス",&H50000000,13,83,81,12,hWnd,Static3 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static3),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","件名（英数字のみ）",&H50000000,13,108,99,12,hWnd,Static4 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static4),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","閉じる",&H50000000,200,203,88,21,hWnd,CommandButton2 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,CommandButton2),WM_SETFONT,hFont_SendMail As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","この位置にSTMPサーバーからのメッセージが表示されます",&H50000000,10,146,290,42,hWnd,Static_Recv As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static_Recv),WM_SETFONT,hFont_SendMail As WPARAM,0)
+		Case WM_DESTROY
+		Case WM_CLOSE
+			Dim cancel=0 As Integer
+			If cancel=0 Then EndDialog(hWnd,0)
+		Case WM_COMMAND
+			Select Case LOWORD(wParam)
+				Case CommandButton1
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							SendMail_CommandButton1_Click()
+					End Select
+				Case CommandButton2
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							SendMail_CommandButton2_Click()
+					End Select
+			End Select
+		Case Else
+			EventCall_SendMail=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	EventCall_SendMail=0
+End Function
+
+Function DefaultCallProc(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	DefaultCallProc=DefWindowProc(hWnd,message,wParam,lParam)
+End Function
+
+Dim _RadSys_dlgwcl As WNDCLASSEX
+FillMemory(VarPtr(_RadSys_dlgwcl),Len(_RadSys_dlgwcl),0)
+_RadSys_dlgwcl.cbSize=Len(_RadSys_dlgwcl)
+_RadSys_dlgwcl.hInstance=GetModuleHandle(0)
+_RadSys_dlgwcl.style=CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+_RadSys_dlgwcl.hIcon=LoadIcon(NULL,MAKEINTRESOURCE(IDI_APPLICATION))
+_RadSys_dlgwcl.hIconSm=LoadIcon(NULL,MAKEINTRESOURCE(IDI_WINLOGO))
+_RadSys_dlgwcl.hCursor=LoadCursor(NULL,MAKEINTRESOURCE(IDC_ARROW))
+_RadSys_dlgwcl.lpszClassName="NORMALDLG"
+_RadSys_dlgwcl.hbrBackground=h3DFaceBrush
+_RadSys_dlgwcl.lpfnWndProc=AddressOf(DefaultCallProc)
+RegisterClassEx(_RadSys_dlgwcl)
+
+Function DialogBox(hOwnerWnd As HWND, TemplateName As LPSTR) As LONG_PTR
+	If lstrcmp(TemplateName,"SendMail")=0 Then
+		hSendMail=CreateWindowEx(&H00000000,"NORMALDLG","SendMail",&H00c80000,-2147483648,-2147483648,315,257,hOwnerWnd,0 As HMENU,GetModuleHandle(0),0)
+		SetWindowLong(hSendMail,GWL_WNDPROC,AddressOf(SendMailProc) As LONG_PTR)
+		SendMessage(hSendMail,WM_INITDIALOG,0,0)
+		ShowWindow(hSendMail,SW_SHOW)
+	Else
+		Exit Function
+	End If
+	EnableWindow(hOwnerWnd,0)
+
+	Dim msg As MSG, iResult As Long
+	Do
+		iResult=GetMessage(msg,0,0,0)
+		If iResult=0 or iResult=-1 Then Exit Do
+		TranslateMessage(msg)
+		DispatchMessage(msg)
+	Loop
+	DialogBox=msg.wParam
+End Function
+Sub EndDialog(hWnd As HWND, lResult As Long)
+	EnableWindow(GetWindow(hWnd,GW_OWNER),1)
+	DestroyWindow(hWnd)
+	PostMessage(0,WM_QUIT,lResult,0)
+End Sub
+
+Function CreateDialog(hOwnerWnd As HWND, TemplateName As LPSTR) As HWND
+End Function

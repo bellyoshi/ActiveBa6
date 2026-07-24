@@ -1,0 +1,61 @@
+' d3dx9xof.sbp
+
+
+Class ID3DXFile
+	Inherits IUnknown
+Public
+	Virtual Function CreateEnumObject(pData As VoidPtr, dwFileLoadOptions As DWord, ppD3DXFileEnumObject As **ID3DXFileEnumObject) As DWord
+	Virtual Function CreateSaveObject(pData As VoidPtr, dwFileSaveOptions As DWord, dwFileFormat As DWord, ppD3DXFileSaveObject As **ID3DXFileSaveObject) As DWord
+	Virtual Function RegisterTemplates(pData As VoidPtr, dwSize As DWord) As DWord
+	Virtual Function RegisterEnumTemplates(pD3DXFileEnumObject As *ID3DXFileEnumObject) As DWord
+End Class
+
+
+Class ID3DXFileSaveObject
+	Inherits IUnknown
+Public
+	Virtual Function GetFile(ppD3DXFile As **ID3DXFile) As DWord
+	Virtual Function AddDataObject(ByRef rguidTemplate As GUID, szName As BytePtr, pId As *GUID, cbSize As DWord, pvData As VoidPtr, ppObj As **ID3DXFileSaveData) As DWord
+	Virtual Function Save() As DWord
+End Class
+
+
+Class ID3DXFileSaveData
+	Inherits IUnknown
+Public
+	Virtual Function GetSave(ppD3DXFileSaveObject As **ID3DXFileSaveObject) As DWord
+	Virtual Function GetName(pBuffer As BytePtr, lpdwSize As DWordPtr) As DWord
+	Virtual Function GetId(pGuid As *GUID) As DWord
+	Virtual Function GetType(pGuid As *GUID) As DWord
+	Virtual Function AddDataObject(ByRef rguidTemplate As GUID, szName As BytePtr, pId As *GUID, cbSize As DWord, pvData As VoidPtr, ppObj As **ID3DXFileSaveData) As DWord
+	Virtual Function AddDataReference(pBuffer As BytePtr, pGuid As *GUID) As DWord
+End Class
+
+
+Class ID3DXFileEnumObject
+	Inherits IUnknown
+Public
+	Virtual Function GetFile(ppD3DXFile As **ID3DXFile) As DWord
+	Virtual Function GetChildren(dwSize As DWord) As DWord
+	Virtual Function GetChild(dwSize As DWord, ppD3DXFileData As **ID3DXFileData) As DWord
+	Virtual Function GetDataObjectById(ByRef rguidTemplate As GUID, ppD3DXFileData As **ID3DXFileData) As DWord
+	Virtual Function GetDataObjectByName(pName As BytePtr, ppD3DXFileData As **ID3DXFileData) As DWord
+End Class
+
+
+Class ID3DXFileData
+	Inherits IUnknown
+Public
+	Virtual Function GetEnum(ppD3DXFileEnumObject As **ID3DXFileEnumObject) As DWord
+	Virtual Function GetName(pBuffer As BytePtr, lpdwSize As DWordPtr) As DWord
+	Virtual Function GetId(pId As *GUID) As DWord
+	Virtual Function Lock(dwSize As DWord, pData As VoidPtr) As DWord
+	Virtual Function Unlock() As DWord
+	Virtual Function GetType(pGuid As *GUID) As DWord
+	Virtual Function IsReference() As Long
+	Virtual Function GetChildren(dwSize As DWord) As DWord
+	Virtual Function GetChild(dwSize As DWord, ppD3DFileData As **ID3DXFileData) As DWord
+End Class
+
+'ñ¢äÆê¨
+'Declare Function  Lib "dx9abm" Alias "_abm" () As DWord

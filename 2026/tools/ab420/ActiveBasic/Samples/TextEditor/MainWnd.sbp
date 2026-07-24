@@ -1,0 +1,417 @@
+'-----------------------------------------------------------------------------
+'  イベント プロシージャ
+'-----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [MainWnd] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hMainWnd
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+
+Const ID_TOOLBAR = 70    'ツールバーのID
+Dim hToolbar As DWord    'ツールバーのハンドル
+
+Dim hImageList As DWord  'イメージリストのハンドル
+
+Const ID_STATUS = 71  'ステータスバーのID
+Dim hStatus As DWord     'ステータスバーのハンドル
+
+Sub SetTbButtonData(ByRef ptb As TBBUTTON, iBitmap As Long, idCommand As Long, fsState As Byte, fsStyle As Byte)
+    'ptb（TBBUTTON構造体）にボタン情報を格納する
+    With ptb
+        .iBitmap=iBitmap
+        .idCommand=idCommand
+        .fsState=fsState
+        .fsStyle=fsStyle
+        .dwData=0
+        .iString=0
+    End With
+End Sub
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Function MainWndProc(hWnd As DWord, dwMsg As DWord, wParam As DWord, lParam As DWord) As DWord
+	' TODO: この位置にウィンドウメッセージを処理するためのコードを記述します。
+
+	' イベントプロシージャの呼び出しを行います。
+	MainWndProc=EventCall_MainWnd(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ここから下は、イベントプロシージャを記述するための領域になります。
+
+Sub MainWnd_Destroy()
+    'イメージリストを破棄
+    ImageList_Destroy(hImageList)
+
+	TextEditor_DestroyObjects()
+	PostQuitMessage(0)
+End Sub
+
+Sub MainWnd_Create(ByRef CreateStruct As CREATESTRUCT)
+    Dim ic As INITCOMMONCONTROLSEX
+    Dim tbb[11] As TBBUTTON
+
+    'コモンコントロールの初期化
+    ic.dwSize=Len(ic)
+    ic.dwICC=ICC_BAR_CLASSES
+    InitCommonControlsEx(ic)
+
+    'ボタン情報をセット
+    SetTbButtonData(tbb[0],0,IDM_NEW,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[1],1,IDM_OPEN,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[2],2,IDM_SAVE,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[3],0,0,TBSTATE_ENABLED,TBSTYLE_SEP)
+    SetTbButtonData(tbb[4],3,IDM_CUT,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[5],4,IDM_COPY,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[6],5,IDM_PASTE,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[7],6,IDM_UNDO,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[8],0,0,TBSTATE_ENABLED,TBSTYLE_SEP)
+    SetTbButtonData(tbb[9],7,IDM_SENDMAIL,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+    SetTbButtonData(tbb[10],0,0,TBSTATE_ENABLED,TBSTYLE_SEP)
+    SetTbButtonData(tbb[11],8,IDM_ABOUT,TBSTATE_ENABLED,TBSTYLE_BUTTON)
+
+    'ツールバーを生成
+    hToolbar=CreateToolbarEx(hMainWnd, _
+        WS_CHILD or WS_VISIBLE or TBSTYLE_TOOLTIPS, _
+        ID_TOOLBAR, _
+        9, _                        'ビットマップの個数
+        GetModuleHandle(0), _
+        IDB_BITMAP1, _              'ビットマップのリソースID
+        tbb, _
+        12, _                        'ボタンの個数
+        0,0, _                      'ボタンサイズ（0指定で自動セットに）
+        16,15, _                    'ビットマップサイズ
+        Len(tbb[0]))
+
+    'ウィンドウスタイルにTBSTYLE_FLATを追加
+    Dim style As Long
+    style=GetWindowLong(hToolbar,GWL_STYLE)
+    style=style or TBSTYLE_FLAT
+    SetWindowLong(hToolbar,GWL_STYLE,style)
+
+    'イメージリストを作成（フルカラー）
+    hImageList=ImageList_LoadImage(GetModuleHandle(0), _
+        IDB_BITMAP2, _
+        16, 0, RGB(192,192,192), _
+        IMAGE_BITMAP,LR_CREATEDIBSECTION)
+
+    'ホットイメージを設定
+    SendMessage(hToolbar, TB_SETHOTIMAGELIST, 0, hImageList)
+
+    'ステータスバーを生成
+    hStatus = CreateStatusWindow( _
+        WS_CHILD or WS_VISIBLE or CCS_BOTTOM or SBARS_SIZEGRIP, _
+        NULL, _
+        hMainWnd, _
+        ID_STATUS)
+End Sub
+
+Sub MainWnd_Resize(SizeType As Long, cx As Integer, cy As Integer)
+    Dim rc As RECT
+    Dim nToolbarHeight As Long
+    Dim nStatusHeight As Long
+    Dim hEdit As Long
+
+    'ツールバーのサイズを取得（nToolbarHeight変数にツールバーの高さを格納）
+    GetWindowRect(hToolbar,rc)
+    nToolbarHeight=rc.bottom-rc.top
+
+    'ステータスバーのサイズを取得（nStatusHeight変数にステータスバーの高さを格納）
+    GetWindowRect(hStatus,rc)
+    nStatusHeight=rc.bottom-rc.top
+
+    'エディットボックスの大きさを変更する（ツールバーとステータスバーの高さを考慮）
+    hEdit=GetDlgItem(hMainWnd,EditBox1)
+    MoveWindow(hEdit, 0, nToolbarHeight, cx, cy-nToolbarHeight-nStatusHeight,0)
+
+    'フォーカスをセット
+    SetFocus(hEdit)
+
+    'hToolbarにサイズ変更を通知する
+    SendMessage(hToolbar,WM_SIZE,cx,cy)
+
+    'hStatusにサイズ変更を通知する
+    SendMessage(hStatus,WM_SIZE,cx,cy)
+
+    'ステータスバーのパーツサイズを設定
+    Dim Statusbar_Sizes[2] As Long
+    Statusbar_Sizes[0]=cx-300
+    Statusbar_Sizes[1]=cx-150
+    Statusbar_Sizes[2]=cx
+    SendMessage(hStatus,SB_SETPARTS,3,Statusbar_Sizes)
+
+    'ウィンドウサイズをステータスバーに表示
+    Dim buffer[255] As Byte
+    wsprintf(buffer,"ウィンドウ: %d×%d",cx,cy)
+    SendMessage(hStatus, SB_SETTEXT, 1, buffer)
+
+    '変更を通知
+    MainWnd_EditBox1_Change()
+End Sub
+
+Sub MainWnd_IDM_NEW_MenuClick()
+    Dim hEdit As Long
+
+    'EditBox1のハンドルを取得
+    hEdit=GetDlgItem(hMainWnd, EditBox1)
+
+    'hEditの内容を空にする
+    SetWindowText(hEdit,"")
+End Sub
+
+Sub MainWnd_IDM_OPEN_MenuClick()
+    Dim hEdit As Long
+    Dim ofn As OPENFILENAME
+    Dim hFile As Long
+    Dim dwFileSize As DWord
+    Dim dwAccessByte As DWord
+    Dim FileName[MAX_PATH-1] As Byte
+    Dim buffer As BytePtr
+
+    'OPENFILENAME構造体の初期化
+    FillMemory(VarPtr(ofn),Len(ofn),0)
+    ofn.lStructSize=Len(ofn)
+    ofn.hwndOwner=hMainWnd
+    ofn.lpstrFilter=Ex"テキスト ファイル(*.txt)\0*.txt\0すべてのファイル(*.*)\0*\0\0"
+    ofn.nFilterIndex=1
+    ofn.lpstrFile=FileName
+    ofn.nMaxFile=MAX_PATH
+    ofn.lpstrTitle="ファイルを開く"
+    ofn.Flags=OFN_FILEMUSTEXIST or OFN_HIDEREADONLY or OFN_PATHMUSTEXIST
+    ofn.lpstrDefExt="*"
+
+    '「ファイルを開く」ダイアログ ボックスを表示
+    If GetOpenFileName(ofn)=0 Then Exit Sub
+
+
+    '-------------------
+    ' ファイル オープン
+    '-------------------
+
+    hFile=CreateFile(ofn.lpstrFile, GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE, _
+                     ByVal 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0)
+    If hFile=INVALID_HANDLE_VALUE Then
+        MessageBox(hMainWnd,"ファイルオープンに失敗","TextEditor",MB_OK or MB_ICONEXCLAMATION)
+        Exit Sub
+    End If
+
+    'ファイルサイズを取得し、バッファを確保する
+    dwFileSize=GetFileSize(hFile,0)
+    buffer=malloc(dwFileSize+1)
+
+    'ファイルの内容を文字列変数bufferに読み込む
+    ReadFile(hFile,buffer,dwFileSize,VarPtr(dwAccessByte),ByVal 0)
+    buffer[dwAccessByte]=0
+
+    'ファイル ハンドルを閉じる
+    CloseHandle(hFile)
+
+    '-------------------
+
+
+    'EditBox1のハンドルを取得
+    hEdit=GetDlgItem(hMainWnd, EditBox1)
+
+    'hEditにバッファをセットする
+    SetWindowText(hEdit,buffer)
+
+    'バッファを解放する
+    free(buffer)
+
+    'hEditにフォーカスをセット
+    SetFocus(hEdit)
+End Sub
+
+Sub MainWnd_IDM_SAVE_MenuClick()
+    Dim hEdit As Long
+    Dim ofn As OPENFILENAME
+    Dim hFile As Long
+    Dim length As DWord
+    Dim dwAccessByte As DWord
+    Dim FileName[MAX_PATH] As Byte
+    Dim buffer As BytePtr
+
+    'OPENFILENAME構造体の初期化
+    FillMemory(VarPtr(ofn),Len(ofn),0)
+    ofn.lStructSize=Len(ofn)
+    ofn.hwndOwner=hMainWnd
+    ofn.lpstrFilter=Ex"テキスト ファイル(*.txt)\0*.txt\0すべてのファイル(*.*)\0*\0\0"
+    ofn.nFilterIndex=1
+    ofn.lpstrFile=FileName
+    ofn.nMaxFile=MAX_PATH
+    ofn.lpstrTitle="ファイルの保存"
+    ofn.Flags=OFN_FILEMUSTEXIST or OFN_HIDEREADONLY or OFN_PATHMUSTEXIST
+    ofn.lpstrDefExt="*"
+
+    '「ファイルの保存」ダイアログ ボックスを表示
+    If GetSaveFileName(ofn)=0 Then Exit Sub
+
+
+    'EditBox1のハンドルを取得
+    hEdit=GetDlgItem(hMainWnd, EditBox1)
+
+    'テキスト データを格納するためのバッファ領域を確保
+    length=GetWindowTextLength(hEdit)
+    buffer=malloc(length+1)
+
+    'テキスト バッファを取得
+    GetWindowText(hEdit, buffer, length+1)
+
+
+    '----------------
+    ' ファイルへ保存
+    '----------------
+
+    hFile=CreateFile(ofn.lpstrFile, GENERIC_WRITE, 0, _
+                     ByVal 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0)
+    If hFile=INVALID_HANDLE_VALUE Then
+        MessageBox(hMainWnd,"ファイルオープンに失敗","TextEditor",MB_OK or MB_ICONEXCLAMATION)
+        Exit Sub
+    End If
+
+    '書き込む
+    WriteFile(hFile,buffer,length,VarPtr(dwAccessByte),ByVal 0)
+
+    'ファイル ハンドルを閉じる
+    CloseHandle(hFile)
+
+    'バッファを解放する
+    free(buffer)
+End Sub
+
+Sub MainWnd_IDM_EXIT_MenuClick()
+    SendMessage(hMainWnd,WM_CLOSE,0,0)
+End Sub
+
+Sub MainWnd_IDM_UNDO_MenuClick()
+    SendDlgItemMessage(hMainWnd, EditBox1, WM_UNDO, 0, 0)
+End Sub
+
+Sub MainWnd_IDM_CUT_MenuClick()
+    SendDlgItemMessage(hMainWnd, EditBox1, WM_CUT, 0, 0)
+End Sub
+
+Sub MainWnd_IDM_COPY_MenuClick()
+    SendDlgItemMessage(hMainWnd, EditBox1, WM_COPY, 0, 0)
+End Sub
+
+Sub MainWnd_IDM_PASTE_MenuClick()
+    SendDlgItemMessage(hMainWnd, EditBox1, WM_PASTE, 0, 0)
+End Sub
+
+Sub MainWnd_IDM_ALLSELECT_MenuClick()
+    Dim hEdit As Long
+    Dim length As Long
+
+    'EditBox1のハンドルを取得
+    hEdit=GetDlgItem(hMainWnd,EditBox1)
+
+    'テキスト データの長さを取得
+    length=GetWindowTextLength(hEdit)
+
+    'すべての部分を選択する
+    SendMessage(hEdit,EM_SETSEL,0,length)
+End Sub
+
+Sub MainWnd_IDM_ABOUT_MenuClick()
+    MessageBox(hMainWnd,"TextEditor Ver1.00","バージョン情報",MB_OK or MB_ICONINFORMATION)
+End Sub
+
+Sub MainWnd_EditBox1_Change()
+    Dim buffer[255] As Byte
+
+    'ウィンドウサイズをステータスバーに表示
+    wsprintf(buffer,"サイズ: %d バイト",GetWindowTextLength(GetDlgItem(hMainWnd,EditBox1)))
+    SendMessage(hStatus, SB_SETTEXT, 2, buffer)
+End Sub
+
+Sub MainWnd_DropFiles(hDrop As Long)
+    'FileName配列にファイルパスを格納
+    Dim FileName[MAX_PATH-1] As Byte
+    DragQueryFile(hDrop,0,FileName,MAX_PATH)
+
+    'ドラッグ＆ドロップに関する情報を解放
+    DragFinish(hDrop)
+
+
+    '-------------------
+    ' ファイル オープン
+    '-------------------
+    Dim hFile As Long
+    Dim dwFileSize As DWord
+    Dim dwAccessByte As DWord
+    Dim buffer As BytePtr
+
+    hFile=CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE, _
+                     ByVal 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0)
+    If hFile=INVALID_HANDLE_VALUE Then
+        MessageBox(hMainWnd,"ファイルオープンに失敗","TextEditor",MB_OK or MB_ICONEXCLAMATION)
+        Exit Sub
+    End If
+
+    'ファイルサイズを取得し、バッファを確保する
+    dwFileSize=GetFileSize(hFile,0)
+    buffer=malloc(dwFileSize+1)
+
+    'ファイルの内容を文字列変数bufferに読み込む
+    ReadFile(hFile,buffer,dwFileSize,VarPtr(dwAccessByte),ByVal 0)
+
+    'ファイル ハンドルを閉じる
+    CloseHandle(hFile)
+
+    '-------------------
+
+
+    'EditBox1のハンドルを取得
+    Dim hEdit As Long
+    hEdit=GetDlgItem(hMainWnd, EditBox1)
+
+    'hEditにバッファをセットする
+    SetWindowText(hEdit,buffer)
+
+    'バッファを解放する
+    free(buffer)
+
+    'hEditにフォーカスをセット
+    SetFocus(hEdit)
+
+    'ステータスバーが存在する場合には変更情報を通知する
+    MainWnd_EditBox1_Change()
+End Sub
+
+Sub MainWnd_IDM_SENDMAIL_MenuClick()
+    '「メールで送信」ダイアログボックスを開く
+    DialogBox(hMainWnd,"SendMail")
+End Sub
+
+Sub MainWnd_Notify(ByRef nmHdr As NMHDR)
+    Dim pToolTipText As *TOOLTIPTEXT
+
+    If nmHdr.code=TTN_NEEDTEXT Then
+        pToolTipText=VarPtr(nmHdr)
+        Select Case nmHdr.idFrom
+            Case IDM_NEW
+                pToolTipText->lpszText="新規作成"
+            Case IDM_OPEN
+                pToolTipText->lpszText="開く"
+            Case IDM_SAVE
+                pToolTipText->lpszText="保存"
+            Case IDM_EXIT
+                pToolTipText->lpszText="終了"
+            Case IDM_CUT
+                pToolTipText->lpszText="切り取り"
+            Case IDM_COPY
+                pToolTipText->lpszText="コピー"
+            Case IDM_PASTE
+                pToolTipText->lpszText="貼り付け"
+            Case IDM_UNDO
+                pToolTipText->lpszText="元に戻す"
+            Case IDM_SENDMAIL
+                pToolTipText->lpszText="メールで送信"
+            Case IDM_ABOUT
+                pToolTipText->lpszText="ヘルプ"
+        End Select
+    End If
+End Sub

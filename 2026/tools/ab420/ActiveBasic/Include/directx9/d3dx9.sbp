@@ -1,0 +1,16 @@
+' d3dx9.sbp
+
+TypeDef D3DCOLOR          = DWord
+
+Const D3DX_DEFAULT         = -1
+Const D3DX_DEFAULT_NONPOW2 = -2
+Const D3DX_DEFAULT_FLOAT   = FLT_MAX
+Const D3DX_FROM_FILE       = -3
+
+#include <directx9\d3d9.sbp>
+#include <directx9\d3dx9math.sbp>
+#include <directx9\d3dx9core.sbp>
+#include <directx9\d3dx9xof.sbp>
+#include <directx9\d3dx9mesh.sbp>
+#include <directx9\d3dx9shader.sbp>
+#include <directx9\d3dx9tex.sbp>

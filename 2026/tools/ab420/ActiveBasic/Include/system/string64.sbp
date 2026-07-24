@@ -1,0 +1,106 @@
+'string64.sbp
+'文字列変数の操作用
+
+Type _SYSTEM_ALLOCATED_STRING_INFO
+	pAddress As *QWord
+	num As DWord
+End Type
+Dim _System_AllocatedStringInfo As _SYSTEM_ALLOCATED_STRING_INFO
+
+Function StrPtr(buf As *Byte) As *Byte
+	StrPtr=buf
+End Function
+Function ZeroString(length As DWord) As String
+	Dim pByte As *Byte
+
+	'バッファ領域を確保
+	_System_HeapStringFree(StrPtr(ZeroString))
+	pByte=_System_HeapStringAlloc(length)
+	SetQWord(VarPtr(ZeroString),pByte)
+End Function
+Function MakeStr(pBuf As *Byte) As String
+	Dim length As Long
+
+	length=lstrlen(pBuf)
+	MakeStr=ZeroString(length)
+	memcpy(
+		StrPtr(MakeStr),
+		pBuf,
+		length)
+End Function
+
+Function _System_HeapStringAlloc(length As DWord) As *Byte
+	_System_HeapStringAlloc=(HeapAlloc(_System_hProcessHeap,HEAP_ZERO_MEMORY,4+length+1)+4) As *Byte
+	SetDWord(_System_HeapStringAlloc-4,length)
+
+	EnterCriticalSection(_System_CriticalSection)
+		_System_AllocatedStringInfo.pAddress=(HeapReAlloc(_System_hProcessHeap,0,_System_AllocatedStringInfo.pAddress,(_System_AllocatedStringInfo.num+1)*SizeOf(SIZE_T))) As *QWord
+		SetQWord(_System_AllocatedStringInfo.pAddress+_System_AllocatedStringInfo.num*SizeOf(SIZE_T),_System_HeapStringAlloc)
+		_System_AllocatedStringInfo.num=_System_AllocatedStringInfo.num+1
+	LeaveCriticalSection(_System_CriticalSection)
+End Function
+
+Sub _System_HeapStringFree(BufPtr As VoidPtr)
+	Dim i As Long
+	Dim pPtr As VoidPtr
+
+	EnterCriticalSection(_System_CriticalSection)
+	For i=0 To _System_AllocatedStringInfo.num-1
+		pPtr=_System_AllocatedStringInfo.pAddress[i] As VoidPtr
+		If pPtr=BufPtr Then
+			HeapFree(_System_hProcessHeap,0,BufPtr-4)
+
+			_System_AllocatedStringInfo.num=_System_AllocatedStringInfo.num-1
+			For i=i To _System_AllocatedStringInfo.num-1
+				_System_AllocatedStringInfo.pAddress[i]=_System_AllocatedStringInfo.pAddress[i+1]
+			Next
+
+			LeaveCriticalSection(_System_CriticalSection)
+			Exit Sub
+		End If
+	Next
+	LeaveCriticalSection(_System_CriticalSection)
+
+	If BufPtr Then
+		OutputDebugString(Ex"未知の文字列が解放されようとしました。\r\n")
+	End If
+End Sub
+
+Function _System_StrCalc_Plus(pBuf1 As *Byte,pBuf2 As *Byte) As *Byte
+	Dim buffer As *Byte
+	Dim len1 As DWord,len2 As DWord
+
+	len1=GetDWord(pBuf1-4)
+	len2=GetDWord(pBuf2-4)
+
+	buffer=_System_HeapStringAlloc(len1+len2)
+
+	memcpy(buffer,     pBuf1,len1)
+	memcpy(buffer+len1,pBuf2,len2)
+	_System_HeapStringFree(pBuf1)
+	_System_HeapStringFree(pBuf2)
+
+	_System_StrCalc_Plus=buffer
+End Function
+
+Function _System_StrCalc_Compare(pBuf2 As *Byte, pBuf1 As *Byte) As DWord
+	Dim len1 As DWord,len2 As DWord
+
+	len1=GetDWord(pBuf1-4)
+	len2=GetDWord(pBuf2-4)
+
+	_System_StrCalc_Compare=CompareString(&H800,0,pBuf1,len1,pBuf2,len2)
+
+	_System_HeapStringFree(pBuf1)
+	_System_HeapStringFree(pBuf2)
+End Function
+Function _System_StrCalc_Compare2(pBuf2 As *Byte, pBuf1 As *Byte) As DWord
+	Dim len1 As DWord,len2 As DWord
+
+	len1=GetDWord(pBuf1-4)
+	len2=GetDWord(pBuf2-4)
+
+	_System_StrCalc_Compare2=CompareString(&H800,0,pBuf1,len1,pBuf2,len2)
+
+	_System_HeapStringFree(pBuf2)
+End Function

@@ -333,17 +333,26 @@ abpc <input.abp> [output.exe]     ' 互換（単一ファイル）
 
 次は Phase 4（配列・ポインタ・`VarPtr`）。
 
-### Phase 4（実装中 / ソース完了・要リビルド）
+### Phase 4（完了）
 
 | 項目 | 状態 |
 |------|------|
-| `Dim a(N)/a[N] As Byte\|Long` | **ソース完了** |
-| `Dim p As *Byte` / `p[i]` | **ソース完了** |
-| `VarPtr(x)` / `Const` | **ソース完了** |
-| `abassembler` `movzx` / `mov [reg], al` | **ソース完了** |
-| テスト | `t4_arr` exit **10**, `t4_ptr` exit **100**, `t4_varptr` exit **7** |
+| `Dim a(N)/a[N] As Byte\|Long` | **完了** |
+| `Dim p As *Byte` / `p[i]` | **完了** |
+| `VarPtr(x)` / `Const` | **完了** |
+| `abassembler` `movzx` / `mov [reg], al` | **完了** |
+| テスト | `t4_arr` **10**, `t4_ptr` **100**, `t4_varptr` **7** |
 
-次は Phase 5（`String` ランタイム）。
+### Phase 5（実装中 / 要リビルド）
+
+| 項目 | 状態 |
+|------|------|
+| `Dim As String` / リテラル / `+` | **ソース完了** |
+| `Len` / `Asc` / `StrPtr` / `Chr$` / `Left$` / `Mid$` | **ソース完了** |
+| 文字列比較 / `Or` / `And` | **ソース完了** |
+| テスト | `t5_len`→2, `t5_cat`→4, `t5_left`→72, `t5_path`→3 |
+
+次はリビルド検証のあと Phase 6（`Type` / `#include` / WinAPI）。
 
 ---
 

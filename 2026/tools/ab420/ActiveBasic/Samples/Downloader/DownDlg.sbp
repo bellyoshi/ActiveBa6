@@ -1,0 +1,85 @@
+' ----------------------------------------------------------------------------
+'  イベント プロシージャ
+' ----------------------------------------------------------------------------
+' このファイルには、ウィンドウ [DownDlg] に関するイベントをコーディングします。
+' ウィンドウ ハンドル: hDownDlg
+
+' TODO: この位置にグローバルな変数、構造体、定数、関数を定義します。
+
+Sub SetDlgCenter(hOwner As Long, hDlg As Long)
+    Dim OwnerRect As RECT, DlgRect As RECT
+    Dim x As Long, y As Long
+
+    GetWindowRect(hOwner,OwnerRect)    'メイン ウィンドウの座標を取得
+    GetWindowRect(hDlg,DlgRect)    'ダイアログボックスの座標を取得
+
+    '新しい座標を計算
+    x=((OwnerRect.right-OwnerRect.left)-(DlgRect.right-DlgRect.left))/2 + OwnerRect.left
+    y=((OwnerRect.bottom-OwnerRect.top)-(DlgRect.bottom-DlgRect.top))/2 + OwnerRect.top
+
+    '位置を変更
+    SetWindowPos(hDlg,NULL,x,y,0,0,SWP_NOSIZE)
+End Sub
+
+
+'-----------------------------------------------------------------------------
+' ウィンドウメッセージを処理するためのコールバック関数
+
+Function DownDlgProc(hWnd As DWord, dwMsg As DWord, wParam As DWord, lParam As DWord) As DWord
+	' TODO: この位置にウィンドウメッセージを処理するためのコードを記述します。
+
+	' イベントプロシージャの呼び出しを行います。
+	DownDlgProc=EventCall_DownDlg(hWnd,dwMsg,wParam,lParam)
+End Function
+
+
+'-----------------------------------------------------------------------------
+' ここから下は、イベントプロシージャを記述するための領域になります。
+
+Sub DownDlg_Create(ByRef CreateStruct As CREATESTRUCT)
+    Dim buf[MAX_PATH-1] As Byte
+    Dim i As Long
+
+    '実行ファイルのフルパスをbufバッファに取得する
+    GetModuleFileName(GetModuleHandle(0),buf,MAX_PATH)
+
+    'フルパスからファイル部を切り取り、ディレクトリパスに変更する
+    i=lstrlen(buf)-1
+    Do
+        If buf[i]=Asc("\") Then
+            buf[i]=0
+            Exit Do
+        End If
+        i=i-1
+        If i<0 Then Exit Do
+    Loop
+
+    '「保存先フォルダ」にbufバッファの内容を指定する
+    SetDlgItemText(hDownDlg,Edit_Folder,buf)
+
+    'ダイアログボックスをMainWndの中央に表示する
+    SetDlgCenter(hMainWnd,hDownDlg)
+
+    'URLエディットボックスにカーソルを表示する
+    SetFocus(GetDlgItem(hDownDlg,Edit_Url))
+End Sub
+
+Sub DownDlg_DownloadButton_Click()
+    'URLをszDownloadUrlバッファにコピーする
+    GetDlgItemText(hDownDlg,Edit_Url,szDownloadUrl,MAX_URL)
+
+    '保存先フォルダのパスをszFolderPathバッファにコピーする
+    GetDlgItemText(hDownDlg,Edit_Folder,szFolderPath,MAX_PATH)
+
+    'HttpDownloadスレッドを生成する
+    Dim dw As DWord
+    CreateThread(ByVal 0,0,AddressOf(HttpDownload),0,0,VarPtr(dw))
+
+    'ダイアログボックスを閉じる
+    EndDialog(hDownDlg,0)
+End Sub
+
+Sub DownDlg_CancelButton_Click()
+    'ダイアログボックスを閉じる
+    EndDialog(hDownDlg,0)
+End Sub

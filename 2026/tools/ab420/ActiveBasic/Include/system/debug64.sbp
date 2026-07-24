@@ -1,0 +1,69 @@
+'debug.sbp
+'このファイル内のコードはデバッグ コンパイル時のみ有効です（リリース コンパイルでは無視されます）。
+
+'Dim _DebugSys_dwThreadID[255] As DWord		- コンパイラが自動的に定義します
+'Dim _DebugSys_ProcNum[255] As DWord		- コンパイラが自動的に定義します
+'Dim _DebugSys_lpqwObp[255] As QWord		- コンパイラが自動的に定義します
+'Dim _DebugSys_lpqwRsp[255] As QWord		- コンパイラが自動的に定義します
+
+Function _DebugSys_GetThread() As Long
+	Dim dwThreadID As DWord
+	Dim ThreadNum As Long
+
+	dwThreadID=GetCurrentThreadId()
+	ThreadNum=0
+	Do
+		If dwThreadID=_DebugSys_dwThreadID[ThreadNum] Then Exit Do
+		ThreadNum=ThreadNum+1
+		If ThreadNum>255 Then
+			OutputDebugString(Ex"[GetThread]デバッグ情報が異常です。プロセスを終了します。\r\n")
+			ExitProcess(0)
+		End If
+	Loop
+
+	_DebugSys_GetThread=ThreadNum
+End Function
+
+Sub _DebugSys_StartProc(qwRsp As QWord, qwObp As QWord)
+	Dim i As LONG_PTR
+
+	Dim ThreadNum As Long
+	ThreadNum=_DebugSys_GetThread()
+
+	If _DebugSys_lpqwObp[ThreadNum] Then
+		i=(_DebugSys_ProcNum[ThreadNum]+2)*SizeOf(QWord)
+		_DebugSys_lpqwObp[ThreadNum]=HeapReAlloc(GetProcessHeap(),0,_DebugSys_lpqwObp[ThreadNum] As VoidPtr,i) As QWord
+		_DebugSys_lpqwRsp[ThreadNum]=HeapReAlloc(GetProcessHeap(),0,_DebugSys_lpqwRsp[ThreadNum] As VoidPtr,i) As QWord
+	Else
+		_DebugSys_ProcNum[ThreadNum]=0
+		_DebugSys_lpqwObp[ThreadNum]=HeapAlloc(GetProcessHeap(),0,SizeOf(QWord)*2) As QWord
+		_DebugSys_lpqwRsp[ThreadNum]=HeapAlloc(GetProcessHeap(),0,SizeOf(QWord)*2) As QWord
+	End If
+
+	SetQWord(_DebugSys_lpqwObp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*SizeOf(QWord),qwObp)
+	SetQWord(_DebugSys_lpqwRsp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*SizeOf(QWord),qwRsp)
+
+	_DebugSys_ProcNum[ThreadNum]=_DebugSys_ProcNum[ThreadNum]+1
+End Sub
+
+Sub _DebugSys_EndProc()
+	Dim ThreadNum As Long
+	ThreadNum=_DebugSys_GetThread()
+
+	_DebugSys_ProcNum[ThreadNum]=_DebugSys_ProcNum[ThreadNum]-1
+End Sub
+
+Sub _DebugSys_SaveContext(qwRsp As DWord, qwObp As QWord)
+	Dim ThreadNum As Long
+	ThreadNum=_DebugSys_GetThread()
+
+	If _DebugSys_lpqwObp[ThreadNum]=0 Then
+		OutputDebugString(Ex"[SaveContext]デバッグ情報が異常です。プロセスを終了します。\r\n")
+		ExitProcess(0)
+	End If
+	SetQWord(_DebugSys_lpqwObp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*SizeOf(QWord), qwObp)
+	SetQWord(_DebugSys_lpqwRsp[ThreadNum]+_DebugSys_ProcNum[ThreadNum]*SizeOf(QWord), qwRsp)
+End Sub
+
+Sub _DebugSys_GetEip()	'dummy
+End Sub

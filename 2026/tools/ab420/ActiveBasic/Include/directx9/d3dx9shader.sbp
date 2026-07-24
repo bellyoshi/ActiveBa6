@@ -1,0 +1,214 @@
+' d3dx9shader.sbp
+
+
+TypeDef D3DXHANDLE = BytePtr
+
+
+Type D3DXMACRO
+	Name As BytePtr
+	Definition As BytePtr
+End Type
+
+Type D3DXSEMANTIC
+	Usage As DWord
+	UsageIndex As DWord
+End Type
+
+Type D3DXFRAGMENT_DESC
+	Name As BytePtr
+	Target As DWord
+End Type
+
+Enum D3DXREGISTER_SET
+	D3DXRS_BOOL        = 0
+	D3DXRS_INT4        = 1
+	D3DXRS_FLOAT4      = 2
+	D3DXRS_SAMPLER     = 3
+	D3DXRS_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Enum D3DXPARAMETER_CLASS
+	D3DXPC_SCALAR         = 0
+	D3DXPC_VECTOR         = 1
+	D3DXPC_MATRIX_ROWS    = 2
+	D3DXPC_MATRIX_COLUMNS = 3
+	D3DXPC_OBJECT         = 4
+	D3DXPC_STRUCT         = 5
+	D3DXPC_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+Enum D3DXPARAMETER_TYPE
+	D3DXPT_VOID           = 0
+	D3DXPT_BOOL           = 1
+	D3DXPT_INT            = 2
+	D3DXPT_FLOAT          = 3
+	D3DXPT_STRING         = 4
+	D3DXPT_TEXTURE        = 5
+	D3DXPT_TEXTURE1D      = 6
+	D3DXPT_TEXTURE2D      = 7
+	D3DXPT_TEXTURE3D      = 8
+	D3DXPT_TEXTURECUBE    = 9
+	D3DXPT_SAMPLER        = 10
+	D3DXPT_SAMPLER1D      = 11
+	D3DXPT_SAMPLER2D      = 12
+	D3DXPT_SAMPLER3D      = 13
+	D3DXPT_SAMPLERCUBE    = 14
+	D3DXPT_PIXELSHADER    = 15
+	D3DXPT_VERTEXSHADER   = 16
+	D3DXPT_PIXELFRAGMENT  = 17
+	D3DXPT_VERTEXFRAGMENT = 18
+	D3DXPT_FORCE_DWORD    = &H7FFFFFFF
+End Enum
+
+Type D3DXCONSTANTTABLE_DESC
+	Creator As BytePtr
+	Version As DWord
+	Constants As DWord
+End Type
+
+Type D3DXCONSTANT_DESC
+	Name As BytePtr
+	RegisterSet As D3DXREGISTER_SET
+	RegisterIndex As DWord
+	RegisterCount As DWord
+	Class_ As D3DXPARAMETER_CLASS
+	Type_ As D3DXPARAMETER_TYPE
+	Rows As DWord
+	Columns As DWord
+	Elements As DWord
+	StructMembers As DWord
+	Bytes As DWord
+	DefaultValue As VoidPtr
+End Type
+
+
+Class ID3DXConstantTable
+	Inherits IUnknown
+Public
+	'Buffer
+	Virtual Function GetBufferPointer() As VoidPtr
+	Virtual Function GetBufferSize() As DWord
+
+	'Descs
+	Virtual Function GetDesc(pDesc As *D3DXCONSTANTTABLE_DESC) As DWord
+	Virtual Function GetConstantDesc(hConstant As D3DXHANDLE, pConstantDesc As *D3DXCONSTANT_DESC, pCount As DWordPtr) As DWord
+	Virtual Function GetSamplerIndex(hConstant As D3DXHANDLE) As DWord
+
+	'Handle operations
+	Virtual Function GetConstant(hConstant As D3DXHANDLE, Index As DWord) As D3DXHANDLE
+	Virtual Function GetConstantByName(hConstant As D3DXHANDLE, pName As BytePtr) As D3DXHANDLE
+	Virtual Function GetConstantElement(hConstant As D3DXHANDLE, Index As DWord) As D3DXHANDLE
+
+	'Set Constants
+	Virtual Function SetDefaults(pDevice As LPDIRECT3DDEVICE9) As DWord
+	Virtual Function SetValue(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pData As VoidPtr, Bytes As DWord) As DWord
+	Virtual Function SetBool(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, b As Long) As DWord
+	Virtual Function SetBoolArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pb As *Long, Count As DWord) As DWord
+	Virtual Function SetInt(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, n As Long) As DWord
+	Virtual Function SetIntArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pn As *Long, Count As DWord) As DWord
+	Virtual Function SetFloat(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, f As Single) As DWord
+	Virtual Function SetFloatArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pf As SinglePtr, Count As DWord) As DWord
+	Virtual Function SetVector(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pVector As *D3DXVECTOR4) As DWord
+	Virtual Function SetVectorArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pVector As *D3DXVECTOR4, Count As DWord) As DWord
+	Virtual Function SetMatrix(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX) As DWord
+	Virtual Function SetMatrixArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX, Count As DWord) As DWord
+	Virtual Function SetMatrixPointerArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, ppMatrix As **D3DXMATRIX, Count As DWord) As DWord
+	Virtual Function SetMatrixTranspose(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX) As DWord
+	Virtual Function SetMatrixTransposeArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX, Count As DWord) As DWord
+	Virtual Function SetMatrixTransposePointerArray(pDevice As LPDIRECT3DDEVICE9, hConstant As D3DXHANDLE, ppMatrix As **D3DXMATRIX, Count As DWord) As DWord
+End Class
+TypeDef LPD3DXCONSTANTTABLE = *ID3DXConstantTable
+
+
+Class ID3DXTextureShader
+	Inherits IUnknown
+Public
+    'Gets
+	Virtual Function GetFunction(ppFunction As *LPD3DXBUFFER) As DWord
+	Virtual Function GetConstantBuffer(ppConstantBuffer As *LPD3DXBUFFER) As DWord
+
+    'Descs
+	Virtual Function GetDesc(pDesc As *D3DXCONSTANTTABLE_DESC) As DWord
+	Virtual Function GetConstantDesc(hConstant As D3DXHANDLE, pConstantDesc As *D3DXCONSTANT_DESC, pCount As DWordPtr) As DWord
+
+    'Handle operations
+	Virtual Function GetConstant(hConstant As D3DXHANDLE, Index As DWord) As D3DXHANDLE
+	Virtual Function GetConstantByName(hConstant As D3DXHANDLE, pName As BytePtr) As D3DXHANDLE
+	Virtual Function GetConstantElement(hConstant As D3DXHANDLE, Index As DWord) As D3DXHANDLE
+
+    'Set Constants
+	Virtual Function SetDefaults() As DWord
+	Virtual Function SetValue(hConstant As D3DXHANDLE, pData As VoidPtr, Bytes As DWord) As DWord
+	Virtual Function SetBool(hConstant As D3DXHANDLE, b As Long) As DWord
+	Virtual Function SetBoolArray(hConstant As D3DXHANDLE, pb As *Long, Count As DWord) As DWord
+	Virtual Function SetInt(hConstant As D3DXHANDLE, n As Long) As DWord
+	Virtual Function SetIntArray(hConstant As D3DXHANDLE, pn As *Long, Count As DWord) As DWord
+	Virtual Function SetFloat(hConstant As D3DXHANDLE, f As Single) As DWord
+	Virtual Function SetFloatArray(hConstant As D3DXHANDLE, pf As SinglePtr, Count As DWord) As DWord
+	Virtual Function SetVector(hConstant As D3DXHANDLE, pVector As *D3DXVECTOR4) As DWord
+	Virtual Function SetVectorArray(hConstant As D3DXHANDLE, pVector As *D3DXVECTOR4, Count As DWord) As DWord
+	Virtual Function SetMatrix(hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX) As DWord
+	Virtual Function SetMatrixArray(hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX, Count As DWord) As DWord
+	Virtual Function SetMatrixPointerArray(hConstant As D3DXHANDLE, ppMatrix As **D3DXMATRIX, Count As DWord) As DWord
+	Virtual Function SetMatrixTranspose(hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX) As DWord
+	Virtual Function SetMatrixTransposeArray(hConstant As D3DXHANDLE, pMatrix As *D3DXMATRIX, Count As DWord) As DWord
+	Virtual Function SetMatrixTransposePointerArray(hConstant As D3DXHANDLE, ppMatrix As **D3DXMATRIX, Count As DWord) As DWord
+End Class
+TypeDef LPD3DXTEXTURESHADER = *ID3DXTextureShader
+
+
+Class ID3DXFragmentLinker
+	Inherits IUnknown
+Public
+	'fragment access and information retrieval functions
+	Virtual Function GetDevice(ppDevice As *LPDIRECT3DDEVICE9) As DWord
+	Virtual Function GetNumberOfFragments() As DWord
+
+	Virtual Function GetFragmentHandleByIndex(Index As DWord) As D3DXHANDLE
+	Virtual Function GetFragmentHandleByName(Name As BytePtr) As D3DXHANDLE
+	Virtual Function GetFragmentDesc(Name As D3DXHANDLE, FragDesc As *D3DXFRAGMENT_DESC) As DWord
+
+	'add the fragments in the buffer to the linker
+	Virtual Function AddFragments(Fragments As DWordPtr) As DWord
+
+	'Create a buffer containing the fragments.  Suitable for saving to disk
+	Virtual Function GetAllFragments(ppBuffer As *LPD3DXBUFFER) As DWord
+	Virtual Function GetFragment(Name As D3DXHANDLE, ppBuffer As *LPD3DXBUFFER) As DWord
+
+	Virtual Function LinkShader(pProfile As BytePtr, Flags As DWord, rgFragmentHandles As *D3DXHANDLE, cFragments As DWord, ppBuffer As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER) As DWord
+	Virtual Function LinkVertexShader(pProfile As BytePtr, Flags As DWord, rgFragmentHandles As *D3DXHANDLE, cFragments As DWord, pVShader As *LPDIRECT3DVERTEXSHADER9, ppErrorMsgs As *LPD3DXBUFFER) As DWord
+	Virtual Function LinkPixelShader(pProfile As BytePtr, Flags As DWord, rgFragmentHandles As *D3DXHANDLE, cFragments As DWord, pPShader As *LPDIRECT3DPIXELSHADER9, ppErrorMsgs As *LPD3DXBUFFER) As DWord
+
+	Virtual Function ClearCache() As DWord
+End Class
+TypeDef LPD3DXFRAGMENTLINKER = *ID3DXFragmentLinker
+
+
+Enum D3DXINCLUDE_TYPE
+	D3DXINC_LOCAL  = 0
+	D3DXINC_SYSTEM = 1
+
+	D3DXINC_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+Class ID3DXInclude
+	Virtual Function Open(IncludeType As D3DXINCLUDE_TYPE, pFileName As BytePtr, pParentData As VoidPtr, ppData As DWordPtr, pBytes As DWordPtr) As DWord
+	Virtual Function Close(pData As VoidPtr) As DWord
+End Class
+TypeDef LPD3DXINCLUDE = *ID3DXInclude
+
+
+'--------------------
+' D3DXAssembleShader
+'--------------------
+Declare Function D3DXAssembleShaderFromFile Lib "dx9abm" Alias "D3DXAssembleShaderFromFile_abm" (pSrcFile As BytePtr, pDefines As *D3DXMACRO, pInclude As LPD3DXINCLUDE, Flags As DWord, ppShader As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER) As DWord
+Declare Function D3DXAssembleShaderFromResource Lib "dx9abm" Alias "D3DXAssembleShaderFromResource_abm" (hSrcModule As HINSTANCE, pSrcResource As BytePtr, pDefines As *D3DXMACRO, pInclude As LPD3DXINCLUDE, Flags As DWord, ppShader As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER) As DWord
+Declare Function D3DXAssembleShader Lib "dx9abm" Alias "D3DXAssembleShader_abm" (pSrcData As BytePtr, SrcDataLen As DWord, pDefines As *D3DXMACRO, pInclude As LPD3DXINCLUDE, Flags As DWord, ppShader As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER) As DWord
+
+
+'-------------------
+' D3DXCompileShader
+'-------------------
+Declare Function D3DXCompileShaderFromFile Lib "dx9abm" Alias "D3DXCompileShaderFromFile_abm" (pSrcFile As BytePtr, pDefines As *D3DXMACRO, pInclude As LPD3DXINCLUDE, pFunctionName As BytePtr, pProfile As BytePtr, Flags As DWord, ppShader As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER, ppConstantTable As *LPD3DXCONSTANTTABLE) As DWord
+Declare Function D3DXCompileShaderFromResource Lib "dx9abm" Alias "D3DXCompileShaderFromResource_abm" (hSrcModule As HINSTANCE, pSrcResource As BytePtr, pDefines As *D3DXMACRO, pInclude As LPD3DXINCLUDE, pFunctionName As BytePtr, pProfile As BytePtr, Flags As DWord, ppShader As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER, ppConstantTable As *LPD3DXCONSTANTTABLE) As DWord
+Declare Function D3DXCompileShader Lib "dx9abm" Alias "D3DXCompileShader_abm" (pSrcData As BytePtr, SrcDataLen As DWord, pDefines As *D3DXMACRO, pInclude As LPD3DXINCLUDE, pFunctionName As BytePtr, pProfile As BytePtr, Flags As DWord, ppShader As *LPD3DXBUFFER, ppErrorMsgs As *LPD3DXBUFFER, ppConstantTable As *LPD3DXCONSTANTTABLE) As DWord

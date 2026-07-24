@@ -1,0 +1,140 @@
+'d3dx9tex.sbp
+
+
+' D3DX_FILTER flags
+Const D3DX_FILTER_NONE             = 1
+Const D3DX_FILTER_POINT            = 2
+Const D3DX_FILTER_LINEAR           = 3
+Const D3DX_FILTER_TRIANGLE         = 4
+Const D3DX_FILTER_BOX              = 5
+
+Const D3DX_FILTER_MIRROR_U         = 1 << 16
+Const D3DX_FILTER_MIRROR_V         = 2 << 16
+Const D3DX_FILTER_MIRROR_W         = 4 << 16
+Const D3DX_FILTER_MIRROR           = 7 << 16
+
+Const D3DX_FILTER_DITHER           = 1 << 19
+Const D3DX_FILTER_DITHER_DIFFUSION = 2 << 19
+
+Const D3DX_FILTER_SRGB_IN          = 1 << 21
+Const D3DX_FILTER_SRGB_OUT         = 2 << 21
+Const D3DX_FILTER_SRGB             = 3 << 21
+
+
+' D3DX_NORMALMAP flags
+Const D3DX_NORMALMAP_MIRROR_U          = 1 << 16
+Const D3DX_NORMALMAP_MIRROR_V          = 2 << 16
+Const D3DX_NORMALMAP_MIRROR            = 3 << 16
+Const D3DX_NORMALMAP_INVERTSIGN        = 8 << 16
+Const D3DX_NORMALMAP_COMPUTE_OCCLUSION =16 << 16
+
+
+' D3DX_CHANNEL flags
+Const D3DX_CHANNEL_RED       = 1 << 0
+Const D3DX_CHANNEL_BLUE      = 1 << 1
+Const D3DX_CHANNEL_GREEN     = 1 << 2
+Const D3DX_CHANNEL_ALPHA     = 1 << 3
+Const D3DX_CHANNEL_LUMINANCE = 1 << 4
+
+
+Enum D3DXIMAGE_FILEFORMAT
+    D3DXIFF_BMP         = 0
+    D3DXIFF_JPG         = 1
+    D3DXIFF_TGA         = 2
+    D3DXIFF_PNG         = 3
+    D3DXIFF_DDS         = 4
+    D3DXIFF_PPM         = 5
+    D3DXIFF_DIB         = 6
+    D3DXIFF_HDR         = 7
+    D3DXIFF_PFM         = 8
+    D3DXIFF_FORCE_DWORD = &H7FFFFFFF
+End Enum
+
+
+Type D3DXIMAGE_INFO
+	Width As DWord
+	Height As DWord
+	Depth As DWord
+	MipLevels As DWord
+	Format As D3DFORMAT
+	ResourceType As D3DRESOURCETYPE
+	ImageFileFormat As D3DXIMAGE_FILEFORMAT
+End Type
+
+
+'-----------------
+' Image File APIs
+'-----------------
+
+Declare Function D3DXGetImageInfoFromFile Lib "dx9abm" Alias "D3DXGetImageInfoFromFile_abm" (pSrcFile As BytePtr, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXGetImageInfoFromResource Lib "dx9abm" Alias "D3DXGetImageInfoFromResource_abm" (hSrcModule As DWord, pSrcResource As BytePtr, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXGetImageInfoFromFileInMemory Lib "dx9abm" Alias "D3DXGetImageInfoFromFileInMemory_abm" (pSrcData As VoidPtr, SrcDataSize As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+
+
+'------------------------
+' Load/Save Surface APIs
+'------------------------
+
+Declare Function D3DXLoadSurfaceFromFile Lib "dx9abm" Alias "D3DXLoadSurfaceFromFile_abm" (pDestSurface As *IDirect3DSurface9, pDestPalette As *PALETTEENTRY, pDestRect As *RECT, pSrcFile As BytePtr, pSrcRect As *RECT, Filter As DWord, ColorKey As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXLoadSurfaceFromResource Lib "dx9abm" Alias "D3DXLoadSurfaceFromResource_abm" (pDestSurface As *IDirect3DSurface9, pDestPalette As *PALETTEENTRY, pDestRect As *RECT, hSrcModule As DWord, hSrcResource As BytePtr, pSrcRect As *RECT, Filter As DWord, ColorKey As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXLoadSurfaceFromFileInMemory Lib "dx9abm" Alias "D3DXLoadSurfaceFromFileInMemory_abm" (pDestSurface As *IDirect3DSurface9, pDestPalette As *PALETTEENTRY, pDestRect As *RECT, pSrcData As VoidPtr, SrcDataSize As DWord, pSrcRect As *RECT, Filter As DWord, ColorKey As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXLoadSurfaceFromSurface Lib "dx9abm" Alias "D3DXLoadSurfaceFromSurface_abm" (pDestSurface As *IDirect3DSurface9, pDestPalette As *PALETTEENTRY, pDestRect As *RECT, pSrcSurface As *IDirect3DSurface9, pSrcPalette As *PALETTEENTRY, pSrcRect As *RECT, Filter As DWord, ColorKey As DWord) As DWord
+Declare Function D3DXLoadSurfaceFromMemory Lib "dx9abm" Alias "D3DXLoadSurfaceFromMemory_abm" (pDestSurface As *IDirect3DSurface9, pDestPalette As *PALETTEENTRY, pDestRect As *RECT, pSrcMemory As VoidPtr, SrcFormat As D3DFORMAT, SrcPitch As DWord, pSrcPalette As *PALETTEENTRY, pSrcRect As *RECT, Filter As DWord, ColorKey As DWord) As DWord
+Declare Function D3DXSaveSurfaceToFile Lib "dx9abm" Alias "D3DXSaveSurfaceToFile_abm" (pDestFile As BytePtr, DestFormat As D3DXIMAGE_FILEFORMAT, pSrcSurface As *IDirect3DSurface9, pSrcPalette As *PALETTEENTRY, pSrcRect As *RECT) As DWord
+Declare Function D3DXSaveSurfaceToFileInMemory Lib "dx9abm" Alias "D3DXSaveSurfaceToFileInMemory_abm" (ppDestBuf As *ID3DXBuffer, DestFormat As D3DXIMAGE_FILEFORMAT, pSrcSurface As *IDirect3DSurface9, pSrcPalette As *PALETTEENTRY, pSrcRect As *RECT) As DWord
+
+
+'-----------------------
+' Load/Save Volume APIs
+'-----------------------
+Declare Function D3DXLoadVolumeFromFile Lib "dx9abm" Alias "D3DXLoadVolumeFromFile_abm" (pDestVolume As *IDirect3DVolume9, pDestPalette As *PALETTEENTRY, pDestBox As *D3DBOX, pSrcFile As BytePtr, pSrcBox As *D3DBOX, Filter As DWord, ColorKey As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXLoadVolumeFromResource Lib "dx9abm" Alias "D3DXLoadVolumeFromResource_abm" (pDestVolume As *IDirect3DVolume9, pDestPalette As *PALETTEENTRY, pDestBox As *D3DBOX, hSrcModule As DWord, pSrcResource As BytePtr, pSrcBox As *D3DBOX, Filter As DWord, ColorKey As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXLoadVolumeFromFileInMemory Lib "dx9abm" Alias "D3DXLoadVolumeFromFileInMemory_abm" (pDestVolume As *IDirect3DVolume9, pDestPalette As *PALETTEENTRY, pDestBox As *D3DBOX, pSrcData As VoidPtr, SrcDataSize As DWord, pSrcBox As *D3DBOX, Filter As DWord, ColorKey As DWord, pSrcInfo As *D3DXIMAGE_INFO) As DWord
+Declare Function D3DXLoadVolumeFromVolume Lib "dx9abm" Alias "D3DXLoadVolumeFromVolume_abm" (pDestVolume As *IDirect3DVolume9, pDestPalette As *PALETTEENTRY, pDestBox As *D3DBOX, pSrcVolume As *IDirect3DVolume9, pSrcPalette As *PALETTEENTRY, pSrcBox As *D3DBOX, Filter As DWord, ColorKey As DWord) As DWord
+Declare Function D3DXLoadVolumeFromMemory Lib "dx9abm" Alias "D3DXLoadVolumeFromMemory_abm" (pDestVolume As *IDirect3DVolume9, pDestPalette As *PALETTEENTRY, pDestBox As *D3DBOX, pSrcMemory As VoidPtr, SrcFormat As D3DFORMAT, SrcRowPitch As DWord, SrcSlicePitch As DWord, pSrcPalette As *PALETTEENTRY, pSrcBox As *D3DBOX, Filter As DWord, ColorKey As DWord) As DWord
+Declare Function D3DXSaveVolumeToFile Lib "dx9abm" Alias "D3DXSaveVolumeToFile_abm" (pDestFile As BytePtr, DestFormat As D3DXIMAGE_FILEFORMAT, pSrcVolume As *IDirect3DVolume9, pSrcPalette As *PALETTEENTRY, pSrcBox As *D3DBOX) As DWord
+Declare Function D3DXSaveVolumeToFileInMemory Lib "dx9abm" Alias "D3DXSaveVolumeToFileInMemory_abm" (ppDestBuf As **ID3DXBuffer, DestFormat As D3DXIMAGE_FILEFORMAT, pSrcVolume As *IDirect3DVolume9, pSrcPalette As *PALETTEENTRY, pSrcBox As *D3DBOX) As DWord
+
+
+'--------------------------
+' Create/Save Texture APIs
+'--------------------------
+Declare Function D3DXCheckTextureRequirements Lib "dx9abm" Alias "D3DXCheckTextureRequirements_abm" (pDevice As LPDIRECT3DDEVICE9, pWidth As DWordPtr, pHeight As DWordPtr, pNumMipLevels As DWordPtr, Usage As DWord, pFormat As *D3DFORMAT, Pool As D3DPOOL) As DWord
+Declare Function D3DXCheckCubeTextureRequirements Lib "dx9abm" Alias "D3DXCheckCubeTextureRequirements_abm" (pDevice As LPDIRECT3DDEVICE9, pSize As DWordPtr, pNumMipLevels As DWordPtr, Usage As DWord, pFormat As *D3DFORMAT, Pool As D3DPOOL) As DWord
+Declare Function D3DXCheckVolumeTextureRequirements Lib "dx9abm" Alias "D3DXCheckVolumeTextureRequirements_abm" (pDevice As LPDIRECT3DDEVICE9, pWidth As DWordPtr, pHeight As DWordPtr, pDepth As DWordPtr, pNumMipLevels As DWordPtr, Usage As DWord, pFormat As *D3DFORMAT, Pool As D3DPOOL) As DWord
+Declare Function D3DXCreateTexture Lib "dx9abm" Alias "D3DXCreateTexture_abm" (pDevice As LPDIRECT3DDEVICE9, Width As DWord, Height As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTexture Lib "dx9abm" Alias "D3DXCreateCubeTexture_abm" (pDevice As LPDIRECT3DDEVICE9, Size As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTexture Lib "dx9abm" Alias "D3DXCreateVolumeTexture_abm" (pDevice As LPDIRECT3DDEVICE9, Width As DWord, Height As DWord, Depth As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXCreateTextureFromFile Lib "dx9abm" Alias "D3DXCreateTextureFromFile_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcFile As BytePtr, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTextureFromFile Lib "dx9abm" Alias "D3DXCreateCubeTextureFromFile_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcFile As BytePtr, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTextureFromFile Lib "dx9abm" Alias "D3DXCreateVolumeTextureFromFile_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcFile As BytePtr, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXCreateTextureFromResource Lib "dx9abm" Alias "D3DXCreateTextureFromResource_abm" (pDevice As LPDIRECT3DDEVICE9, hSrcModule As HINSTANCE, pSrcResource As BytePtr, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTextureFromResource Lib "dx9abm" Alias "D3DXCreateCubeTextureFromResource_abm" (pDevice As LPDIRECT3DDEVICE9, hSrcModule As HINSTANCE, pSrcResource As BytePtr, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTextureFromResource Lib "dx9abm" Alias "D3DXCreateVolumeTextureFromResource_abm" (pDevice As LPDIRECT3DDEVICE9, hSrcModule As HINSTANCE, pSrcResource As BytePtr, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXCreateTextureFromFileEx Lib "dx9abm" Alias "D3DXCreateTextureFromFileEx_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcFile As BytePtr, Width As DWord, Height As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTextureFromFileEx Lib "dx9abm" Alias "D3DXCreateCubeTextureFromFileEx_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcFile As BytePtr, Size As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTextureFromFileEx Lib "dx9abm" Alias "D3DXCreateVolumeTextureFromFileEx_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcFile As BytePtr, Width As DWord, Height As Dword, Depth As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXCreateTextureFromResourceEx Lib "dx9abm" Alias "D3DXCreateTextureFromResourceEx_abm" (pDevice As LPDIRECT3DDEVICE9, hSrcModule As HINSTANCE, pSrcResource As BytePtr, Width As DWord, Height As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTextureFromResourceEx Lib "dx9abm" Alias "D3DXCreateCubeTextureFromResourceEx_abm" (pDevice As LPDIRECT3DDEVICE9, hSrcModule As HINSTANCE, pSrcResource As BytePtr, Size As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTextureFromResourceEx Lib "dx9abm" Alias "D3DXCreateVolumeTextureFromResourceEx_abm" (pDevice As LPDIRECT3DDEVICE9, hSrcModule As HINSTANCE, pSrcResource As BytePtr, Width As DWord, Height As Dword, Depth As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXCreateTextureFromFileInMemory Lib "dx9abm" Alias "D3DXCreateTextureFromFileInMemory_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcData As VoidPtr, SrcDataSize As DWord, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTextureFromFileInMemory Lib "dx9abm" Alias "D3DXCreateCubeTextureFromFileInMemory_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcData As VoidPtr, SrcDataSize As DWord, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTextureFromFileInMemory Lib "dx9abm" Alias "D3DXCreateVolumeTextureFromFileInMemory_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcData As VoidPtr, SrcDataSize As DWord, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXCreateTextureFromFileInMemoryEx Lib "dx9abm" Alias "D3DXCreateTextureFromFileInMemoryEx_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcData As VoidPtr, SrcDataSize As DWord, Width As DWord, Height As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppTexture As *LPDIRECT3DTEXTURE9) As DWord
+Declare Function D3DXCreateCubeTextureFromFileInMemoryEx Lib "dx9abm" Alias "D3DXCreateCubeTextureFromFileInMemoryEx_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcData As VoidPtr, SrcDataSize As DWord,Size As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppCubeTexture As *LPDIRECT3DCUBETEXTURE9) As DWord
+Declare Function D3DXCreateVolumeTextureFromFileInMemoryEx Lib "dx9abm" Alias "D3DXCreateVolumeTextureFromFileInMemoryEx_abm" (pDevice As LPDIRECT3DDEVICE9, pSrcData As VoidPtr, SrcDataSize As DWord, Width As DWord, Height As DWord, Depth As DWord, MipLevels As DWord, Usage As DWord, Format As D3DFORMAT, Pool As D3DPOOL, Filter As DWord, MipFilter As DWord, ColorKey As D3DCOLOR, pSrcInfo As *D3DXIMAGE_INFO, pPalette As *PALETTEENTRY, ppVolumeTexture As *LPDIRECT3DVOLUMETEXTURE9) As DWord
+Declare Function D3DXSaveTextureToFile Lib "dx9abm" Alias "D3DXSaveTextureToFile_abm" (pDestFile As BytePtr, DestFormat As D3DXIMAGE_FILEFORMAT, pSrcTexture As LPDIRECT3DBASETEXTURE9, pSrcPalette As *PALETTEENTRY) As DWord
+Declare Function D3DXSaveTextureToFileInMemory Lib "dx9abm" Alias "D3DXSaveTextureToFileInMemory_abm" (ppDestBuf As *LPD3DXBUFFER, DestFormat As D3DXIMAGE_FILEFORMAT, pSrcTexture As LPDIRECT3DBASETEXTURE9, pSrcPalette As *PALETTEENTRY) As DWord
+
+
+'-------------------
+' Misc Texture APIs
+'-------------------
+Declare Function D3DXFilterTexture Lib "dx9abm" Alias "D3DXFilterTexture_abm" (pBaseTexture As LPDIRECT3DBASETEXTURE9, pPalette As *PALETTEENTRY, SrcLevel As DWord, Filter As DWord) As DWord
+Declare Function D3DXFillTexture Lib "dx9abm" Alias "D3DXFillTexture_abm" (pTexture As LPDIRECT3DTEXTURE9, pFunction As VoidPtr, pData As VoidPtr) As DWord
+Declare Function D3DXFillCubeTexture Lib "dx9abm" Alias "D3DXFillCubeTexture_abm" (pCubeTexture As LPDIRECT3DCUBETEXTURE9, pFunction As VoidPtr, pData As VoidPtr) As DWord
+Declare Function D3DXFillVolumeTexture Lib "dx9abm" Alias "D3DXFillVolumeTexture_abm" (pVolumeTexture As LPDIRECT3DVOLUMETEXTURE9, pFunction As VoidPtr, pData As VoidPtr) As DWord
+Declare Function D3DXFillTextureTX Lib "dx9abm" Alias "D3DXFillTextureTX_abm" (pTexture As LPDIRECT3DTEXTURE9, pTextureShader As LPD3DXTEXTURESHADER) As DWord
+Declare Function D3DXFillCubeTextureTX Lib "dx9abm" Alias "D3DXFillCubeTextureTX_abm" (pCubeTexture As LPDIRECT3DCUBETEXTURE9, pTextureShader As LPD3DXTEXTURESHADER) As DWord
+Declare Function D3DXFillVolumeTextureTX Lib "dx9abm" Alias "D3DXFillVolumeTextureTX_abm" (pVolumeTexture As LPDIRECT3DVOLUMETEXTURE9, pTextureShader As LPD3DXTEXTURESHADER) As DWord
+Declare Function D3DXComputeNormalMap Lib "dx9abm" Alias "D3DXComputeNormalMap_abm" (pTexture As LPDIRECT3DTEXTURE9, pSrcTexture As LPDIRECT3DTEXTURE9, pSrcPalette As *PALETTEENTRY, Flags As DWord, Channel As DWord, Amplitude As Single) As DWord

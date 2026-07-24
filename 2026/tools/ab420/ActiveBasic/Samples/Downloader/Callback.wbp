@@ -1,0 +1,154 @@
+'このファイルはウィンドウ定義ファイル（*.wnd）をもとに生成されています
+
+Dim _RadSys_InitCtrls As INITCOMMONCONTROLSEX
+_RadSys_InitCtrls.dwSize=Len(_RadSys_InitCtrls)
+_RadSys_InitCtrls.dwICC=ICC_WIN95_CLASSES
+InitCommonControlsEx(_RadSys_InitCtrls)
+
+Const ListView1=1000
+Const DownloadButton=1001
+Const CancelButton=1002
+Const Edit_Url=1003
+Const Static1=1004
+Const Static2=1005
+Const Edit_Folder=1006
+Const IDM_ADDITION=1007
+Const IDM_CANCEL=1008
+
+Dim hMainWnd As HWND
+Dim hFont_MainWnd As HFONT
+hFont_MainWnd=CreateFont(-12,0,0,0,400,0,0,0,128,3,2,1,32,"ＭＳ Ｐゴシック")
+Dim hDownDlg As HWND
+Dim hFont_DownDlg As HFONT
+hFont_DownDlg=CreateFont(-12,0,0,0,400,0,0,0,128,3,2,1,32,"ＭＳ Ｐゴシック")
+Dim h3DFaceBrush As HBRUSH
+h3DFaceBrush=CreateSolidBrush(GetSysColor(COLOR_3DFACE))
+
+
+Dim hMenu_MainMenu As HMENU
+hMenu_MainMenu=CreateMenu()
+InsMenu hMenu_MainMenu,0,MF_BYPOSITION,Ex"キャンセル(&C)",IDM_CANCEL,0,0
+InsMenu hMenu_MainMenu,0,MF_BYPOSITION,Ex"追加(&A)",IDM_ADDITION,0,0
+
+Sub Downloader_DestroyObjects()
+	DestroyMenu(hMenu_MainMenu)
+	DeleteObject(hFont_MainWnd)
+	DeleteObject(hFont_DownDlg)
+	DeleteObject(h3DFaceBrush)
+End Sub
+
+Function EventCall_MainWnd(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Select Case message
+		Case WM_DESTROY
+			MainWnd_Destroy()
+		Case WM_CREATE
+			hMainWnd=hWnd
+			SetMenu(hWnd,hMenu_MainMenu)
+			CreateWindowEx(&H00000200,"SysListView32","",&H50000005,35,30,105,75,hWnd,ListView1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,ListView1),WM_SETFONT,hFont_MainWnd As WPARAM,0)
+			MainWnd_Create(ByVal (lParam As VoidPtr))
+		Case WM_SIZE
+			MainWnd_Resize(wParam As Long,LOWORD(lParam),HIWORD(lParam))
+		Case WM_CLOSE
+			Dim cancel=0 As Integer
+			If cancel=0 Then DestroyWindow(hWnd)
+		Case WM_COMMAND
+			Select Case LOWORD(wParam)
+				Case IDM_ADDITION
+					MainWnd_IDM_ADDITION_MenuClick()
+				Case IDM_CANCEL
+					MainWnd_IDM_CANCEL_MenuClick()
+			End Select
+		Case Else
+			EventCall_MainWnd=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	EventCall_MainWnd=0
+End Function
+
+Function EventCall_DownDlg(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	Select Case message
+		Case WM_INITDIALOG
+			hDownDlg=hWnd
+			CreateWindowEx(&H00000000,"BUTTON","ダウンロード",&H50000000,214,121,88,21,hWnd,DownloadButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,DownloadButton),WM_SETFONT,hFont_DownDlg As WPARAM,0)
+			CreateWindowEx(&H00000000,"BUTTON","キャンセル",&H50000000,307,121,88,21,hWnd,CancelButton As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,CancelButton),WM_SETFONT,hFont_DownDlg As WPARAM,0)
+			CreateWindowEx(&H00000200,"EDIT","",&H50000080,9,21,380,21,hWnd,Edit_Url As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Edit_Url),WM_SETFONT,hFont_DownDlg As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","URL:",&H50000000,8,6,50,12,hWnd,Static1 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static1),WM_SETFONT,hFont_DownDlg As WPARAM,0)
+			CreateWindowEx(&H00000000,"STATIC","保存先フォルダ:",&H50000000,8,56,86,12,hWnd,Static2 As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Static2),WM_SETFONT,hFont_DownDlg As WPARAM,0)
+			CreateWindowEx(&H00000200,"EDIT","",&H50000080,9,72,379,21,hWnd,Edit_Folder As HMENU,GetModuleHandle(0),0)
+			SendMessage(GetDlgItem(hWnd,Edit_Folder),WM_SETFONT,hFont_DownDlg As WPARAM,0)
+			DownDlg_Create(ByVal (lParam As VoidPtr))
+		Case WM_DESTROY
+		Case WM_CLOSE
+			Dim cancel=0 As Integer
+			If cancel=0 Then EndDialog(hWnd,0)
+		Case WM_COMMAND
+			Select Case LOWORD(wParam)
+				Case DownloadButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							DownDlg_DownloadButton_Click()
+					End Select
+				Case CancelButton
+					Select Case HIWORD(wParam)
+						Case BN_CLICKED
+							DownDlg_CancelButton_Click()
+					End Select
+			End Select
+		Case Else
+			EventCall_DownDlg=DefWindowProc(hWnd,message,wParam,lParam)
+			Exit Function
+	End Select
+	EventCall_DownDlg=0
+End Function
+
+Function DefaultCallProc(hWnd As HWND, message As DWord, wParam As WPARAM, lParam As LPARAM) As LRESULT
+	DefaultCallProc=DefWindowProc(hWnd,message,wParam,lParam)
+End Function
+
+Dim _RadSys_dlgwcl As WNDCLASSEX
+FillMemory(VarPtr(_RadSys_dlgwcl),Len(_RadSys_dlgwcl),0)
+_RadSys_dlgwcl.cbSize=Len(_RadSys_dlgwcl)
+_RadSys_dlgwcl.hInstance=GetModuleHandle(0)
+_RadSys_dlgwcl.style=CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+_RadSys_dlgwcl.hIcon=LoadIcon(NULL,MAKEINTRESOURCE(IDI_APPLICATION))
+_RadSys_dlgwcl.hIconSm=LoadIcon(NULL,MAKEINTRESOURCE(IDI_WINLOGO))
+_RadSys_dlgwcl.hCursor=LoadCursor(NULL,MAKEINTRESOURCE(IDC_ARROW))
+_RadSys_dlgwcl.lpszClassName="NORMALDLG"
+_RadSys_dlgwcl.hbrBackground=h3DFaceBrush
+_RadSys_dlgwcl.lpfnWndProc=AddressOf(DefaultCallProc)
+RegisterClassEx(_RadSys_dlgwcl)
+
+Function DialogBox(hOwnerWnd As HWND, TemplateName As LPSTR) As LONG_PTR
+	If lstrcmp(TemplateName,"DownDlg")=0 Then
+		hDownDlg=CreateWindowEx(&H00000000,"NORMALDLG","DownDlg",&H00c80000,-2147483648,-2147483648,406,174,hOwnerWnd,0 As HMENU,GetModuleHandle(0),0)
+		SetWindowLong(hDownDlg,GWL_WNDPROC,AddressOf(DownDlgProc) As LONG_PTR)
+		SendMessage(hDownDlg,WM_INITDIALOG,0,0)
+		ShowWindow(hDownDlg,SW_SHOW)
+	Else
+		Exit Function
+	End If
+	EnableWindow(hOwnerWnd,0)
+
+	Dim msg As MSG, iResult As Long
+	Do
+		iResult=GetMessage(msg,0,0,0)
+		If iResult=0 or iResult=-1 Then Exit Do
+		TranslateMessage(msg)
+		DispatchMessage(msg)
+	Loop
+	DialogBox=msg.wParam
+End Function
+Sub EndDialog(hWnd As HWND, lResult As Long)
+	EnableWindow(GetWindow(hWnd,GW_OWNER),1)
+	DestroyWindow(hWnd)
+	PostMessage(0,WM_QUIT,lResult,0)
+End Sub
+
+Function CreateDialog(hOwnerWnd As HWND, TemplateName As LPSTR) As HWND
+End Function

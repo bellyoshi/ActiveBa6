@@ -1,0 +1,34 @@
+' api_winerror.sbp
+
+Const MAKE_HRESULT(sev,fac,code) = (sev<<31) or (fac<<16) or code 
+
+' Success codes
+Const S_OK    = 0
+Const S_FALSE = 1
+
+' Not implemented
+Const E_NOTIMPL = &H80004001
+
+' Ran out of memory
+Const E_OUTOFMEMORY = &H8007000E
+
+' One or more arguments are invalid
+Const E_INVALIDARG = &H80070057
+
+' No such interface supported
+Const E_NOINTERFACE = &H80004002
+
+' Unspecified error
+Const E_FAIL = &H80004005
+
+' General access denied error
+Const E_ACCESSDENIED = &H80070005
+
+' Class does not support aggregation (or class object is remote)
+Const CLASS_E_NOAGGREGATION = &H80040110
+
+' Class not registered
+Const REGDB_E_CLASSNOTREG = &H80040154
+
+' Cannot change thread mode after it is set.
+Const RPC_E_CHANGED_MODE =&H80010106
